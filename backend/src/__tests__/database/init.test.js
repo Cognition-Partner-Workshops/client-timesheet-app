@@ -114,7 +114,9 @@ describe('Database Initialization', () => {
     });
 
     test('should handle multiple close calls safely', () => {
-      getDatabase();
+      const db = getDatabase();
+      // Reset close mock to default behavior (no error)
+      db.close.mockImplementation((callback) => callback(null));
       closeDatabase();
       closeDatabase(); // Second call should not throw
 
