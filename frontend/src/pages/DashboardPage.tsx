@@ -82,7 +82,7 @@ const DashboardPage: React.FC = () => {
               onClick={stat.action}
             >
               <CardContent>
-                <Box display="flex" alignItems="center" justifyContent="space-between">
+                <Box display="flex" alignItems="center" justifyContent="space-between" gap={3}>
                   <Box>
                     <Typography color="textSecondary" gutterBottom variant="h6">
                       {stat.title}
@@ -97,6 +97,7 @@ const DashboardPage: React.FC = () => {
                       borderRadius: 1,
                       p: 1,
                       color: 'white',
+                      flexShrink: 0,
                     }}
                   >
                     {stat.icon}
@@ -112,12 +113,13 @@ const DashboardPage: React.FC = () => {
         {/* @ts-expect-error - MUI Grid item prop type issue */}
         <Grid item xs={12} md={8}>
           <Paper sx={{ p: 3 }}>
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2} gap={3}>
               <Typography variant="h6">Recent Work Entries</Typography>
               <Button
                 variant="outlined"
                 startIcon={<AddIcon />}
                 onClick={() => navigate('/work-entries')}
+                sx={{ flexShrink: 0 }}
               >
                 Add Entry
               </Button>
