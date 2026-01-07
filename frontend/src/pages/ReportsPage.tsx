@@ -64,7 +64,6 @@ const ReportsPage: React.FC = () => {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { error?: string } } };
       setError('Failed to export CSV report');
       console.error('Export error:', err);
     }
@@ -85,7 +84,6 @@ const ReportsPage: React.FC = () => {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { error?: string } } };
       setError('Failed to export PDF report');
       console.error('Export error:', err);
     }
