@@ -297,6 +297,7 @@ const WorkEntriesPage: React.FC = () => {
                   value={formData.clientId}
                   onChange={(e) => setFormData({ ...formData, clientId: Number(e.target.value) })}
                   disabled={createMutation.isPending || updateMutation.isPending}
+                  label="Client"
                 >
                   {clients.map((client: { id: number; name: string }) => (
                     <MenuItem key={client.id} value={client.id}>
