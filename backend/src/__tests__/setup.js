@@ -1,22 +1,15 @@
-// Mock sqlite3 globally to avoid native module loading issues in tests
-jest.mock('sqlite3', () => {
-  const mockDatabase = {
-    serialize: jest.fn((callback) => callback()),
-    run: jest.fn((query, paramsOrCallback, callback) => {
-      const cb = typeof paramsOrCallback === 'function' ? paramsOrCallback : callback;
-      if (typeof cb === 'function') cb(null);
-    }),
-    get: jest.fn(),
-    all: jest.fn(),
-    close: jest.fn((callback) => callback && callback(null))
-  };
+// Mock pg (PostgreSQL) globally to avoid native module loading issues in tests
+const mockPool = {
+  query: jest.fn(),
+  end: jest.fn().mockResolvedValue(undefined),
+  on: jest.fn()
+};
 
+jest.mock('pg', () => {
   return {
-    verbose: jest.fn(() => ({
-      Database: jest.fn((path, callback) => {
-        if (callback) callback(null);
-        return mockDatabase;
-      })
-    }))
+    Pool: jest.fn(() => mockPool)
   };
 });
+
+// Export mockPool for use in tests
+global.mockPool = mockPool;
