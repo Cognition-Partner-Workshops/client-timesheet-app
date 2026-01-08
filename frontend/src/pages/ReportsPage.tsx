@@ -253,7 +253,7 @@ const ReportsPage: React.FC = () => {
                             </TableCell>
                             <TableCell>
                               <Typography variant="body2" color="text.secondary">
-                                {new Date(entry.created_at).toLocaleDateString()}
+                                {new Date(entry.createdAt).toLocaleDateString()}
                               </Typography>
                             </TableCell>
                           </TableRow>
