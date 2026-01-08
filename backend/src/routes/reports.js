@@ -11,6 +11,71 @@ const router = express.Router();
 // All routes require authentication
 router.use(authenticateUser);
 
+// Get weekly timesheet defaulters list
+// Returns users who have not submitted any timesheet entries for the specified week
+router.get('/weekly-defaulters', (req, res) => {
+  const { weekStart } = req.query;
+  
+  if (!weekStart) {
+    return res.status(400).json({ error: 'weekStart query parameter is required (format: YYYY-MM-DD)' });
+  }
+  
+  // Validate date format
+  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+  if (!dateRegex.test(weekStart)) {
+    return res.status(400).json({ error: 'Invalid date format. Use YYYY-MM-DD' });
+  }
+  
+  // Calculate week end (7 days from start)
+  const startDate = new Date(weekStart);
+  if (isNaN(startDate.getTime())) {
+    return res.status(400).json({ error: 'Invalid date provided' });
+  }
+  
+  const endDate = new Date(startDate);
+  endDate.setDate(endDate.getDate() + 6);
+  const weekEnd = endDate.toISOString().split('T')[0];
+  
+  const db = getDatabase();
+  
+  // Get all users
+  db.all('SELECT email, created_at FROM users', [], (err, allUsers) => {
+    if (err) {
+      console.error('Database error:', err);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+    
+    // Get users who have submitted entries in the specified week
+    db.all(
+      `SELECT DISTINCT user_email 
+       FROM work_entries 
+       WHERE date >= ? AND date <= ?`,
+      [weekStart, weekEnd],
+      (err, usersWithEntries) => {
+        if (err) {
+          console.error('Database error:', err);
+          return res.status(500).json({ error: 'Internal server error' });
+        }
+        
+        // Create a set of emails who have submitted entries
+        const submittedEmails = new Set(usersWithEntries.map(u => u.user_email));
+        
+        // Filter to find defaulters (users who haven't submitted)
+        const defaulters = allUsers.filter(user => !submittedEmails.has(user.email));
+        
+        res.json({
+          weekStart: weekStart,
+          weekEnd: weekEnd,
+          defaulters: defaulters,
+          totalUsers: allUsers.length,
+          defaulterCount: defaulters.length,
+          submittedCount: submittedEmails.size
+        });
+      }
+    );
+  });
+});
+
 // Get hourly report for specific client
 router.get('/client/:clientId', (req, res) => {
   const clientId = parseInt(req.params.clientId);
