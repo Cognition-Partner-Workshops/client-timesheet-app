@@ -1,5 +1,6 @@
 export interface User {
-  email: string;
+  email: string | null;
+  mobileNumber?: string | null;
   createdAt: string;
 }
 
@@ -59,6 +60,21 @@ export interface UpdateWorkEntryRequest {
 
 export interface LoginRequest {
   email: string;
+}
+
+export interface MobileLoginRequest {
+  mobileNumber: string;
+}
+
+export interface VerifyCodeRequest {
+  mobileNumber: string;
+  code: string;
+}
+
+export interface RequestCodeResponse {
+  message: string;
+  code: string; // Only for demo purposes, would not be returned in production
+  expiresIn: number;
 }
 
 export interface LoginResponse {
