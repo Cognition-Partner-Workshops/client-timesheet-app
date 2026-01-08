@@ -1,5 +1,6 @@
 const sqlite3 = require('sqlite3');
 const { getDatabase, initializeDatabase, closeDatabase } = require('../../database/init');
+const logger = require('../../utils/logger');
 
 // Mock sqlite3
 jest.mock('sqlite3', () => {
@@ -22,19 +23,14 @@ jest.mock('sqlite3', () => {
 });
 
 describe('Database Initialization', () => {
-  let consoleLogSpy, consoleErrorSpy;
-
   beforeEach(() => {
-    consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
-    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
-    
     // Reset the database singleton
     jest.resetModules();
+    // Clear logger mocks
+    jest.clearAllMocks();
   });
 
   afterEach(() => {
-    consoleLogSpy.mockRestore();
-    consoleErrorSpy.mockRestore();
     jest.clearAllMocks();
   });
 
@@ -43,7 +39,7 @@ describe('Database Initialization', () => {
       const db = getDatabase();
       
       expect(db).toBeDefined();
-      expect(consoleLogSpy).toHaveBeenCalledWith('Connected to SQLite in-memory database');
+      expect(logger.info).toHaveBeenCalledWith('Connected to SQLite in-memory database');
     });
 
     test('should return same database instance on multiple calls', () => {
@@ -53,25 +49,34 @@ describe('Database Initialization', () => {
       expect(db1).toBe(db2);
     });
 
-    test('should handle database connection error', () => {
-      jest.resetModules();
+        test('should handle database connection error', () => {
+          jest.resetModules();
       
-      jest.doMock('sqlite3', () => {
-        return {
-          verbose: jest.fn(() => ({
-            Database: jest.fn((path, callback) => {
-              callback(new Error('Connection failed'));
-              return {};
-            })
-          }))
-        };
-      });
+          // Mock logger for this specific test
+          jest.doMock('../../utils/logger', () => ({
+            info: jest.fn(),
+            error: jest.fn(),
+            warn: jest.fn(),
+            debug: jest.fn()
+          }));
+      
+          jest.doMock('sqlite3', () => {
+            return {
+              verbose: jest.fn(() => ({
+                Database: jest.fn((path, callback) => {
+                  callback(new Error('Connection failed'));
+                  return {};
+                })
+              }))
+            };
+          });
 
-      const { getDatabase: getDatabaseWithError } = require('../../database/init');
+          const { getDatabase: getDatabaseWithError } = require('../../database/init');
+          const loggerMock = require('../../utils/logger');
       
-      expect(() => getDatabaseWithError()).toThrow('Connection failed');
-      expect(consoleErrorSpy).toHaveBeenCalledWith('Error opening database:', expect.any(Error));
-    });
+          expect(() => getDatabaseWithError()).toThrow('Connection failed');
+          expect(loggerMock.error).toHaveBeenCalledWith('Error opening database:', expect.any(Error));
+        });
   });
 
   describe('initializeDatabase', () => {
@@ -107,7 +112,7 @@ describe('Database Initialization', () => {
     test('should log success message', async () => {
       await initializeDatabase();
       
-      expect(consoleLogSpy).toHaveBeenCalledWith('Database tables created successfully');
+      expect(logger.info).toHaveBeenCalledWith('Database tables created successfully');
     });
 
     test('should resolve promise on success', async () => {
@@ -120,8 +125,8 @@ describe('Database Initialization', () => {
       const db = getDatabase();
       closeDatabase();
 
-      expect(db.close).toHaveBeenCalled();
-      expect(consoleLogSpy).toHaveBeenCalledWith('Database connection closed');
+            expect(db.close).toHaveBeenCalled();
+            expect(logger.info).toHaveBeenCalledWith('Database connection closed');
     });
 
     test('should handle close error gracefully', () => {
@@ -130,7 +135,7 @@ describe('Database Initialization', () => {
 
       closeDatabase();
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith('Error closing database:', expect.any(Error));
+      expect(logger.error).toHaveBeenCalledWith('Error closing database:', expect.any(Error));
     });
 
     test('should handle multiple close calls safely', () => {
@@ -140,7 +145,7 @@ describe('Database Initialization', () => {
       closeDatabase();
       closeDatabase(); // Second call should not throw
 
-      expect(consoleErrorSpy).not.toHaveBeenCalled();
+      expect(logger.error).not.toHaveBeenCalled();
     });
   });
 

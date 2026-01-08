@@ -20,3 +20,11 @@ jest.mock('sqlite3', () => {
     }))
   };
 });
+
+// Mock winston logger to avoid logging during tests
+jest.mock('../utils/logger', () => ({
+  info: jest.fn(),
+  error: jest.fn(),
+  warn: jest.fn(),
+  debug: jest.fn()
+}));

@@ -1,8 +1,8 @@
 import axios, { type AxiosInstance, type AxiosResponse } from 'axios';
+import { transformKeysToCamelCase, transformKeysToSnakeCase } from '../utils/caseTransform';
 
-// Use empty string to make requests relative to the current origin
-// Vite proxy will forward /api requests to the backend
-const API_BASE_URL = '';
+// Use environment variable for API URL, fallback to empty string for Vite proxy
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 class ApiClient {
   private client: AxiosInstance;
@@ -30,18 +30,34 @@ class ApiClient {
       }
     );
 
-    // Response interceptor for error handling
-    this.client.interceptors.response.use(
-      (response: AxiosResponse) => response,
-      (error) => {
-        if (error.response?.status === 401) {
-          // Clear stored email on auth error
-          localStorage.removeItem('userEmail');
-          window.location.href = '/login';
-        }
-        return Promise.reject(error);
-      }
-    );
+        // Response interceptor for error handling and case transformation
+        this.client.interceptors.response.use(
+          (response: AxiosResponse) => {
+            // Transform snake_case keys to camelCase for JSON responses
+            if (response.data && typeof response.data === 'object' && !(response.data instanceof Blob)) {
+              response.data = transformKeysToCamelCase(response.data);
+            }
+            return response;
+          },
+          (error) => {
+            if (error.response?.status === 401) {
+              // Clear stored email on auth error
+              localStorage.removeItem('userEmail');
+              window.location.href = '/login';
+            }
+            return Promise.reject(error);
+          }
+        );
+
+        // Request interceptor to transform camelCase to snake_case for request body
+        this.client.interceptors.request.use(
+          (config) => {
+            if (config.data && typeof config.data === 'object') {
+              config.data = transformKeysToSnakeCase(config.data);
+            }
+            return config;
+          }
+        );
   }
 
   // Auth endpoints

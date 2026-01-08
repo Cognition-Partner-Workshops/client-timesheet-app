@@ -11,14 +11,16 @@ A full-stack web application for tracking and reporting employee hourly work acr
 - For production use, modify `backend/src/database/init.js` to use file-based SQLite instead of `:memory:`
 
 ### Authentication
-- Email-only authentication with JWT tokens
-- No password required - assumes trusted internal network
+- **Simple email-based authentication** (no JWT tokens in current implementation)
+- Authentication is done via `x-user-email` header - no password required
+- **Security Warning**: This is NOT secure for production use as anyone can set any email in the header
+- Assumes trusted internal network environment
 - Anyone with a valid email can create an account and log in
-- Consider integrating with company SSO for production use
+- **For production use**: Consider implementing actual JWT authentication using the `jsonwebtoken` package (already in dependencies) or integrating with company SSO
 
 ## Features
 
-- ✅ User authentication (email-based with JWT tokens)
+- ✅ User authentication (simple email-based)
 - ✅ Add, edit, and delete clients
 - ✅ Add, edit, and delete hourly work entries for each client
 - ✅ View hourly reports for each client
@@ -37,10 +39,11 @@ A full-stack web application for tracking and reporting employee hourly work acr
 ### Backend
 - **Node.js** with Express
 - **SQLite** in-memory database
-- **JWT** for authentication
+- **Email-based** authentication (via x-user-email header)
 - **Joi** for validation
 - **PDFKit** for PDF generation
 - **csv-writer** for CSV export
+- **Winston** for logging
 
 ## Project Structure
 
@@ -183,16 +186,17 @@ Frontend will be running at `http://localhost:5173`
 - `GET /api/reports/export/csv/:clientId` - Export report as CSV
 - `GET /api/reports/export/pdf/:clientId` - Export report as PDF
 
-All authenticated endpoints require `Authorization: Bearer <token>` header.
+All authenticated endpoints require `x-user-email: <email>` header.
 
 ## Security Features
 
-- JWT-based authentication with 24-hour token expiration
+- **Email-based authentication** (simple header-based, NOT secure for production)
 - Rate limiting on authentication endpoints (5 attempts per 15 minutes)
 - CORS protection
 - Helmet security headers
 - Input validation with Joi schemas
 - SQL injection protection with parameterized queries
+- Structured logging with Winston
 
 ## Development
 
