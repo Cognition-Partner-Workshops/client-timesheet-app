@@ -32,10 +32,32 @@ const emailSchema = Joi.object({
   email: Joi.string().email().required()
 });
 
+// Mobile number validation - accepts formats like +1234567890, 1234567890, etc.
+const mobileSchema = Joi.object({
+  mobile: Joi.string()
+    .pattern(/^\+?[1-9]\d{6,14}$/)
+    .required()
+    .messages({
+      'string.pattern.base': 'Mobile number must be a valid phone number (7-15 digits, optionally starting with +)'
+    })
+});
+
+// Login schema that accepts either email or mobile
+const loginSchema = Joi.object({
+  email: Joi.string().email(),
+  mobile: Joi.string().pattern(/^\+?[1-9]\d{6,14}$/).messages({
+    'string.pattern.base': 'Mobile number must be a valid phone number (7-15 digits, optionally starting with +)'
+  })
+}).xor('email', 'mobile').messages({
+  'object.xor': 'Please provide either email or mobile number, not both'
+});
+
 module.exports = {
   clientSchema,
   workEntrySchema,
   updateWorkEntrySchema,
   updateClientSchema,
-  emailSchema
+  emailSchema,
+  mobileSchema,
+  loginSchema
 };

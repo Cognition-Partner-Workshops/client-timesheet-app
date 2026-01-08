@@ -27,10 +27,12 @@ async function initializeDatabase() {
   
   return new Promise((resolve, reject) => {
     database.serialize(() => {
-      // Create users table
+      // Create users table - supports login via email or mobile number
+      // email is the primary identifier, mobile is an alternative login method
       database.run(`
         CREATE TABLE IF NOT EXISTS users (
           email TEXT PRIMARY KEY,
+          mobile TEXT UNIQUE,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
       `);

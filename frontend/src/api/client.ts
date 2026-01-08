@@ -50,6 +50,11 @@ class ApiClient {
     return response.data;
   }
 
+  async loginWithMobile(mobile: string) {
+    const response = await this.client.post('/api/auth/login', { mobile });
+    return response.data;
+  }
+
   async getCurrentUser() {
     const response = await this.client.get('/api/auth/me');
     return response.data;
