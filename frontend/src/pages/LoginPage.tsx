@@ -53,6 +53,9 @@ const LoginPage: React.FC = () => {
         <Typography variant="body2" align="center" color="text.secondary" sx={{ mb: 2 }}>
           Enter your email to log in
         </Typography>
+        <Alert severity="info" sx={{ mb: 2 }}>
+          This app intentionally does not have a password field.
+        </Alert>
         
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
