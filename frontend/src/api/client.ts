@@ -128,6 +128,99 @@ class ApiClient {
     return response.data;
   }
 
+  // Project endpoints
+  async getProjects() {
+    const response = await this.client.get('/api/projects');
+    return response.data;
+  }
+
+  async getProjectsByClient(clientId: number) {
+    const response = await this.client.get(`/api/projects/client/${clientId}`);
+    return response.data;
+  }
+
+  async getProject(id: number) {
+    const response = await this.client.get(`/api/projects/${id}`);
+    return response.data;
+  }
+
+  async createProject(projectData: { clientId: number; name: string; description?: string }) {
+    const response = await this.client.post('/api/projects', projectData);
+    return response.data;
+  }
+
+  async updateProject(id: number, projectData: { name?: string; description?: string; clientId?: number }) {
+    const response = await this.client.put(`/api/projects/${id}`, projectData);
+    return response.data;
+  }
+
+  async deleteProject(id: number) {
+    const response = await this.client.delete(`/api/projects/${id}`);
+    return response.data;
+  }
+
+  // Tag endpoints
+  async getTags() {
+    const response = await this.client.get('/api/tags');
+    return response.data;
+  }
+
+  async getTag(id: number) {
+    const response = await this.client.get(`/api/tags/${id}`);
+    return response.data;
+  }
+
+  async createTag(tagData: { name: string; color?: string }) {
+    const response = await this.client.post('/api/tags', tagData);
+    return response.data;
+  }
+
+  async updateTag(id: number, tagData: { name?: string; color?: string }) {
+    const response = await this.client.put(`/api/tags/${id}`, tagData);
+    return response.data;
+  }
+
+  async deleteTag(id: number) {
+    const response = await this.client.delete(`/api/tags/${id}`);
+    return response.data;
+  }
+
+  async getWorkEntryTags(workEntryId: number) {
+    const response = await this.client.get(`/api/tags/work-entry/${workEntryId}`);
+    return response.data;
+  }
+
+  async setWorkEntryTags(workEntryId: number, tagIds: number[]) {
+    const response = await this.client.post(`/api/tags/work-entry/${workEntryId}`, { tagIds });
+    return response.data;
+  }
+
+  // Timer endpoints
+  async getActiveTimer() {
+    const response = await this.client.get('/api/timer/active');
+    return response.data;
+  }
+
+  async startTimer(timerData: { clientId?: number; projectId?: number; description?: string }) {
+    const response = await this.client.post('/api/timer/start', timerData);
+    return response.data;
+  }
+
+  async stopTimer(stopData: { createWorkEntry?: boolean; clientId?: number; projectId?: number; description?: string; isBillable?: boolean }) {
+    const response = await this.client.post('/api/timer/stop', stopData);
+    return response.data;
+  }
+
+  async updateTimer(timerData: { clientId?: number; projectId?: number; description?: string }) {
+    const response = await this.client.put('/api/timer/update', timerData);
+    return response.data;
+  }
+
+  async discardTimer() {
+    const response = await this.client.delete('/api/timer/discard');
+    return response.data;
+  }
+
   // Health check
   async healthCheck() {
     const response = await this.client.get('/health');

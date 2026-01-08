@@ -22,9 +22,12 @@ import {
   Assignment as AssignmentIcon,
   Assessment as AssessmentIcon,
   Logout as LogoutIcon,
+  Folder as FolderIcon,
+  LocalOffer as TagIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import Timer from './Timer';
 
 const drawerWidth = 240;
 
@@ -45,7 +48,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const menuItems = [
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
     { text: 'Clients', icon: <BusinessIcon />, path: '/clients' },
+    { text: 'Projects', icon: <FolderIcon />, path: '/projects' },
     { text: 'Work Entries', icon: <AssignmentIcon />, path: '/work-entries' },
+    { text: 'Tags', icon: <TagIcon />, path: '/tags' },
     { text: 'Reports', icon: <AssessmentIcon />, path: '/reports' },
   ];
 
@@ -96,7 +101,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             {menuItems.find(item => item.path === location.pathname)?.text || 'Time Tracker'}
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Typography variant="body2">{user?.email}</Typography>
+            <Timer />
+            <Typography variant="body2" sx={{ display: { xs: 'none', sm: 'block' } }}>{user?.email}</Typography>
             <Avatar sx={{ width: 32, height: 32 }}>
               {user?.email?.charAt(0).toUpperCase()}
             </Avatar>

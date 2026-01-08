@@ -4,11 +4,14 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { TimerProvider } from './contexts/TimerContext';
 import Layout from './components/Layout';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import ClientsPage from './pages/ClientsPage';
+import ProjectsPage from './pages/ProjectsPage';
 import WorkEntriesPage from './pages/WorkEntriesPage';
+import TagsPage from './pages/TagsPage';
 import ReportsPage from './pages/ReportsPage';
 
 const theme = createTheme({
@@ -46,16 +49,20 @@ const AppContent: React.FC = () => {
           path="/*"
           element={
             isAuthenticated ? (
-              <Layout>
-                <Routes>
-                  <Route path="/dashboard" element={<DashboardPage />} />
-                  <Route path="/clients" element={<ClientsPage />} />
-                  <Route path="/work-entries" element={<WorkEntriesPage />} />
-                  <Route path="/reports" element={<ReportsPage />} />
-                  <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                  <Route path="*" element={<Navigate to="/dashboard" replace />} />
-                </Routes>
-              </Layout>
+              <TimerProvider>
+                <Layout>
+                  <Routes>
+                    <Route path="/dashboard" element={<DashboardPage />} />
+                    <Route path="/clients" element={<ClientsPage />} />
+                    <Route path="/projects" element={<ProjectsPage />} />
+                    <Route path="/work-entries" element={<WorkEntriesPage />} />
+                    <Route path="/tags" element={<TagsPage />} />
+                    <Route path="/reports" element={<ReportsPage />} />
+                    <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                    <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                  </Routes>
+                </Layout>
+              </TimerProvider>
             ) : (
               <Navigate to="/login" replace />
             )
