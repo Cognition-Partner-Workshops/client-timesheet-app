@@ -1,7 +1,7 @@
 export const BASE_URL = __ENV.BASE_URL || 'http://localhost:3001';
 
 export const THRESHOLDS = {
-  HTTP_ERRORS: ['rate<0.50'], // Allow up to 50% errors for CI (fresh database)
+  HTTP_ERRORS: ['rate<0.10'], // Allow up to 10% errors for CI
   RESPONSE_TIME: {
     SMOKE: {
       p95: ['p(95)<500'],
@@ -22,10 +22,10 @@ export const TEST_USER = {
   email: __ENV.TEST_USER_EMAIL || 'test@example.com',
 };
 
-export function getAuthHeaders(token) {
+export function getAuthHeaders(email) {
   return {
     'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`,
+    'x-user-email': email,
   };
 }
 

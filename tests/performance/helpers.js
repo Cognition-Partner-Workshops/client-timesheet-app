@@ -2,9 +2,10 @@ import { check, group } from 'k6';
 import http from 'k6/http';
 import { BASE_URL, getAuthHeaders, randomString } from './config.js';
 
-let authToken = null;
+let userEmail = null;
 
 export function login(email) {
+  userEmail = email; // Store email for subsequent requests
   return group('Login', () => {
     const payload = JSON.stringify({ email });
     const response = http.post(`${BASE_URL}/api/auth/login`, payload, {
@@ -13,12 +14,11 @@ export function login(email) {
     });
 
     check(response, {
-      'Login successful': (r) => r.status === 200,
-      'Has token': (r) => {
+      'Login successful': (r) => r.status === 200 || r.status === 201,
+      'Has user data': (r) => {
         try {
           const body = JSON.parse(r.body);
-          authToken = body.token;
-          return !!body.token;
+          return !!body.user && !!body.user.email;
         } catch {
           return false;
         }
@@ -29,14 +29,14 @@ export function login(email) {
   });
 }
 
-export function getToken() {
-  return authToken;
+export function getUserEmail() {
+  return userEmail;
 }
 
 export function getCurrentUser() {
   return group('Get Current User', () => {
     const response = http.get(`${BASE_URL}/api/auth/me`, {
-      headers: getAuthHeaders(authToken),
+      headers: getAuthHeaders(userEmail),
       tags: { name: 'Get Current User' },
     });
 
@@ -45,7 +45,7 @@ export function getCurrentUser() {
       'Has user data': (r) => {
         try {
           const body = JSON.parse(r.body);
-          return !!body.email;
+          return !!body.user && !!body.user.email;
         } catch {
           return false;
         }
@@ -59,7 +59,7 @@ export function getCurrentUser() {
 export function getClients() {
   return group('Get Clients', () => {
     const response = http.get(`${BASE_URL}/api/clients`, {
-      headers: getAuthHeaders(authToken),
+      headers: getAuthHeaders(userEmail),
       tags: { name: 'Get Clients' },
     });
 
@@ -87,7 +87,7 @@ export function createClient() {
     });
 
     const response = http.post(`${BASE_URL}/api/clients`, payload, {
-      headers: getAuthHeaders(authToken),
+      headers: getAuthHeaders(userEmail),
       tags: { name: 'Create Client' },
     });
 
@@ -110,7 +110,7 @@ export function createClient() {
 export function getWorkEntries() {
   return group('Get Work Entries', () => {
     const response = http.get(`${BASE_URL}/api/work-entries`, {
-      headers: getAuthHeaders(authToken),
+      headers: getAuthHeaders(userEmail),
       tags: { name: 'Get Work Entries' },
     });
 
@@ -141,7 +141,7 @@ export function createWorkEntry(clientId) {
     });
 
     const response = http.post(`${BASE_URL}/api/work-entries`, payload, {
-      headers: getAuthHeaders(authToken),
+      headers: getAuthHeaders(userEmail),
       tags: { name: 'Create Work Entry' },
     });
 
@@ -164,7 +164,7 @@ export function createWorkEntry(clientId) {
 export function getReport(clientId) {
   return group('Get Report', () => {
     const response = http.get(`${BASE_URL}/api/reports/client/${clientId}`, {
-      headers: getAuthHeaders(authToken),
+      headers: getAuthHeaders(userEmail),
       tags: { name: 'Get Report' },
     });
 
