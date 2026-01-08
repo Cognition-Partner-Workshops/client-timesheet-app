@@ -33,13 +33,6 @@ jobs:
       - name: Checkout application repo
         uses: actions/checkout@v4
 
-      - name: Checkout hosting repo for Docker config
-        uses: actions/checkout@v4
-        with:
-          repository: Cognition-Partner-Workshops/hosting-client-timesheet-app
-          path: hosting
-          token: ${{ secrets.GH_PAT }}
-
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -56,13 +49,8 @@ jobs:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          # Copy docker files from hosting repo to app directory for build context
-          cp hosting/docker/Dockerfile .
-          mkdir -p docker/overrides
-          cp -r hosting/docker/overrides/* docker/overrides/
-          
-          # Build and push
-          docker build -f Dockerfile -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
+          # Build and push using Docker config in docker/ directory
+          docker build -f docker/Dockerfile -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
           
