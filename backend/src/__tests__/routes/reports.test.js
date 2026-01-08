@@ -242,6 +242,98 @@ describe('Report Routes', () => {
     });
   });
 
+  describe('GET /api/reports/export/json/:clientId', () => {
+    test('should return JSON report with work entries', async () => {
+      const mockClient = { id: 1, name: 'Test Client' };
+      const mockWorkEntries = [
+        { id: 1, hours: 5.5, description: 'Work 1', date: '2024-01-01', created_at: '2024-01-01T10:00:00Z', updated_at: '2024-01-01T10:00:00Z' },
+        { id: 2, hours: 3.0, description: 'Work 2', date: '2024-01-02', created_at: '2024-01-02T10:00:00Z', updated_at: '2024-01-02T10:00:00Z' }
+      ];
+
+      mockDb.get.mockImplementation((query, params, callback) => {
+        callback(null, mockClient);
+      });
+
+      mockDb.all.mockImplementation((query, params, callback) => {
+        callback(null, mockWorkEntries);
+      });
+
+      const response = await request(app).get('/api/reports/export/json/1');
+
+      expect(response.status).toBe(200);
+      expect(response.headers['content-type']).toMatch(/application\/json/);
+      expect(response.headers['content-disposition']).toMatch(/attachment; filename="Test_Client_report_.*\.json"/);
+      expect(response.body.client).toEqual(mockClient);
+      expect(response.body.workEntries).toEqual(mockWorkEntries);
+      expect(response.body.totalHours).toBe(8.5);
+      expect(response.body.entryCount).toBe(2);
+      expect(response.body.generatedAt).toBeDefined();
+    });
+
+    test('should return 400 for invalid client ID', async () => {
+      const response = await request(app).get('/api/reports/export/json/invalid');
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({ error: 'Invalid client ID' });
+    });
+
+    test('should return 404 if client not found', async () => {
+      mockDb.get.mockImplementation((query, params, callback) => {
+        callback(null, null);
+      });
+
+      const response = await request(app).get('/api/reports/export/json/999');
+
+      expect(response.status).toBe(404);
+      expect(response.body).toEqual({ error: 'Client not found' });
+    });
+
+    test('should handle database error when fetching client', async () => {
+      mockDb.get.mockImplementation((query, params, callback) => {
+        callback(new Error('Database error'), null);
+      });
+
+      const response = await request(app).get('/api/reports/export/json/1');
+
+      expect(response.status).toBe(500);
+      expect(response.body).toEqual({ error: 'Internal server error' });
+    });
+
+    test('should handle database error when fetching work entries', async () => {
+      mockDb.get.mockImplementation((query, params, callback) => {
+        callback(null, { id: 1, name: 'Test Client' });
+      });
+
+      mockDb.all.mockImplementation((query, params, callback) => {
+        callback(new Error('Database error'), null);
+      });
+
+      const response = await request(app).get('/api/reports/export/json/1');
+
+      expect(response.status).toBe(500);
+      expect(response.body).toEqual({ error: 'Internal server error' });
+    });
+
+    test('should filter work entries by user email', async () => {
+      mockDb.get.mockImplementation((query, params, callback) => {
+        callback(null, { id: 1, name: 'Test Client' });
+      });
+
+      mockDb.all.mockImplementation((query, params, callback) => {
+        expect(params).toEqual([1, 'test@example.com']);
+        callback(null, []);
+      });
+
+      await request(app).get('/api/reports/export/json/1');
+
+      expect(mockDb.all).toHaveBeenCalledWith(
+        expect.stringContaining('WHERE client_id = ? AND user_email = ?'),
+        [1, 'test@example.com'],
+        expect.any(Function)
+      );
+    });
+  });
+
   describe('Data Isolation', () => {
     test('should only return data for authenticated user', async () => {
       mockDb.get.mockImplementation((query, params, callback) => {

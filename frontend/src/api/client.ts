@@ -128,6 +128,13 @@ class ApiClient {
     return response.data;
   }
 
+  async exportClientReportJson(clientId: number) {
+    const response = await this.client.get(`/api/reports/export/json/${clientId}`, {
+      responseType: 'blob',
+    });
+    return response.data;
+  }
+
   // Health check
   async healthCheck() {
     const response = await this.client.get('/health');
