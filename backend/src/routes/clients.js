@@ -8,7 +8,32 @@ const router = express.Router();
 // All routes require authentication
 router.use(authenticateUser);
 
-// Get all clients for authenticated user
+/**
+ * @swagger
+ * /api/clients:
+ *   get:
+ *     summary: Get all clients
+ *     description: Returns all clients for the authenticated user, ordered by name
+ *     tags: [Clients]
+ *     security:
+ *       - EmailAuth: []
+ *     responses:
+ *       200:
+ *         description: List of clients retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 clients:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Client'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
 router.get('/', (req, res) => {
   const db = getDatabase();
   
@@ -26,7 +51,41 @@ router.get('/', (req, res) => {
   );
 });
 
-// Get specific client
+/**
+ * @swagger
+ * /api/clients/{id}:
+ *   get:
+ *     summary: Get a specific client
+ *     description: Returns a single client by ID if it belongs to the authenticated user
+ *     tags: [Clients]
+ *     security:
+ *       - EmailAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Client ID
+ *     responses:
+ *       200:
+ *         description: Client retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 client:
+ *                   $ref: '#/components/schemas/Client'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
 router.get('/:id', (req, res) => {
   const clientId = parseInt(req.params.id);
   
@@ -54,7 +113,41 @@ router.get('/:id', (req, res) => {
   );
 });
 
-// Create new client
+/**
+ * @swagger
+ * /api/clients:
+ *   post:
+ *     summary: Create a new client
+ *     description: Creates a new client for the authenticated user
+ *     tags: [Clients]
+ *     security:
+ *       - EmailAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/ClientInput'
+ *     responses:
+ *       201:
+ *         description: Client created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Client created successfully
+ *                 client:
+ *                   $ref: '#/components/schemas/Client'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
 router.post('/', (req, res, next) => {
   try {
     const { error, value } = clientSchema.validate(req.body);
@@ -97,7 +190,50 @@ router.post('/', (req, res, next) => {
   }
 });
 
-// Update client
+/**
+ * @swagger
+ * /api/clients/{id}:
+ *   put:
+ *     summary: Update a client
+ *     description: Updates an existing client. At least one field must be provided.
+ *     tags: [Clients]
+ *     security:
+ *       - EmailAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Client ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/ClientUpdateInput'
+ *     responses:
+ *       200:
+ *         description: Client updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Client updated successfully
+ *                 client:
+ *                   $ref: '#/components/schemas/Client'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
 router.put('/:id', (req, res, next) => {
   try {
     const clientId = parseInt(req.params.id);
@@ -176,7 +312,42 @@ router.put('/:id', (req, res, next) => {
   }
 });
 
-// Delete client
+/**
+ * @swagger
+ * /api/clients/{id}:
+ *   delete:
+ *     summary: Delete a client
+ *     description: Deletes a client and all associated work entries (cascade delete)
+ *     tags: [Clients]
+ *     security:
+ *       - EmailAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Client ID
+ *     responses:
+ *       200:
+ *         description: Client deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Client deleted successfully
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
 router.delete('/:id', (req, res) => {
   const clientId = parseInt(req.params.id);
   
