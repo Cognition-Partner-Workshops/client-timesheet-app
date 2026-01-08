@@ -9,7 +9,7 @@ import {
   Alert,
   CircularProgress,
 } from '@mui/material';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 
 const LoginPage: React.FC = () => {
