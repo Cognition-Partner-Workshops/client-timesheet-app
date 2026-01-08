@@ -99,24 +99,23 @@ const WorkEntriesPage: React.FC = () => {
   const workEntries = workEntriesData?.workEntries || [];
   const clients = clientsData?.clients || [];
 
+  const getDefaultFormData = () => ({
+    clientId: 0,
+    hours: '',
+    description: '',
+    date: new Date(),
+  });
+
+  const getEntryFormData = (entry: WorkEntry) => ({
+    clientId: entry.client_id,
+    hours: entry.hours.toString(),
+    description: entry.description || '',
+    date: new Date(entry.date),
+  });
+
   const handleOpen = (entry?: WorkEntry) => {
-    if (entry) {
-      setEditingEntry(entry);
-      setFormData({
-        clientId: entry.client_id,
-        hours: entry.hours.toString(),
-        description: entry.description || '',
-        date: new Date(entry.date),
-      });
-    } else {
-      setEditingEntry(null);
-      setFormData({
-        clientId: 0,
-        hours: '',
-        description: '',
-        date: new Date(),
-      });
-    }
+    setEditingEntry(entry || null);
+    setFormData(entry ? getEntryFormData(entry) : getDefaultFormData());
     setError('');
     setOpen(true);
   };
@@ -133,38 +132,34 @@ const WorkEntriesPage: React.FC = () => {
     setError('');
   };
 
+  const validateFormData = (): string | null => {
+    if (!formData.clientId) return 'Please select a client';
+    const hours = parseFloat(formData.hours);
+    if (!hours || hours <= 0 || hours > 24) return 'Hours must be between 0 and 24';
+    if (!formData.date) return 'Please select a date';
+    return null;
+  };
+
+  const buildEntryData = () => ({
+    clientId: formData.clientId,
+    hours: parseFloat(formData.hours),
+    description: formData.description || undefined,
+    date: formData.date.toISOString().split('T')[0],
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    if (!formData.clientId) {
-      setError('Please select a client');
+    const validationError = validateFormData();
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
-    const hours = parseFloat(formData.hours);
-    if (!hours || hours <= 0 || hours > 24) {
-      setError('Hours must be between 0 and 24');
-      return;
-    }
-
-    if (!formData.date) {
-      setError('Please select a date');
-      return;
-    }
-
-    const entryData = {
-      clientId: formData.clientId,
-      hours,
-      description: formData.description || undefined,
-      date: formData.date.toISOString().split('T')[0],
-    };
-
+    const entryData = buildEntryData();
     if (editingEntry) {
-      updateMutation.mutate({
-        id: editingEntry.id,
-        data: entryData,
-      });
+      updateMutation.mutate({ id: editingEntry.id, data: entryData });
     } else {
       createMutation.mutate(entryData);
     }
