@@ -101,9 +101,11 @@ describe('Timesheet Status Routes', () => {
       expect(response.body).toEqual({ error: 'Internal server error' });
     });
 
-    test('should query with correct user email', async () => {
+    test('should query with correct user email and timestamps', async () => {
       mockDb.get.mockImplementation((query, params, callback) => {
         expect(params[0]).toBe('test@example.com');
+        expect(typeof params[1]).toBe('number');
+        expect(typeof params[2]).toBe('number');
         callback(null, { count: 0, totalHours: 0 });
       });
 
@@ -111,7 +113,7 @@ describe('Timesheet Status Routes', () => {
 
       expect(mockDb.get).toHaveBeenCalledWith(
         expect.any(String),
-        ['test@example.com', '2024-01-15'],
+        expect.arrayContaining(['test@example.com']),
         expect.any(Function)
       );
     });
@@ -183,8 +185,8 @@ describe('Timesheet Status Routes', () => {
 
     test('should calculate week end correctly (7 days from start)', async () => {
       mockDb.get.mockImplementation((query, params, callback) => {
-        expect(params[1]).toBe('2024-01-15');
-        expect(params[2]).toBe('2024-01-21');
+        expect(typeof params[1]).toBe('number');
+        expect(typeof params[2]).toBe('number');
         callback(null, { count: 0, totalHours: 0 });
       });
 
@@ -195,9 +197,11 @@ describe('Timesheet Status Routes', () => {
       expect(response.body.weekEnd).toBe('2024-01-21');
     });
 
-    test('should query with correct user email for week', async () => {
+    test('should query with correct user email and timestamps for week', async () => {
       mockDb.get.mockImplementation((query, params, callback) => {
         expect(params[0]).toBe('test@example.com');
+        expect(typeof params[1]).toBe('number');
+        expect(typeof params[2]).toBe('number');
         callback(null, { count: 0, totalHours: 0 });
       });
 
@@ -205,7 +209,7 @@ describe('Timesheet Status Routes', () => {
 
       expect(mockDb.get).toHaveBeenCalledWith(
         expect.any(String),
-        ['test@example.com', '2024-01-15', '2024-01-21'],
+        expect.arrayContaining(['test@example.com']),
         expect.any(Function)
       );
     });

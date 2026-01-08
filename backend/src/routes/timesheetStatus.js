@@ -22,11 +22,14 @@ router.get('/', (req, res) => {
     return res.status(400).json({ error: 'Invalid date format. Use YYYY-MM-DD' });
   }
   
+  const startOfDay = new Date(targetDate + 'T00:00:00.000Z').getTime();
+  const endOfDay = new Date(targetDate + 'T23:59:59.999Z').getTime();
+  
   db.get(
     `SELECT COUNT(*) as count, COALESCE(SUM(hours), 0) as totalHours
      FROM work_entries
-     WHERE user_email = ? AND date = ?`,
-    [req.userEmail, targetDate],
+     WHERE user_email = ? AND date >= ? AND date <= ?`,
+    [req.userEmail, startOfDay, endOfDay],
     (err, row) => {
       if (err) {
         console.error('Database error:', err);
@@ -56,25 +59,30 @@ router.get('/week', (req, res) => {
     if (!dateRegex.test(startDate)) {
       return res.status(400).json({ error: 'Invalid date format. Use YYYY-MM-DD' });
     }
-    weekStart = new Date(startDate);
+    weekStart = new Date(startDate + 'T00:00:00.000Z');
   } else {
     const today = new Date();
     const dayOfWeek = today.getDay();
     const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
     weekStart = new Date(today.setDate(diff));
+    weekStart.setHours(0, 0, 0, 0);
   }
   
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekEnd.getDate() + 6);
+  weekEnd.setHours(23, 59, 59, 999);
   
   const weekStartStr = weekStart.toISOString().split('T')[0];
   const weekEndStr = weekEnd.toISOString().split('T')[0];
+  
+  const weekStartTimestamp = weekStart.getTime();
+  const weekEndTimestamp = weekEnd.getTime();
   
   db.get(
     `SELECT COUNT(*) as count, COALESCE(SUM(hours), 0) as totalHours
      FROM work_entries
      WHERE user_email = ? AND date >= ? AND date <= ?`,
-    [req.userEmail, weekStartStr, weekEndStr],
+    [req.userEmail, weekStartTimestamp, weekEndTimestamp],
     (err, row) => {
       if (err) {
         console.error('Database error:', err);
