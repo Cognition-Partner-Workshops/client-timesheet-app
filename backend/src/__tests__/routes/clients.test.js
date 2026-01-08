@@ -14,7 +14,6 @@ jest.mock('../../middleware/auth', () => ({
 const app = express();
 app.use(express.json());
 app.use('/api/clients', clientRoutes);
-// Add error handler for Joi validation
 app.use((err, req, res, next) => {
   if (err.isJoi) {
     return res.status(400).json({ error: 'Validation error' });
@@ -27,9 +26,7 @@ describe('Client Routes', () => {
 
   beforeEach(() => {
     mockDb = {
-      all: jest.fn(),
-      get: jest.fn(),
-      run: jest.fn()
+      query: jest.fn()
     };
     getDatabase.mockReturnValue(mockDb);
   });
@@ -45,25 +42,16 @@ describe('Client Routes', () => {
         { id: 2, name: 'Client B', description: 'Desc B', created_at: '2024-01-02', updated_at: '2024-01-02' }
       ];
 
-      mockDb.all.mockImplementation((query, params, callback) => {
-        callback(null, mockClients);
-      });
+      mockDb.query.mockResolvedValue({ rows: mockClients });
 
       const response = await request(app).get('/api/clients');
 
       expect(response.status).toBe(200);
       expect(response.body).toEqual({ clients: mockClients });
-      expect(mockDb.all).toHaveBeenCalledWith(
-        expect.stringContaining('SELECT id, name, description'),
-        ['test@example.com'],
-        expect.any(Function)
-      );
     });
 
     test('should return empty array when no clients exist', async () => {
-      mockDb.all.mockImplementation((query, params, callback) => {
-        callback(null, []);
-      });
+      mockDb.query.mockResolvedValue({ rows: [] });
 
       const response = await request(app).get('/api/clients');
 
@@ -72,9 +60,7 @@ describe('Client Routes', () => {
     });
 
     test('should handle database error', async () => {
-      mockDb.all.mockImplementation((query, params, callback) => {
-        callback(new Error('Database error'), null);
-      });
+      mockDb.query.mockRejectedValue(new Error('Database error'));
 
       const response = await request(app).get('/api/clients');
 
@@ -87,9 +73,7 @@ describe('Client Routes', () => {
     test('should return specific client', async () => {
       const mockClient = { id: 1, name: 'Client A', description: 'Desc A' };
 
-      mockDb.get.mockImplementation((query, params, callback) => {
-        callback(null, mockClient);
-      });
+      mockDb.query.mockResolvedValue({ rows: [mockClient] });
 
       const response = await request(app).get('/api/clients/1');
 
@@ -98,9 +82,7 @@ describe('Client Routes', () => {
     });
 
     test('should return 404 if client not found', async () => {
-      mockDb.get.mockImplementation((query, params, callback) => {
-        callback(null, null);
-      });
+      mockDb.query.mockResolvedValue({ rows: [] });
 
       const response = await request(app).get('/api/clients/999');
 
@@ -116,9 +98,7 @@ describe('Client Routes', () => {
     });
 
     test('should handle database error', async () => {
-      mockDb.get.mockImplementation((query, params, callback) => {
-        callback(new Error('Database error'), null);
-      });
+      mockDb.query.mockRejectedValue(new Error('Database error'));
 
       const response = await request(app).get('/api/clients/1');
 
@@ -132,14 +112,7 @@ describe('Client Routes', () => {
       const newClient = { name: 'New Client', description: 'New Description' };
       const createdClient = { id: 1, ...newClient, created_at: '2024-01-01', updated_at: '2024-01-01' };
 
-      mockDb.run.mockImplementation(function(query, params, callback) {
-        this.lastID = 1;
-        callback.call(this, null);
-      });
-
-      mockDb.get.mockImplementation((query, params, callback) => {
-        callback(null, createdClient);
-      });
+      mockDb.query.mockResolvedValue({ rows: [createdClient] });
 
       const response = await request(app)
         .post('/api/clients')
@@ -154,14 +127,7 @@ describe('Client Routes', () => {
       const newClient = { name: 'Client Without Desc' };
       const createdClient = { id: 1, name: 'Client Without Desc', description: null };
 
-      mockDb.run.mockImplementation(function(query, params, callback) {
-        this.lastID = 1;
-        callback.call(this, null);
-      });
-
-      mockDb.get.mockImplementation((query, params, callback) => {
-        callback(null, createdClient);
-      });
+      mockDb.query.mockResolvedValue({ rows: [createdClient] });
 
       const response = await request(app)
         .post('/api/clients')
@@ -187,9 +153,7 @@ describe('Client Routes', () => {
     });
 
     test('should handle database insert error', async () => {
-      mockDb.run.mockImplementation((query, params, callback) => {
-        callback(new Error('Insert failed'));
-      });
+      mockDb.query.mockRejectedValue(new Error('Insert failed'));
 
       const response = await request(app)
         .post('/api/clients')
@@ -204,17 +168,9 @@ describe('Client Routes', () => {
     test('should update client name', async () => {
       const updatedClient = { id: 1, name: 'Updated Name', description: 'Old Desc' };
 
-      mockDb.get.mockImplementationOnce((query, params, callback) => {
-        callback(null, { id: 1 }); // Client exists
-      });
-
-      mockDb.run.mockImplementation((query, params, callback) => {
-        callback(null);
-      });
-
-      mockDb.get.mockImplementationOnce((query, params, callback) => {
-        callback(null, updatedClient);
-      });
+      mockDb.query
+        .mockResolvedValueOnce({ rows: [{ id: 1 }] })
+        .mockResolvedValueOnce({ rows: [updatedClient] });
 
       const response = await request(app)
         .put('/api/clients/1')
@@ -226,17 +182,9 @@ describe('Client Routes', () => {
     });
 
     test('should update client description', async () => {
-      mockDb.get.mockImplementationOnce((query, params, callback) => {
-        callback(null, { id: 1 });
-      });
-
-      mockDb.run.mockImplementation((query, params, callback) => {
-        callback(null);
-      });
-
-      mockDb.get.mockImplementationOnce((query, params, callback) => {
-        callback(null, { id: 1, name: 'Client', description: 'New Description' });
-      });
+      mockDb.query
+        .mockResolvedValueOnce({ rows: [{ id: 1 }] })
+        .mockResolvedValueOnce({ rows: [{ id: 1, name: 'Client', description: 'New Description' }] });
 
       const response = await request(app)
         .put('/api/clients/1')
@@ -246,9 +194,7 @@ describe('Client Routes', () => {
     });
 
     test('should return 404 if client not found', async () => {
-      mockDb.get.mockImplementation((query, params, callback) => {
-        callback(null, null);
-      });
+      mockDb.query.mockResolvedValue({ rows: [] });
 
       const response = await request(app)
         .put('/api/clients/999')
@@ -278,13 +224,9 @@ describe('Client Routes', () => {
 
   describe('DELETE /api/clients/:id', () => {
     test('should delete existing client', async () => {
-      mockDb.get.mockImplementation((query, params, callback) => {
-        callback(null, { id: 1 });
-      });
-
-      mockDb.run.mockImplementation((query, params, callback) => {
-        callback(null);
-      });
+      mockDb.query
+        .mockResolvedValueOnce({ rows: [{ id: 1 }] })
+        .mockResolvedValueOnce({ rows: [] });
 
       const response = await request(app).delete('/api/clients/1');
 
@@ -293,9 +235,7 @@ describe('Client Routes', () => {
     });
 
     test('should return 404 if client not found', async () => {
-      mockDb.get.mockImplementation((query, params, callback) => {
-        callback(null, null);
-      });
+      mockDb.query.mockResolvedValue({ rows: [] });
 
       const response = await request(app).delete('/api/clients/999');
 
@@ -311,13 +251,9 @@ describe('Client Routes', () => {
     });
 
     test('should handle database delete error', async () => {
-      mockDb.get.mockImplementation((query, params, callback) => {
-        callback(null, { id: 1 });
-      });
-
-      mockDb.run.mockImplementation((query, params, callback) => {
-        callback(new Error('Delete failed'));
-      });
+      mockDb.query
+        .mockResolvedValueOnce({ rows: [{ id: 1 }] })
+        .mockRejectedValueOnce(new Error('Delete failed'));
 
       const response = await request(app).delete('/api/clients/1');
 

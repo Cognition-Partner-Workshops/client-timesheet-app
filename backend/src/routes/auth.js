@@ -17,65 +17,63 @@ router.post('/login', async (req, res, next) => {
     const db = getDatabase();
 
     // Check if user exists
-    db.get('SELECT email, created_at FROM users WHERE email = ?', [email], (err, row) => {
-      if (err) {
-        console.error('Database error:', err);
-        return res.status(500).json({ error: 'Internal server error' });
-      }
+    const result = await db.query('SELECT email, created_at FROM users WHERE email = $1', [email]);
 
-      if (row) {
-        // User exists
-        return res.json({
-          message: 'Login successful',
-          user: {
-            email: row.email,
-            createdAt: row.created_at
-          }
-        });
-      } else {
-        // Create new user
-        db.run('INSERT INTO users (email) VALUES (?)', [email], function(err) {
-          if (err) {
-            console.error('Error creating user:', err);
-            return res.status(500).json({ error: 'Failed to create user' });
-          }
+    if (result.rows.length > 0) {
+      const row = result.rows[0];
+      return res.json({
+        message: 'Login successful',
+        user: {
+          email: row.email,
+          createdAt: row.created_at
+        }
+      });
+    } else {
+      // Create new user
+      await db.query('INSERT INTO users (email) VALUES ($1)', [email]);
 
-          res.status(201).json({
-            message: 'User created and logged in successfully',
-            user: {
-              email: email,
-              createdAt: new Date().toISOString()
-            }
-          });
-        });
-      }
-    });
+      res.status(201).json({
+        message: 'User created and logged in successfully',
+        user: {
+          email: email,
+          createdAt: new Date().toISOString()
+        }
+      });
+    }
   } catch (error) {
+    console.error('Database error:', error);
+    if (!res.headersSent) {
+      return res.status(500).json({ error: 'Internal server error' });
+    }
     next(error);
   }
 });
 
 // Get current user info
-router.get('/me', authenticateUser, (req, res) => {
-  const db = getDatabase();
-  
-  db.get('SELECT email, created_at FROM users WHERE email = ?', [req.userEmail], (err, row) => {
-    if (err) {
-      console.error('Database error:', err);
-      return res.status(500).json({ error: 'Internal server error' });
-    }
+router.get('/me', authenticateUser, async (req, res, next) => {
+  try {
+    const db = getDatabase();
 
-    if (!row) {
+    const result = await db.query('SELECT email, created_at FROM users WHERE email = $1', [req.userEmail]);
+
+    if (result.rows.length === 0) {
       return res.status(404).json({ error: 'User not found' });
     }
 
+    const row = result.rows[0];
     res.json({
       user: {
         email: row.email,
         createdAt: row.created_at
       }
     });
-  });
+  } catch (error) {
+    console.error('Database error:', error);
+    if (!res.headersSent) {
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+    next(error);
+  }
 });
 
 module.exports = router;

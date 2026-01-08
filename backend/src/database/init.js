@@ -1,91 +1,130 @@
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
+const { Pool } = require('pg');
 
-let db = null;
+let pool = null;
+
+function getPoolConfig() {
+  const config = {
+    host: process.env.DATABASE_HOST || 'localhost',
+    port: parseInt(process.env.DATABASE_PORT || '5432', 10),
+    database: process.env.DATABASE_NAME || 'timesheet',
+    user: process.env.DATABASE_USER || 'postgres',
+    password: process.env.DATABASE_PASSWORD || 'postgres',
+    max: parseInt(process.env.DATABASE_POOL_SIZE || '10', 10),
+    idleTimeoutMillis: parseInt(process.env.DATABASE_IDLE_TIMEOUT || '30000', 10),
+    connectionTimeoutMillis: parseInt(process.env.DATABASE_CONNECTION_TIMEOUT || '5000', 10),
+  };
+
+  if (process.env.DATABASE_SSL === 'true') {
+    config.ssl = {
+      rejectUnauthorized: process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== 'false'
+    };
+  }
+
+  return config;
+}
 
 function getDatabase() {
-  if (!db) {
-    // Use in-memory database as specified in requirements
-    db = new sqlite3.Database(':memory:', (err) => {
-      if (err) {
-        console.error('Error opening database:', err);
-        throw err;
-      }
-      console.log('Connected to SQLite in-memory database');
+  if (!pool) {
+    const config = getPoolConfig();
+    pool = new Pool(config);
+
+    pool.on('error', (err) => {
+      console.error('Unexpected error on idle client', err);
     });
+
+    pool.on('connect', () => {
+      console.log('New client connected to PostgreSQL pool');
+    });
+
+    console.log(`PostgreSQL pool created (host: ${config.host}, database: ${config.database})`);
   }
-  return db;
+  return pool;
 }
 
 async function initializeDatabase() {
-  const database = getDatabase();
-  
-  return new Promise((resolve, reject) => {
-    database.serialize(() => {
-      // Create users table
-      database.run(`
-        CREATE TABLE IF NOT EXISTS users (
-          email TEXT PRIMARY KEY,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-      `);
+  const db = getDatabase();
 
-      // Create clients table
-      database.run(`
-        CREATE TABLE IF NOT EXISTS clients (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          name TEXT NOT NULL,
-          description TEXT,
-          user_email TEXT NOT NULL,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (user_email) REFERENCES users (email) ON DELETE CASCADE
-        )
-      `);
+  try {
+    const createUsersTable = `
+      CREATE TABLE IF NOT EXISTS users (
+        email TEXT PRIMARY KEY,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
 
-      // Create work_entries table
-      database.run(`
-        CREATE TABLE IF NOT EXISTS work_entries (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          client_id INTEGER NOT NULL,
-          user_email TEXT NOT NULL,
-          hours DECIMAL(5,2) NOT NULL,
-          description TEXT,
-          date DATE NOT NULL,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (client_id) REFERENCES clients (id) ON DELETE CASCADE,
-          FOREIGN KEY (user_email) REFERENCES users (email) ON DELETE CASCADE
-        )
-      `);
+    const createClientsTable = `
+      CREATE TABLE IF NOT EXISTS clients (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT,
+        user_email TEXT NOT NULL REFERENCES users(email) ON DELETE CASCADE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
 
-      // Create indexes for better performance
-      database.run(`CREATE INDEX IF NOT EXISTS idx_clients_user_email ON clients (user_email)`);
-      database.run(`CREATE INDEX IF NOT EXISTS idx_work_entries_client_id ON work_entries (client_id)`);
-      database.run(`CREATE INDEX IF NOT EXISTS idx_work_entries_user_email ON work_entries (user_email)`);
-      database.run(`CREATE INDEX IF NOT EXISTS idx_work_entries_date ON work_entries (date)`);
+    const createWorkEntriesTable = `
+      CREATE TABLE IF NOT EXISTS work_entries (
+        id SERIAL PRIMARY KEY,
+        client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
+        user_email TEXT NOT NULL REFERENCES users(email) ON DELETE CASCADE,
+        hours DECIMAL(5,2) NOT NULL,
+        description TEXT,
+        date DATE NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
 
-      console.log('Database tables created successfully');
-      resolve();
-    });
-  });
+    const createIndexes = [
+      'CREATE INDEX IF NOT EXISTS idx_clients_user_email ON clients(user_email)',
+      'CREATE INDEX IF NOT EXISTS idx_work_entries_client_id ON work_entries(client_id)',
+      'CREATE INDEX IF NOT EXISTS idx_work_entries_user_email ON work_entries(user_email)',
+      'CREATE INDEX IF NOT EXISTS idx_work_entries_date ON work_entries(date)'
+    ];
+
+    await db.query(createUsersTable);
+    await db.query(createClientsTable);
+    await db.query(createWorkEntriesTable);
+
+    for (const indexQuery of createIndexes) {
+      await db.query(indexQuery);
+    }
+
+    console.log('Database tables and indexes created successfully');
+  } catch (error) {
+    console.error('Error initializing database:', error);
+    throw error;
+  }
 }
 
-function closeDatabase() {
-  if (db) {
-    db.close((err) => {
-      if (err) {
-        console.error('Error closing database:', err);
-      } else {
-        console.log('Database connection closed');
-      }
-    });
-    db = null;
+async function closeDatabase() {
+  if (pool) {
+    try {
+      await pool.end();
+      console.log('PostgreSQL pool closed');
+      pool = null;
+    } catch (error) {
+      console.error('Error closing database pool:', error);
+      throw error;
+    }
+  }
+}
+
+async function checkDatabaseHealth() {
+  const db = getDatabase();
+  try {
+    const result = await db.query('SELECT 1 as health_check');
+    return result.rows.length > 0;
+  } catch (error) {
+    console.error('Database health check failed:', error);
+    return false;
   }
 }
 
 module.exports = {
   getDatabase,
   initializeDatabase,
-  closeDatabase
+  closeDatabase,
+  checkDatabaseHealth
 };

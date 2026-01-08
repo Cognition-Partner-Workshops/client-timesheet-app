@@ -14,7 +14,6 @@ jest.mock('../../middleware/auth', () => ({
 const app = express();
 app.use(express.json());
 app.use('/api/work-entries', workEntryRoutes);
-// Add error handler for Joi validation
 app.use((err, req, res, next) => {
   if (err.isJoi) {
     return res.status(400).json({ error: 'Validation error' });
@@ -27,9 +26,7 @@ describe('Work Entry Routes', () => {
 
   beforeEach(() => {
     mockDb = {
-      all: jest.fn(),
-      get: jest.fn(),
-      run: jest.fn()
+      query: jest.fn()
     };
     getDatabase.mockReturnValue(mockDb);
   });
@@ -45,9 +42,7 @@ describe('Work Entry Routes', () => {
         { id: 2, client_id: 2, hours: 3, description: 'Work 2', date: '2024-01-02', client_name: 'Client B' }
       ];
 
-      mockDb.all.mockImplementation((query, params, callback) => {
-        callback(null, mockEntries);
-      });
+      mockDb.query.mockResolvedValue({ rows: mockEntries });
 
       const response = await request(app).get('/api/work-entries');
 
@@ -56,17 +51,13 @@ describe('Work Entry Routes', () => {
     });
 
     test('should filter by client ID when provided', async () => {
-      mockDb.all.mockImplementation((query, params, callback) => {
-        expect(params).toEqual(['test@example.com', 1]);
-        callback(null, []);
-      });
+      mockDb.query.mockResolvedValue({ rows: [] });
 
       await request(app).get('/api/work-entries?clientId=1');
 
-      expect(mockDb.all).toHaveBeenCalledWith(
-        expect.stringContaining('AND we.client_id = ?'),
-        ['test@example.com', 1],
-        expect.any(Function)
+      expect(mockDb.query).toHaveBeenCalledWith(
+        expect.stringContaining('AND we.client_id = $2'),
+        ['test@example.com', 1]
       );
     });
 
@@ -78,9 +69,7 @@ describe('Work Entry Routes', () => {
     });
 
     test('should handle database error', async () => {
-      mockDb.all.mockImplementation((query, params, callback) => {
-        callback(new Error('Database error'), null);
-      });
+      mockDb.query.mockRejectedValue(new Error('Database error'));
 
       const response = await request(app).get('/api/work-entries');
 
@@ -93,9 +82,7 @@ describe('Work Entry Routes', () => {
     test('should return specific work entry', async () => {
       const mockEntry = { id: 1, client_id: 1, hours: 5, description: 'Work', client_name: 'Client A' };
 
-      mockDb.get.mockImplementation((query, params, callback) => {
-        callback(null, mockEntry);
-      });
+      mockDb.query.mockResolvedValue({ rows: [mockEntry] });
 
       const response = await request(app).get('/api/work-entries/1');
 
@@ -104,9 +91,7 @@ describe('Work Entry Routes', () => {
     });
 
     test('should return 404 if work entry not found', async () => {
-      mockDb.get.mockImplementation((query, params, callback) => {
-        callback(null, null);
-      });
+      mockDb.query.mockResolvedValue({ rows: [] });
 
       const response = await request(app).get('/api/work-entries/999');
 
@@ -131,18 +116,12 @@ describe('Work Entry Routes', () => {
         date: '2024-01-15'
       };
 
-      mockDb.get.mockImplementation((query, params, callback) => {
-        if (query.includes('clients')) {
-          callback(null, { id: 1 }); // Client exists
-        } else {
-          callback(null, { id: 1, ...newEntry, client_name: 'Client A' });
-        }
-      });
+      const createdEntry = { id: 1, client_id: 1, hours: 5.5, description: 'Development work', date: '2024-01-15', client_name: 'Client A' };
 
-      mockDb.run.mockImplementation(function(query, params, callback) {
-        this.lastID = 1;
-        callback.call(this, null);
-      });
+      mockDb.query
+        .mockResolvedValueOnce({ rows: [{ id: 1 }] })
+        .mockResolvedValueOnce({ rows: [{ id: 1 }] })
+        .mockResolvedValueOnce({ rows: [createdEntry] });
 
       const response = await request(app)
         .post('/api/work-entries')
@@ -153,9 +132,7 @@ describe('Work Entry Routes', () => {
     });
 
     test('should return 400 if client not found', async () => {
-      mockDb.get.mockImplementation((query, params, callback) => {
-        callback(null, null); // Client doesn't exist
-      });
+      mockDb.query.mockResolvedValue({ rows: [] });
 
       const response = await request(app)
         .post('/api/work-entries')
@@ -202,13 +179,9 @@ describe('Work Entry Routes', () => {
     });
 
     test('should handle database error on insert', async () => {
-      mockDb.get.mockImplementation((query, params, callback) => {
-        callback(null, { id: 1 });
-      });
-
-      mockDb.run.mockImplementation((query, params, callback) => {
-        callback(new Error('Insert failed'));
-      });
+      mockDb.query
+        .mockResolvedValueOnce({ rows: [{ id: 1 }] })
+        .mockRejectedValueOnce(new Error('Insert failed'));
 
       const response = await request(app)
         .post('/api/work-entries')
@@ -225,17 +198,12 @@ describe('Work Entry Routes', () => {
 
   describe('PUT /api/work-entries/:id', () => {
     test('should update work entry hours', async () => {
-      mockDb.get.mockImplementation((query, params, callback) => {
-        if (query.includes('work_entries we')) {
-          callback(null, { id: 1, hours: 8, client_name: 'Client A' });
-        } else {
-          callback(null, { id: 1 });
-        }
-      });
+      const updatedEntry = { id: 1, hours: 8, client_name: 'Client A' };
 
-      mockDb.run.mockImplementation((query, params, callback) => {
-        callback(null);
-      });
+      mockDb.query
+        .mockResolvedValueOnce({ rows: [{ id: 1 }] })
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [updatedEntry] });
 
       const response = await request(app)
         .put('/api/work-entries/1')
@@ -246,13 +214,11 @@ describe('Work Entry Routes', () => {
     });
 
     test('should update work entry client', async () => {
-      mockDb.get.mockImplementation((query, params, callback) => {
-        callback(null, { id: 1 });
-      });
-
-      mockDb.run.mockImplementation((query, params, callback) => {
-        callback(null);
-      });
+      mockDb.query
+        .mockResolvedValueOnce({ rows: [{ id: 1 }] })
+        .mockResolvedValueOnce({ rows: [{ id: 2 }] })
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [{ id: 1 }] });
 
       const response = await request(app)
         .put('/api/work-entries/1')
@@ -262,9 +228,7 @@ describe('Work Entry Routes', () => {
     });
 
     test('should return 404 if work entry not found', async () => {
-      mockDb.get.mockImplementation((query, params, callback) => {
-        callback(null, null);
-      });
+      mockDb.query.mockResolvedValue({ rows: [] });
 
       const response = await request(app)
         .put('/api/work-entries/999')
@@ -292,13 +256,9 @@ describe('Work Entry Routes', () => {
     });
 
     test('should return 400 if new client not found', async () => {
-      mockDb.get.mockImplementation((query, params, callback) => {
-        if (query.includes('work_entries')) {
-          callback(null, { id: 1 });
-        } else {
-          callback(null, null); // Client doesn't exist
-        }
-      });
+      mockDb.query
+        .mockResolvedValueOnce({ rows: [{ id: 1 }] })
+        .mockResolvedValueOnce({ rows: [] });
 
       const response = await request(app)
         .put('/api/work-entries/1')
@@ -311,13 +271,9 @@ describe('Work Entry Routes', () => {
 
   describe('DELETE /api/work-entries/:id', () => {
     test('should delete existing work entry', async () => {
-      mockDb.get.mockImplementation((query, params, callback) => {
-        callback(null, { id: 1 });
-      });
-
-      mockDb.run.mockImplementation((query, params, callback) => {
-        callback(null);
-      });
+      mockDb.query
+        .mockResolvedValueOnce({ rows: [{ id: 1 }] })
+        .mockResolvedValueOnce({ rows: [] });
 
       const response = await request(app).delete('/api/work-entries/1');
 
@@ -326,9 +282,7 @@ describe('Work Entry Routes', () => {
     });
 
     test('should return 404 if work entry not found', async () => {
-      mockDb.get.mockImplementation((query, params, callback) => {
-        callback(null, null);
-      });
+      mockDb.query.mockResolvedValue({ rows: [] });
 
       const response = await request(app).delete('/api/work-entries/999');
 
@@ -344,13 +298,9 @@ describe('Work Entry Routes', () => {
     });
 
     test('should handle database delete error', async () => {
-      mockDb.get.mockImplementation((query, params, callback) => {
-        callback(null, { id: 1 });
-      });
-
-      mockDb.run.mockImplementation((query, params, callback) => {
-        callback(new Error('Delete failed'));
-      });
+      mockDb.query
+        .mockResolvedValueOnce({ rows: [{ id: 1 }] })
+        .mockRejectedValueOnce(new Error('Delete failed'));
 
       const response = await request(app).delete('/api/work-entries/1');
 
