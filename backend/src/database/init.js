@@ -1,5 +1,6 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const logger = require('../utils/logger');
 
 let db = null;
 let isClosing = false;
@@ -11,13 +12,13 @@ function getDatabase() {
     isClosing = false;
     isClosed = false;
     // Use in-memory database as specified in requirements
-    db = new sqlite3.Database(':memory:', (err) => {
-      if (err) {
-        console.error('Error opening database:', err);
-        throw err;
-      }
-      console.log('Connected to SQLite in-memory database');
-    });
+        db = new sqlite3.Database(':memory:', (err) => {
+          if (err) {
+            logger.error('Error opening database:', err);
+            throw err;
+          }
+          logger.info('Connected to SQLite in-memory database');
+        });
   }
   return db;
 }
@@ -70,7 +71,7 @@ async function initializeDatabase() {
       database.run(`CREATE INDEX IF NOT EXISTS idx_work_entries_user_email ON work_entries (user_email)`);
       database.run(`CREATE INDEX IF NOT EXISTS idx_work_entries_date ON work_entries (date)`);
 
-      console.log('Database tables created successfully');
+      logger.info('Database tables created successfully');
       resolve();
     });
   });
@@ -78,6 +79,12 @@ async function initializeDatabase() {
 
 function closeDatabase() {
   return new Promise((resolve, reject) => {
+    if (!db) {
+      // No database connection, resolve immediately
+      resolve();
+      return;
+    }
+
     if (isClosed) {
       // Already closed, resolve immediately
       resolve();
@@ -95,22 +102,16 @@ function closeDatabase() {
       return;
     }
     
-    if (!db) {
-      // No database connection, resolve immediately
-      resolve();
-      return;
-    }
-    
     isClosing = true;
     db.close((err) => {
       isClosed = true;
       isClosing = false;
       db = null;
-      if (err) {
-        console.error('Error closing database:', err);
-      } else {
-        console.log('Database connection closed');
-      }
+            if (err) {
+              logger.error('Error closing database:', err);
+            } else {
+              logger.info('Database connection closed');
+            }
       resolve();
     });
   });
