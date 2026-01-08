@@ -54,7 +54,7 @@ const LoginPage: React.FC = () => {
           Enter your email to log in
         </Typography>
         <Alert severity="info" sx={{ mb: 2 }}>
-          This app uses passwordless authentication for internal use only.
+          This app intentionally does not have a password field.
         </Alert>
         
         {error && (
