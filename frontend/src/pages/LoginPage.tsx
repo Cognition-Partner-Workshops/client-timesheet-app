@@ -48,7 +48,7 @@ const LoginPage: React.FC = () => {
     >
       <Paper elevation={3} sx={{ padding: 3, width: '100%', maxWidth: 500 }}>
         <Typography component="h1" variant="h4" align="center" gutterBottom>
-          Time Tracker
+          Training Timesheet
         </Typography>
         <Typography variant="body2" align="center" color="text.secondary" sx={{ mb: 2 }}>
           Enter your email to log in
