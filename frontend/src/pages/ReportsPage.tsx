@@ -49,20 +49,28 @@ const ReportsPage: React.FC = () => {
   const clients = clientsData?.clients || [];
   const report = reportData as ClientReport | undefined;
 
+  const getExportFilename = (extension: string) => {
+    const client = clients.find((c: { id: number; name: string }) => c.id === selectedClientId);
+    const safeName = client?.name?.replace(/[^a-zA-Z0-9]/g, '_') || 'report';
+    return `${safeName}_report_${new Date().toISOString().split('T')[0]}.${extension}`;
+  };
+
+  const downloadBlob = (blob: Blob, filename: string) => {
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  };
+
   const handleExportCsv = async () => {
     if (!selectedClientId) return;
-    
     try {
       const blob = await apiClient.exportClientReportCsv(selectedClientId);
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      const client = clients.find((c: { id: number; name: string }) => c.id === selectedClientId);
-      a.download = `${client?.name?.replace(/[^a-zA-Z0-9]/g, '_')}_report_${new Date().toISOString().split('T')[0]}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      downloadBlob(blob, getExportFilename('csv'));
     } catch (err: unknown) {
       setError('Failed to export CSV report');
       console.error('Export error:', err);
@@ -71,18 +79,9 @@ const ReportsPage: React.FC = () => {
 
   const handleExportPdf = async () => {
     if (!selectedClientId) return;
-
     try {
       const blob = await apiClient.exportClientReportPdf(selectedClientId);
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      const client = clients.find((c: { id: number; name: string }) => c.id === selectedClientId);
-      a.download = `${client?.name?.replace(/[^a-zA-Z0-9]/g, '_')}_report_${new Date().toISOString().split('T')[0]}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      downloadBlob(blob, getExportFilename('pdf'));
     } catch (err: unknown) {
       setError('Failed to export PDF report');
       console.error('Export error:', err);

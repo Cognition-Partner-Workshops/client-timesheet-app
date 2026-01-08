@@ -81,14 +81,16 @@ const ClientsPage: React.FC = () => {
 
   const clients = clientsData?.clients || [];
 
+  const getDefaultFormData = () => ({ name: '', description: '' });
+
+  const getClientFormData = (client: Client) => ({
+    name: client.name,
+    description: client.description || '',
+  });
+
   const handleOpen = (client?: Client) => {
-    if (client) {
-      setEditingClient(client);
-      setFormData({ name: client.name, description: client.description || '' });
-    } else {
-      setEditingClient(null);
-      setFormData({ name: '', description: '' });
-    }
+    setEditingClient(client || null);
+    setFormData(client ? getClientFormData(client) : getDefaultFormData());
     setError('');
     setOpen(true);
   };
@@ -100,6 +102,11 @@ const ClientsPage: React.FC = () => {
     setError('');
   };
 
+  const buildClientData = () => ({
+    name: formData.name,
+    description: formData.description || undefined,
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -109,19 +116,11 @@ const ClientsPage: React.FC = () => {
       return;
     }
 
+    const clientData = buildClientData();
     if (editingClient) {
-      updateMutation.mutate({
-        id: editingClient.id,
-        data: {
-          name: formData.name,
-          description: formData.description || undefined,
-        },
-      });
+      updateMutation.mutate({ id: editingClient.id, data: clientData });
     } else {
-      createMutation.mutate({
-        name: formData.name,
-        description: formData.description || undefined,
-      });
+      createMutation.mutate(clientData);
     }
   };
 
