@@ -31,6 +31,19 @@ async function initializeDatabase() {
       database.run(`
         CREATE TABLE IF NOT EXISTS users (
           email TEXT PRIMARY KEY,
+          mobile_number TEXT UNIQUE,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      // Create auth_codes table for mobile authentication
+      database.run(`
+        CREATE TABLE IF NOT EXISTS auth_codes (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          mobile_number TEXT NOT NULL,
+          code TEXT NOT NULL,
+          expires_at DATETIME NOT NULL,
+          used INTEGER DEFAULT 0,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
       `);
@@ -69,6 +82,8 @@ async function initializeDatabase() {
       database.run(`CREATE INDEX IF NOT EXISTS idx_work_entries_client_id ON work_entries (client_id)`);
       database.run(`CREATE INDEX IF NOT EXISTS idx_work_entries_user_email ON work_entries (user_email)`);
       database.run(`CREATE INDEX IF NOT EXISTS idx_work_entries_date ON work_entries (date)`);
+      database.run(`CREATE INDEX IF NOT EXISTS idx_auth_codes_mobile_number ON auth_codes (mobile_number)`);
+      database.run(`CREATE INDEX IF NOT EXISTS idx_users_mobile_number ON users (mobile_number)`);
 
       console.log('Database tables created successfully');
       resolve();

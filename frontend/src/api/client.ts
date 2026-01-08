@@ -16,12 +16,15 @@ class ApiClient {
       },
     });
 
-    // Request interceptor to add email header
+    // Request interceptor to add email or mobile header
     this.client.interceptors.request.use(
       (config) => {
         const userEmail = localStorage.getItem('userEmail');
+        const userMobile = localStorage.getItem('userMobile');
         if (userEmail) {
           config.headers['x-user-email'] = userEmail;
+        } else if (userMobile) {
+          config.headers['x-user-mobile'] = userMobile;
         }
         return config;
       },
@@ -35,8 +38,9 @@ class ApiClient {
       (response: AxiosResponse) => response,
       (error) => {
         if (error.response?.status === 401) {
-          // Clear stored email on auth error
+          // Clear stored credentials on auth error
           localStorage.removeItem('userEmail');
+          localStorage.removeItem('userMobile');
           window.location.href = '/login';
         }
         return Promise.reject(error);
@@ -47,6 +51,16 @@ class ApiClient {
   // Auth endpoints
   async login(email: string) {
     const response = await this.client.post('/api/auth/login', { email });
+    return response.data;
+  }
+
+  async requestAuthCode(mobileNumber: string) {
+    const response = await this.client.post('/api/auth/request-code', { mobileNumber });
+    return response.data;
+  }
+
+  async verifyAuthCode(mobileNumber: string, code: string) {
+    const response = await this.client.post('/api/auth/verify-code', { mobileNumber, code });
     return response.data;
   }
 
