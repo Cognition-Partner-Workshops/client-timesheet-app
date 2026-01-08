@@ -58,6 +58,187 @@ describe('Report Routes', () => {
     jest.clearAllMocks();
   });
 
+  describe('GET /api/reports/weekly-defaulters', () => {
+    const mockUsers = [
+      { email: 'user1@example.com', created_at: '2026-01-01T00:00:00.000Z' },
+      { email: 'user2@example.com', created_at: '2026-01-02T00:00:00.000Z' },
+      { email: 'user3@example.com', created_at: '2026-01-03T00:00:00.000Z' },
+      { email: 'user4@example.com', created_at: '2026-01-04T00:00:00.000Z' }
+    ];
+
+    test('should return 400 if weekStart parameter is missing', async () => {
+      const response = await request(app).get('/api/reports/weekly-defaulters');
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({ error: 'weekStart query parameter is required (format: YYYY-MM-DD)' });
+    });
+
+    test('should return 400 for invalid date format', async () => {
+      const response = await request(app).get('/api/reports/weekly-defaulters?weekStart=01-05-2026');
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({ error: 'Invalid date format. Use YYYY-MM-DD' });
+    });
+
+    test('should return 400 for invalid date', async () => {
+      const response = await request(app).get('/api/reports/weekly-defaulters?weekStart=2026-13-45');
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({ error: 'Invalid date provided' });
+    });
+
+    test('should identify defaulters when 2 of 4 users have not submitted timesheets', async () => {
+      // Users 1 and 2 have submitted, users 3 and 4 are defaulters
+      const usersWithEntries = [
+        { user_email: 'user1@example.com' },
+        { user_email: 'user2@example.com' }
+      ];
+
+      let callCount = 0;
+      mockDb.all.mockImplementation((query, params, callback) => {
+        callCount++;
+        if (callCount === 1) {
+          // First call: get all users
+          callback(null, mockUsers);
+        } else {
+          // Second call: get users with entries in the week
+          callback(null, usersWithEntries);
+        }
+      });
+
+      const response = await request(app).get('/api/reports/weekly-defaulters?weekStart=2026-01-05');
+
+      expect(response.status).toBe(200);
+      expect(response.body.weekStart).toBe('2026-01-05');
+      expect(response.body.weekEnd).toBe('2026-01-11');
+      expect(response.body.totalUsers).toBe(4);
+      expect(response.body.submittedCount).toBe(2);
+      expect(response.body.defaulterCount).toBe(2);
+      expect(response.body.defaulters).toHaveLength(2);
+      expect(response.body.defaulters.map(d => d.email)).toContain('user3@example.com');
+      expect(response.body.defaulters.map(d => d.email)).toContain('user4@example.com');
+    });
+
+    test('should return all users as defaulters when no one has submitted', async () => {
+      let callCount = 0;
+      mockDb.all.mockImplementation((query, params, callback) => {
+        callCount++;
+        if (callCount === 1) {
+          callback(null, mockUsers);
+        } else {
+          callback(null, []); // No users have submitted
+        }
+      });
+
+      const response = await request(app).get('/api/reports/weekly-defaulters?weekStart=2026-01-05');
+
+      expect(response.status).toBe(200);
+      expect(response.body.totalUsers).toBe(4);
+      expect(response.body.submittedCount).toBe(0);
+      expect(response.body.defaulterCount).toBe(4);
+      expect(response.body.defaulters).toHaveLength(4);
+    });
+
+    test('should return no defaulters when all users have submitted', async () => {
+      const allUsersSubmitted = mockUsers.map(u => ({ user_email: u.email }));
+
+      let callCount = 0;
+      mockDb.all.mockImplementation((query, params, callback) => {
+        callCount++;
+        if (callCount === 1) {
+          callback(null, mockUsers);
+        } else {
+          callback(null, allUsersSubmitted);
+        }
+      });
+
+      const response = await request(app).get('/api/reports/weekly-defaulters?weekStart=2026-01-05');
+
+      expect(response.status).toBe(200);
+      expect(response.body.totalUsers).toBe(4);
+      expect(response.body.submittedCount).toBe(4);
+      expect(response.body.defaulterCount).toBe(0);
+      expect(response.body.defaulters).toHaveLength(0);
+    });
+
+    test('should identify single defaulter among 4 users', async () => {
+      // Users 1, 2, and 3 have submitted, only user 4 is a defaulter
+      const usersWithEntries = [
+        { user_email: 'user1@example.com' },
+        { user_email: 'user2@example.com' },
+        { user_email: 'user3@example.com' }
+      ];
+
+      let callCount = 0;
+      mockDb.all.mockImplementation((query, params, callback) => {
+        callCount++;
+        if (callCount === 1) {
+          callback(null, mockUsers);
+        } else {
+          callback(null, usersWithEntries);
+        }
+      });
+
+      const response = await request(app).get('/api/reports/weekly-defaulters?weekStart=2026-01-05');
+
+      expect(response.status).toBe(200);
+      expect(response.body.totalUsers).toBe(4);
+      expect(response.body.submittedCount).toBe(3);
+      expect(response.body.defaulterCount).toBe(1);
+      expect(response.body.defaulters).toHaveLength(1);
+      expect(response.body.defaulters[0].email).toBe('user4@example.com');
+    });
+
+    test('should handle database error when fetching users', async () => {
+      mockDb.all.mockImplementation((query, params, callback) => {
+        callback(new Error('Database error'), null);
+      });
+
+      const response = await request(app).get('/api/reports/weekly-defaulters?weekStart=2026-01-05');
+
+      expect(response.status).toBe(500);
+      expect(response.body).toEqual({ error: 'Internal server error' });
+    });
+
+    test('should handle database error when fetching work entries', async () => {
+      let callCount = 0;
+      mockDb.all.mockImplementation((query, params, callback) => {
+        callCount++;
+        if (callCount === 1) {
+          callback(null, mockUsers);
+        } else {
+          callback(new Error('Database error'), null);
+        }
+      });
+
+      const response = await request(app).get('/api/reports/weekly-defaulters?weekStart=2026-01-05');
+
+      expect(response.status).toBe(500);
+      expect(response.body).toEqual({ error: 'Internal server error' });
+    });
+
+    test('should correctly calculate week end date (6 days from start)', async () => {
+      let callCount = 0;
+      mockDb.all.mockImplementation((query, params, callback) => {
+        callCount++;
+        if (callCount === 1) {
+          callback(null, []);
+        } else {
+          // Verify the date range query
+          expect(params[0]).toBe('2026-01-12');
+          expect(params[1]).toBe('2026-01-18');
+          callback(null, []);
+        }
+      });
+
+      const response = await request(app).get('/api/reports/weekly-defaulters?weekStart=2026-01-12');
+
+      expect(response.status).toBe(200);
+      expect(response.body.weekStart).toBe('2026-01-12');
+      expect(response.body.weekEnd).toBe('2026-01-18');
+    });
+  });
+
   describe('GET /api/reports/client/:clientId', () => {
     test('should return client report with work entries', async () => {
       const mockClient = { id: 1, name: 'Test Client' };

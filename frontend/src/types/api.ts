@@ -33,6 +33,20 @@ export interface ClientReport {
   entryCount: number;
 }
 
+export interface WeeklyDefaulter {
+  email: string;
+  created_at: string;
+}
+
+export interface WeeklyDefaultersReport {
+  weekStart: string;
+  weekEnd: string;
+  defaulters: WeeklyDefaulter[];
+  totalUsers: number;
+  defaulterCount: number;
+  submittedCount: number;
+}
+
 export interface CreateClientRequest {
   name: string;
   description?: string;
