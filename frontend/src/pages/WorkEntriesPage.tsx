@@ -35,6 +35,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import apiClient from '../api/client';
 import { type WorkEntry } from '../types/api';
+import { workEntriesStrings } from '../locales/workEntries';
 
 const WorkEntriesPage: React.FC = () => {
   const [open, setOpen] = useState(false);
@@ -68,7 +69,7 @@ const WorkEntriesPage: React.FC = () => {
     },
     onError: (err: unknown) => {
       const error = err as { response?: { data?: { error?: string } } };
-      setError(error.response?.data?.error || 'Failed to create work entry');
+      setError(error.response?.data?.error || workEntriesStrings.createError);
     },
   });
 
@@ -81,7 +82,7 @@ const WorkEntriesPage: React.FC = () => {
     },
     onError: (err: unknown) => {
       const error = err as { response?: { data?: { error?: string } } };
-      setError(error.response?.data?.error || 'Failed to update work entry');
+      setError(error.response?.data?.error || workEntriesStrings.updateError);
     },
   });
 
@@ -92,7 +93,7 @@ const WorkEntriesPage: React.FC = () => {
     },
     onError: (err: unknown) => {
       const error = err as { response?: { data?: { error?: string } } };
-      setError(error.response?.data?.error || 'Failed to delete work entry');
+      setError(error.response?.data?.error || workEntriesStrings.deleteError);
     },
   });
 
@@ -138,18 +139,18 @@ const WorkEntriesPage: React.FC = () => {
     setError('');
 
     if (!formData.clientId) {
-      setError('Please select a client');
+      setError(workEntriesStrings.selectClientError);
       return;
     }
 
     const hours = parseFloat(formData.hours);
     if (!hours || hours <= 0 || hours > 24) {
-      setError('Hours must be between 0 and 24');
+      setError(workEntriesStrings.hoursRangeError);
       return;
     }
 
     if (!formData.date) {
-      setError('Please select a date');
+      setError(workEntriesStrings.selectDateError);
       return;
     }
 
@@ -171,7 +172,7 @@ const WorkEntriesPage: React.FC = () => {
   };
 
   const handleDelete = (entry: WorkEntry) => {
-    if (window.confirm(`Are you sure you want to delete this ${entry.hours} hour entry for ${entry.client_name}?`)) {
+    if (window.confirm(workEntriesStrings.deleteConfirmation(entry.hours, entry.client_name))) {
       deleteMutation.mutate(entry.id);
     }
   };
@@ -188,9 +189,9 @@ const WorkEntriesPage: React.FC = () => {
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <Box>
         <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-          <Typography variant="h4">Work Entries</Typography>
+          <Typography variant="h4">{workEntriesStrings.pageTitle}</Typography>
           <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpen()}>
-            Add Work Entry
+            {workEntriesStrings.addWorkEntryButton}
           </Button>
         </Box>
 
@@ -203,10 +204,10 @@ const WorkEntriesPage: React.FC = () => {
         {clients.length === 0 ? (
           <Paper sx={{ p: 3, textAlign: 'center' }}>
             <Typography color="text.secondary" sx={{ mb: 2 }}>
-              You need to create at least one client before adding work entries.
+              {workEntriesStrings.noClientsMessage}
             </Typography>
             <Button variant="contained" href="/clients">
-              Create Client
+              {workEntriesStrings.createClientButton}
             </Button>
           </Paper>
         ) : (
@@ -215,11 +216,11 @@ const WorkEntriesPage: React.FC = () => {
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell>Client</TableCell>
-                    <TableCell>Date</TableCell>
-                    <TableCell>Hours</TableCell>
-                    <TableCell>Description</TableCell>
-                    <TableCell align="right">Actions</TableCell>
+                    <TableCell>{workEntriesStrings.tableHeaderClient}</TableCell>
+                    <TableCell>{workEntriesStrings.tableHeaderDate}</TableCell>
+                    <TableCell>{workEntriesStrings.tableHeaderHours}</TableCell>
+                    <TableCell>{workEntriesStrings.tableHeaderDescription}</TableCell>
+                    <TableCell align="right">{workEntriesStrings.tableHeaderActions}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -238,7 +239,7 @@ const WorkEntriesPage: React.FC = () => {
                         </TableCell>
                         <TableCell>
                           <Chip 
-                            label={`${entry.hours} hours`} 
+                            label={workEntriesStrings.hoursLabel(entry.hours)} 
                             color="primary" 
                             variant="outlined" 
                           />
@@ -249,7 +250,7 @@ const WorkEntriesPage: React.FC = () => {
                               {entry.description}
                             </Typography>
                           ) : (
-                            <Chip label="No description" size="small" variant="outlined" />
+                            <Chip label={workEntriesStrings.noDescription} size="small" variant="outlined" />
                           )}
                         </TableCell>
                         <TableCell align="right">
@@ -274,7 +275,7 @@ const WorkEntriesPage: React.FC = () => {
                     <TableRow>
                       <TableCell colSpan={5} align="center">
                         <Typography color="text.secondary" sx={{ py: 3 }}>
-                          No work entries found. Add your first work entry to get started.
+                          {workEntriesStrings.noWorkEntriesMessage}
                         </Typography>
                       </TableCell>
                     </TableRow>
@@ -287,14 +288,14 @@ const WorkEntriesPage: React.FC = () => {
 
         <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
           <DialogTitle>
-            {editingEntry ? 'Edit Work Entry' : 'Add New Work Entry'}
+            {editingEntry ? workEntriesStrings.editDialogTitle : workEntriesStrings.addDialogTitle}
           </DialogTitle>
           <form onSubmit={handleSubmit}>
             <DialogContent>
               <FormControl fullWidth margin="dense" required>
-                <InputLabel>Client</InputLabel>
+                <InputLabel>{workEntriesStrings.clientLabel}</InputLabel>
                 <Select
-                  label="Client"
+                  label={workEntriesStrings.clientLabel}
                   value={formData.clientId}
                   onChange={(e) => setFormData({ ...formData, clientId: Number(e.target.value) })}
                   disabled={createMutation.isPending || updateMutation.isPending}
@@ -309,7 +310,7 @@ const WorkEntriesPage: React.FC = () => {
 
               <TextField
                 margin="dense"
-                label="Hours"
+                label={workEntriesStrings.hoursFieldLabel}
                 type="number"
                 fullWidth
                 required
@@ -320,7 +321,7 @@ const WorkEntriesPage: React.FC = () => {
               />
 
               <DatePicker
-                label="Date"
+                label={workEntriesStrings.dateLabel}
                 value={formData.date}
                 onChange={(date) => date && setFormData({ ...formData, date })}
                 slotProps={{
@@ -335,7 +336,7 @@ const WorkEntriesPage: React.FC = () => {
 
               <TextField
                 margin="dense"
-                label="Description"
+                label={workEntriesStrings.descriptionLabel}
                 fullWidth
                 multiline
                 rows={3}
@@ -346,7 +347,7 @@ const WorkEntriesPage: React.FC = () => {
             </DialogContent>
             <DialogActions>
               <Button onClick={handleClose} disabled={createMutation.isPending || updateMutation.isPending}>
-                Cancel
+                {workEntriesStrings.cancelButton}
               </Button>
               <Button
                 type="submit"
@@ -356,7 +357,7 @@ const WorkEntriesPage: React.FC = () => {
                 {createMutation.isPending || updateMutation.isPending ? (
                   <CircularProgress size={24} />
                 ) : (
-                  editingEntry ? 'Update' : 'Create'
+                  editingEntry ? workEntriesStrings.updateButton : workEntriesStrings.createButton
                 )}
               </Button>
             </DialogActions>
