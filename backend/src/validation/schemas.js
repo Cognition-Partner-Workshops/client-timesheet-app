@@ -28,10 +28,15 @@ const emailSchema = Joi.object({
   email: Joi.string().email().required()
 });
 
+const reminderCheckSchema = Joi.object({
+  lookbackDays: Joi.number().integer().min(1).max(30).optional().default(7)
+});
+
 module.exports = {
   clientSchema,
   workEntrySchema,
   updateWorkEntrySchema,
   updateClientSchema,
-  emailSchema
+  emailSchema,
+  reminderCheckSchema
 };
