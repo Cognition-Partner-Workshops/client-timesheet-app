@@ -3,6 +3,7 @@
     "existing": "test@example.com",
     "new": "test1@example.com",
     "authenticated": "Unit1@example.com",
+    "authenticated2": "Unit2@example.com",
     "invalid": "invalid-email"
   },
   "users": {
@@ -16,6 +17,10 @@
     },
     "authenticated": {
       "email": "Unit1@example.com",
+      "created_at": "2024-01-01T00:00:00.000Z"
+    },
+    "authenticated2": {
+      "email": "Unit2@example.com",
       "created_at": "2024-01-01T00:00:00.000Z"
     }
   }
