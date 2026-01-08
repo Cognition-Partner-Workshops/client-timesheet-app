@@ -212,7 +212,7 @@ const DashboardPage: React.FC = () => {
             </Box>
             {recentEntries.length > 0 ? (
               recentEntries.map((entry: WorkEntry) => (
-                <Box key={entry.id} sx={{ mb: 2, pb: 2, borderBottom: '1px solid #eee' }}>
+                <Box key={entry.id} sx={{ mb: 2, pb: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
                   <Box display="flex" justifyContent="space-between" alignItems="flex-start">
                     <Box>
                       <Typography variant="subtitle2">{entry.client_name}</Typography>
