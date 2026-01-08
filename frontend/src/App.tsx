@@ -14,21 +14,40 @@ import WorkEntriesPage from './pages/WorkEntriesPage';
 import TagsPage from './pages/TagsPage';
 import ReportsPage from './pages/ReportsPage';
 
+// Cognizant brand colors
+const cognizantBlue = '#0033A1';
+const cognizantLightBlue = '#4A90D9';
+
 const theme = createTheme({
   palette: {
     mode: 'dark',
     primary: {
-      main: '#90caf9',
+      main: cognizantBlue,
+      light: cognizantLightBlue,
     },
     secondary: {
-      main: '#f48fb1',
+      main: '#00A3E0', // Cognizant secondary blue
     },
     background: {
-      default: '#121212',
-      paper: '#1e1e1e',
+      default: '#0a1628', // Dark blue-tinted background
+      paper: '#112240', // Slightly lighter blue-tinted paper
     },
   },
   components: {
+    MuiAppBar: {
+      styleOverrides: {
+        root: {
+          backgroundColor: cognizantBlue,
+        },
+      },
+    },
+    MuiDrawer: {
+      styleOverrides: {
+        paper: {
+          backgroundColor: '#0d1f3c',
+        },
+      },
+    },
     MuiCard: {
       styleOverrides: {
         root: {
@@ -40,6 +59,16 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           backgroundImage: 'none',
+        },
+      },
+    },
+    MuiButton: {
+      styleOverrides: {
+        contained: {
+          backgroundColor: cognizantBlue,
+          '&:hover': {
+            backgroundColor: cognizantLightBlue,
+          },
         },
       },
     },

@@ -28,6 +28,7 @@ import {
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import Timer from './Timer';
+import CognizantLogo from './CognizantLogo';
 
 const drawerWidth = 240;
 
@@ -56,10 +57,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const drawer = (
     <div>
-      <Toolbar>
-        <Typography variant="h6" noWrap component="div">
-          Time Tracker
-        </Typography>
+      <Toolbar sx={{ justifyContent: 'center', py: 2 }}>
+        <CognizantLogo width={140} height={28} color="#ffffff" />
       </Toolbar>
       <List>
         {menuItems.map((item) => (
