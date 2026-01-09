@@ -593,4 +593,128 @@ describe('Report Routes', () => {
     });
   });
 
+  describe('CSV Download Success Path', () => {
+    let appWithDownloadMock;
+    let downloadCallback;
+    let downloadError;
+
+    beforeEach(() => {
+      // Create a new app with mocked res.download
+      appWithDownloadMock = express();
+      appWithDownloadMock.use(express.json());
+      
+      // Middleware to mock res.download
+      appWithDownloadMock.use((req, res, next) => {
+        res.download = jest.fn((filePath, fileName, callback) => {
+          // Call the callback with the configured error (or null for success)
+          setImmediate(() => {
+            callback(downloadError);
+            res.status(200).end();
+          });
+        });
+        next();
+      });
+      
+      appWithDownloadMock.use('/api/reports', reportRoutes);
+      
+      downloadError = null;
+    });
+
+    test('should successfully download CSV and clean up temp file', async () => {
+      const mockClient = { id: 1, name: 'Test Client' };
+      const mockWorkEntries = [
+        { date: '2024-01-01', hours: 5, description: 'Work 1', created_at: '2024-01-01' }
+      ];
+
+      mockDb.get.mockImplementation((query, params, callback) => {
+        callback(null, mockClient);
+      });
+
+      mockDb.all.mockImplementation((query, params, callback) => {
+        callback(null, mockWorkEntries);
+      });
+
+      const csvWriter = require('csv-writer');
+      csvWriter.createObjectCsvWriter.mockReturnValue({
+        writeRecords: jest.fn().mockResolvedValue(undefined)
+      });
+
+      // Mock fs.unlink to succeed
+      fs.unlink.mockImplementation((path, callback) => callback(null));
+
+      const response = await request(appWithDownloadMock).get('/api/reports/export/csv/1');
+
+      expect(response.status).toBe(200);
+      expect(fs.unlink).toHaveBeenCalled();
+    });
+
+    test('should handle error when sending CSV file fails', async () => {
+      const mockClient = { id: 1, name: 'Test Client' };
+      const mockWorkEntries = [
+        { date: '2024-01-01', hours: 5, description: 'Work 1', created_at: '2024-01-01' }
+      ];
+
+      mockDb.get.mockImplementation((query, params, callback) => {
+        callback(null, mockClient);
+      });
+
+      mockDb.all.mockImplementation((query, params, callback) => {
+        callback(null, mockWorkEntries);
+      });
+
+      const csvWriter = require('csv-writer');
+      csvWriter.createObjectCsvWriter.mockReturnValue({
+        writeRecords: jest.fn().mockResolvedValue(undefined)
+      });
+
+      // Set download to fail
+      downloadError = new Error('Download failed');
+
+      // Mock fs.unlink to succeed (cleanup still happens)
+      fs.unlink.mockImplementation((path, callback) => callback(null));
+
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      const response = await request(appWithDownloadMock).get('/api/reports/export/csv/1');
+
+      expect(response.status).toBe(200);
+      expect(consoleSpy).toHaveBeenCalledWith('Error sending file:', expect.any(Error));
+      expect(fs.unlink).toHaveBeenCalled();
+
+      consoleSpy.mockRestore();
+    });
+
+    test('should handle error when deleting temp file fails', async () => {
+      const mockClient = { id: 1, name: 'Test Client' };
+      const mockWorkEntries = [
+        { date: '2024-01-01', hours: 5, description: 'Work 1', created_at: '2024-01-01' }
+      ];
+
+      mockDb.get.mockImplementation((query, params, callback) => {
+        callback(null, mockClient);
+      });
+
+      mockDb.all.mockImplementation((query, params, callback) => {
+        callback(null, mockWorkEntries);
+      });
+
+      const csvWriter = require('csv-writer');
+      csvWriter.createObjectCsvWriter.mockReturnValue({
+        writeRecords: jest.fn().mockResolvedValue(undefined)
+      });
+
+      // Download succeeds but unlink fails
+      downloadError = null;
+      fs.unlink.mockImplementation((path, callback) => callback(new Error('Unlink failed')));
+
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      const response = await request(appWithDownloadMock).get('/api/reports/export/csv/1');
+
+      expect(response.status).toBe(200);
+      expect(consoleSpy).toHaveBeenCalledWith('Error deleting temp file:', expect.any(Error));
+
+      consoleSpy.mockRestore();
+    });
+  });
 });
