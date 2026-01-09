@@ -437,5 +437,284 @@ describe('Report Routes', () => {
         expect.any(Function)
       );
     });
+
+    test('should generate PDF successfully with work entries', async () => {
+      const mockClient = { id: 1, name: 'Test Client' };
+      const mockWorkEntries = [
+        { date: '2024-01-01', hours: 5, description: 'Work 1', created_at: '2024-01-01' },
+        { date: '2024-01-02', hours: 3, description: 'Work 2', created_at: '2024-01-02' },
+        { date: '2024-01-03', hours: 4, description: null, created_at: '2024-01-03' }
+      ];
+
+      mockDb.get.mockImplementation((query, params, callback) => {
+        callback(null, mockClient);
+      });
+
+      mockDb.all.mockImplementation((query, params, callback) => {
+        callback(null, mockWorkEntries);
+      });
+
+      const PDFDocument = require('pdfkit');
+      const mockDoc = {
+        fontSize: jest.fn().mockReturnThis(),
+        text: jest.fn().mockReturnThis(),
+        moveDown: jest.fn().mockReturnThis(),
+        moveTo: jest.fn().mockReturnThis(),
+        lineTo: jest.fn().mockReturnThis(),
+        stroke: jest.fn().mockReturnThis(),
+        addPage: jest.fn().mockReturnThis(),
+        pipe: jest.fn((res) => {
+          // Simulate PDF stream ending
+          setImmediate(() => res.end());
+        }),
+        end: jest.fn(),
+        y: 100
+      };
+      PDFDocument.mockImplementation(() => mockDoc);
+
+      const response = await request(app).get('/api/reports/export/pdf/1');
+
+      expect(response.status).toBe(200);
+      expect(mockDoc.pipe).toHaveBeenCalled();
+      expect(mockDoc.end).toHaveBeenCalled();
+      expect(mockDoc.fontSize).toHaveBeenCalled();
+      expect(mockDoc.text).toHaveBeenCalled();
+    });
+
+    test('should generate PDF with empty work entries', async () => {
+      const mockClient = { id: 1, name: 'Test Client' };
+
+      mockDb.get.mockImplementation((query, params, callback) => {
+        callback(null, mockClient);
+      });
+
+      mockDb.all.mockImplementation((query, params, callback) => {
+        callback(null, []);
+      });
+
+      const PDFDocument = require('pdfkit');
+      const mockDoc = {
+        fontSize: jest.fn().mockReturnThis(),
+        text: jest.fn().mockReturnThis(),
+        moveDown: jest.fn().mockReturnThis(),
+        moveTo: jest.fn().mockReturnThis(),
+        lineTo: jest.fn().mockReturnThis(),
+        stroke: jest.fn().mockReturnThis(),
+        addPage: jest.fn().mockReturnThis(),
+        pipe: jest.fn((res) => {
+          setImmediate(() => res.end());
+        }),
+        end: jest.fn(),
+        y: 100
+      };
+      PDFDocument.mockImplementation(() => mockDoc);
+
+      const response = await request(app).get('/api/reports/export/pdf/1');
+
+      expect(response.status).toBe(200);
+      expect(mockDoc.end).toHaveBeenCalled();
+    });
+
+    test('should add new page when y position exceeds 700', async () => {
+      const mockClient = { id: 1, name: 'Test Client' };
+      const mockWorkEntries = [
+        { date: '2024-01-01', hours: 5, description: 'Work 1', created_at: '2024-01-01' }
+      ];
+
+      mockDb.get.mockImplementation((query, params, callback) => {
+        callback(null, mockClient);
+      });
+
+      mockDb.all.mockImplementation((query, params, callback) => {
+        callback(null, mockWorkEntries);
+      });
+
+      const PDFDocument = require('pdfkit');
+      const mockDoc = {
+        fontSize: jest.fn().mockReturnThis(),
+        text: jest.fn().mockReturnThis(),
+        moveDown: jest.fn().mockReturnThis(),
+        moveTo: jest.fn().mockReturnThis(),
+        lineTo: jest.fn().mockReturnThis(),
+        stroke: jest.fn().mockReturnThis(),
+        addPage: jest.fn().mockReturnThis(),
+        pipe: jest.fn((res) => {
+          setImmediate(() => res.end());
+        }),
+        end: jest.fn(),
+        y: 750 // Exceeds 700, should trigger addPage
+      };
+      PDFDocument.mockImplementation(() => mockDoc);
+
+      const response = await request(app).get('/api/reports/export/pdf/1');
+
+      expect(response.status).toBe(200);
+      expect(mockDoc.addPage).toHaveBeenCalled();
+    });
+
+    test('should add separator line every 5 entries', async () => {
+      const mockClient = { id: 1, name: 'Test Client' };
+      const mockWorkEntries = [];
+      for (let i = 0; i < 6; i++) {
+        mockWorkEntries.push({ date: `2024-01-0${i+1}`, hours: 2, description: `Work ${i+1}`, created_at: `2024-01-0${i+1}` });
+      }
+
+      mockDb.get.mockImplementation((query, params, callback) => {
+        callback(null, mockClient);
+      });
+
+      mockDb.all.mockImplementation((query, params, callback) => {
+        callback(null, mockWorkEntries);
+      });
+
+      const PDFDocument = require('pdfkit');
+      const mockDoc = {
+        fontSize: jest.fn().mockReturnThis(),
+        text: jest.fn().mockReturnThis(),
+        moveDown: jest.fn().mockReturnThis(),
+        moveTo: jest.fn().mockReturnThis(),
+        lineTo: jest.fn().mockReturnThis(),
+        stroke: jest.fn().mockReturnThis(),
+        addPage: jest.fn().mockReturnThis(),
+        pipe: jest.fn((res) => {
+          setImmediate(() => res.end());
+        }),
+        end: jest.fn(),
+        y: 100
+      };
+      PDFDocument.mockImplementation(() => mockDoc);
+
+      const response = await request(app).get('/api/reports/export/pdf/1');
+
+      expect(response.status).toBe(200);
+      // moveTo is called for header line + separator line after 5th entry
+      expect(mockDoc.moveTo).toHaveBeenCalled();
+      expect(mockDoc.stroke).toHaveBeenCalled();
+    });
+  });
+
+  describe('CSV Download Success Path', () => {
+    let appWithDownloadMock;
+    let downloadCallback;
+    let downloadError;
+
+    beforeEach(() => {
+      // Create a new app with mocked res.download
+      appWithDownloadMock = express();
+      appWithDownloadMock.use(express.json());
+      
+      // Middleware to mock res.download
+      appWithDownloadMock.use((req, res, next) => {
+        res.download = jest.fn((filePath, fileName, callback) => {
+          // Call the callback with the configured error (or null for success)
+          setImmediate(() => {
+            callback(downloadError);
+            res.status(200).end();
+          });
+        });
+        next();
+      });
+      
+      appWithDownloadMock.use('/api/reports', reportRoutes);
+      
+      downloadError = null;
+    });
+
+    test('should successfully download CSV and clean up temp file', async () => {
+      const mockClient = { id: 1, name: 'Test Client' };
+      const mockWorkEntries = [
+        { date: '2024-01-01', hours: 5, description: 'Work 1', created_at: '2024-01-01' }
+      ];
+
+      mockDb.get.mockImplementation((query, params, callback) => {
+        callback(null, mockClient);
+      });
+
+      mockDb.all.mockImplementation((query, params, callback) => {
+        callback(null, mockWorkEntries);
+      });
+
+      const csvWriter = require('csv-writer');
+      csvWriter.createObjectCsvWriter.mockReturnValue({
+        writeRecords: jest.fn().mockResolvedValue(undefined)
+      });
+
+      // Mock fs.unlink to succeed
+      fs.unlink.mockImplementation((path, callback) => callback(null));
+
+      const response = await request(appWithDownloadMock).get('/api/reports/export/csv/1');
+
+      expect(response.status).toBe(200);
+      expect(fs.unlink).toHaveBeenCalled();
+    });
+
+    test('should handle error when sending CSV file fails', async () => {
+      const mockClient = { id: 1, name: 'Test Client' };
+      const mockWorkEntries = [
+        { date: '2024-01-01', hours: 5, description: 'Work 1', created_at: '2024-01-01' }
+      ];
+
+      mockDb.get.mockImplementation((query, params, callback) => {
+        callback(null, mockClient);
+      });
+
+      mockDb.all.mockImplementation((query, params, callback) => {
+        callback(null, mockWorkEntries);
+      });
+
+      const csvWriter = require('csv-writer');
+      csvWriter.createObjectCsvWriter.mockReturnValue({
+        writeRecords: jest.fn().mockResolvedValue(undefined)
+      });
+
+      // Set download to fail
+      downloadError = new Error('Download failed');
+
+      // Mock fs.unlink to succeed (cleanup still happens)
+      fs.unlink.mockImplementation((path, callback) => callback(null));
+
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      const response = await request(appWithDownloadMock).get('/api/reports/export/csv/1');
+
+      expect(response.status).toBe(200);
+      expect(consoleSpy).toHaveBeenCalledWith('Error sending file:', expect.any(Error));
+      expect(fs.unlink).toHaveBeenCalled();
+
+      consoleSpy.mockRestore();
+    });
+
+    test('should handle error when deleting temp file fails', async () => {
+      const mockClient = { id: 1, name: 'Test Client' };
+      const mockWorkEntries = [
+        { date: '2024-01-01', hours: 5, description: 'Work 1', created_at: '2024-01-01' }
+      ];
+
+      mockDb.get.mockImplementation((query, params, callback) => {
+        callback(null, mockClient);
+      });
+
+      mockDb.all.mockImplementation((query, params, callback) => {
+        callback(null, mockWorkEntries);
+      });
+
+      const csvWriter = require('csv-writer');
+      csvWriter.createObjectCsvWriter.mockReturnValue({
+        writeRecords: jest.fn().mockResolvedValue(undefined)
+      });
+
+      // Download succeeds but unlink fails
+      downloadError = null;
+      fs.unlink.mockImplementation((path, callback) => callback(new Error('Unlink failed')));
+
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      const response = await request(appWithDownloadMock).get('/api/reports/export/csv/1');
+
+      expect(response.status).toBe(200);
+      expect(consoleSpy).toHaveBeenCalledWith('Error deleting temp file:', expect.any(Error));
+
+      consoleSpy.mockRestore();
+    });
   });
 });
