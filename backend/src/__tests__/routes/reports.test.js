@@ -437,5 +437,160 @@ describe('Report Routes', () => {
         expect.any(Function)
       );
     });
+
+    test('should generate PDF successfully with work entries', async () => {
+      const mockClient = { id: 1, name: 'Test Client' };
+      const mockWorkEntries = [
+        { date: '2024-01-01', hours: 5, description: 'Work 1', created_at: '2024-01-01' },
+        { date: '2024-01-02', hours: 3, description: 'Work 2', created_at: '2024-01-02' },
+        { date: '2024-01-03', hours: 4, description: null, created_at: '2024-01-03' }
+      ];
+
+      mockDb.get.mockImplementation((query, params, callback) => {
+        callback(null, mockClient);
+      });
+
+      mockDb.all.mockImplementation((query, params, callback) => {
+        callback(null, mockWorkEntries);
+      });
+
+      const PDFDocument = require('pdfkit');
+      const mockDoc = {
+        fontSize: jest.fn().mockReturnThis(),
+        text: jest.fn().mockReturnThis(),
+        moveDown: jest.fn().mockReturnThis(),
+        moveTo: jest.fn().mockReturnThis(),
+        lineTo: jest.fn().mockReturnThis(),
+        stroke: jest.fn().mockReturnThis(),
+        addPage: jest.fn().mockReturnThis(),
+        pipe: jest.fn((res) => {
+          // Simulate PDF stream ending
+          setImmediate(() => res.end());
+        }),
+        end: jest.fn(),
+        y: 100
+      };
+      PDFDocument.mockImplementation(() => mockDoc);
+
+      const response = await request(app).get('/api/reports/export/pdf/1');
+
+      expect(response.status).toBe(200);
+      expect(mockDoc.pipe).toHaveBeenCalled();
+      expect(mockDoc.end).toHaveBeenCalled();
+      expect(mockDoc.fontSize).toHaveBeenCalled();
+      expect(mockDoc.text).toHaveBeenCalled();
+    });
+
+    test('should generate PDF with empty work entries', async () => {
+      const mockClient = { id: 1, name: 'Test Client' };
+
+      mockDb.get.mockImplementation((query, params, callback) => {
+        callback(null, mockClient);
+      });
+
+      mockDb.all.mockImplementation((query, params, callback) => {
+        callback(null, []);
+      });
+
+      const PDFDocument = require('pdfkit');
+      const mockDoc = {
+        fontSize: jest.fn().mockReturnThis(),
+        text: jest.fn().mockReturnThis(),
+        moveDown: jest.fn().mockReturnThis(),
+        moveTo: jest.fn().mockReturnThis(),
+        lineTo: jest.fn().mockReturnThis(),
+        stroke: jest.fn().mockReturnThis(),
+        addPage: jest.fn().mockReturnThis(),
+        pipe: jest.fn((res) => {
+          setImmediate(() => res.end());
+        }),
+        end: jest.fn(),
+        y: 100
+      };
+      PDFDocument.mockImplementation(() => mockDoc);
+
+      const response = await request(app).get('/api/reports/export/pdf/1');
+
+      expect(response.status).toBe(200);
+      expect(mockDoc.end).toHaveBeenCalled();
+    });
+
+    test('should add new page when y position exceeds 700', async () => {
+      const mockClient = { id: 1, name: 'Test Client' };
+      const mockWorkEntries = [
+        { date: '2024-01-01', hours: 5, description: 'Work 1', created_at: '2024-01-01' }
+      ];
+
+      mockDb.get.mockImplementation((query, params, callback) => {
+        callback(null, mockClient);
+      });
+
+      mockDb.all.mockImplementation((query, params, callback) => {
+        callback(null, mockWorkEntries);
+      });
+
+      const PDFDocument = require('pdfkit');
+      const mockDoc = {
+        fontSize: jest.fn().mockReturnThis(),
+        text: jest.fn().mockReturnThis(),
+        moveDown: jest.fn().mockReturnThis(),
+        moveTo: jest.fn().mockReturnThis(),
+        lineTo: jest.fn().mockReturnThis(),
+        stroke: jest.fn().mockReturnThis(),
+        addPage: jest.fn().mockReturnThis(),
+        pipe: jest.fn((res) => {
+          setImmediate(() => res.end());
+        }),
+        end: jest.fn(),
+        y: 750 // Exceeds 700, should trigger addPage
+      };
+      PDFDocument.mockImplementation(() => mockDoc);
+
+      const response = await request(app).get('/api/reports/export/pdf/1');
+
+      expect(response.status).toBe(200);
+      expect(mockDoc.addPage).toHaveBeenCalled();
+    });
+
+    test('should add separator line every 5 entries', async () => {
+      const mockClient = { id: 1, name: 'Test Client' };
+      const mockWorkEntries = [];
+      for (let i = 0; i < 6; i++) {
+        mockWorkEntries.push({ date: `2024-01-0${i+1}`, hours: 2, description: `Work ${i+1}`, created_at: `2024-01-0${i+1}` });
+      }
+
+      mockDb.get.mockImplementation((query, params, callback) => {
+        callback(null, mockClient);
+      });
+
+      mockDb.all.mockImplementation((query, params, callback) => {
+        callback(null, mockWorkEntries);
+      });
+
+      const PDFDocument = require('pdfkit');
+      const mockDoc = {
+        fontSize: jest.fn().mockReturnThis(),
+        text: jest.fn().mockReturnThis(),
+        moveDown: jest.fn().mockReturnThis(),
+        moveTo: jest.fn().mockReturnThis(),
+        lineTo: jest.fn().mockReturnThis(),
+        stroke: jest.fn().mockReturnThis(),
+        addPage: jest.fn().mockReturnThis(),
+        pipe: jest.fn((res) => {
+          setImmediate(() => res.end());
+        }),
+        end: jest.fn(),
+        y: 100
+      };
+      PDFDocument.mockImplementation(() => mockDoc);
+
+      const response = await request(app).get('/api/reports/export/pdf/1');
+
+      expect(response.status).toBe(200);
+      // moveTo is called for header line + separator line after 5th entry
+      expect(mockDoc.moveTo).toHaveBeenCalled();
+      expect(mockDoc.stroke).toHaveBeenCalled();
+    });
   });
+
 });
