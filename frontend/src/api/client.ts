@@ -128,6 +128,31 @@ class ApiClient {
     return response.data;
   }
 
+  // Defaulters report endpoints
+  async getDefaultersReport(daysThreshold?: number) {
+    const params = daysThreshold ? { days: daysThreshold } : {};
+    const response = await this.client.get('/api/reports/defaulters', { params });
+    return response.data;
+  }
+
+  async exportDefaultersReportCsv(daysThreshold?: number) {
+    const params = daysThreshold ? { days: daysThreshold } : {};
+    const response = await this.client.get('/api/reports/defaulters/export/csv', {
+      params,
+      responseType: 'blob',
+    });
+    return response.data;
+  }
+
+  async exportDefaultersReportPdf(daysThreshold?: number) {
+    const params = daysThreshold ? { days: daysThreshold } : {};
+    const response = await this.client.get('/api/reports/defaulters/export/pdf', {
+      params,
+      responseType: 'blob',
+    });
+    return response.data;
+  }
+
   // Health check
   async healthCheck() {
     const response = await this.client.get('/health');

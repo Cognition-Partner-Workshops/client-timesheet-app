@@ -244,4 +244,277 @@ router.get('/export/pdf/:clientId', (req, res) => {
   );
 });
 
+// Get defaulters report - clients with no recent work entries
+router.get('/defaulters', (req, res) => {
+  const db = getDatabase();
+  const daysThreshold = parseInt(req.query.days) || 7; // Default to 7 days
+  
+  // Get all clients with their last work entry date and total hours
+  db.all(
+    `SELECT 
+      c.id,
+      c.name,
+      c.description,
+      c.created_at,
+      COALESCE(MAX(w.date), c.created_at) as last_entry_date,
+      COALESCE(SUM(w.hours), 0) as total_hours,
+      COUNT(w.id) as entry_count
+    FROM clients c
+    LEFT JOIN work_entries w ON c.id = w.client_id AND w.user_email = ?
+    WHERE c.user_email = ?
+    GROUP BY c.id
+    ORDER BY last_entry_date ASC`,
+    [req.userEmail, req.userEmail],
+    (err, clients) => {
+      if (err) {
+        console.error('Database error:', err);
+        return res.status(500).json({ error: 'Internal server error' });
+      }
+      
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const defaulters = clients.map(client => {
+        const lastEntryDate = new Date(client.last_entry_date);
+        lastEntryDate.setHours(0, 0, 0, 0);
+        const daysSinceLastEntry = Math.floor((today - lastEntryDate) / (1000 * 60 * 60 * 24));
+        
+        let status = 'ok';
+        if (daysSinceLastEntry >= daysThreshold * 2) {
+          status = 'critical';
+        } else if (daysSinceLastEntry >= daysThreshold) {
+          status = 'warning';
+        }
+        
+        return {
+          id: client.id,
+          name: client.name,
+          description: client.description,
+          lastEntryDate: client.last_entry_date,
+          daysSinceLastEntry,
+          totalHours: parseFloat(client.total_hours) || 0,
+          entryCount: client.entry_count,
+          status
+        };
+      });
+      
+      // Filter to only show clients that are defaulters (warning or critical)
+      const filteredDefaulters = defaulters.filter(d => d.status !== 'ok');
+      
+      res.json({
+        defaulters: filteredDefaulters,
+        allClients: defaulters,
+        summary: {
+          totalClients: clients.length,
+          defaultersCount: filteredDefaulters.length,
+          criticalCount: filteredDefaulters.filter(d => d.status === 'critical').length,
+          warningCount: filteredDefaulters.filter(d => d.status === 'warning').length,
+          daysThreshold
+        }
+      });
+    }
+  );
+});
+
+// Export defaulters report as CSV
+router.get('/defaulters/export/csv', (req, res) => {
+  const db = getDatabase();
+  const daysThreshold = parseInt(req.query.days) || 7;
+  
+  db.all(
+    `SELECT 
+      c.id,
+      c.name,
+      c.description,
+      c.created_at,
+      COALESCE(MAX(w.date), c.created_at) as last_entry_date,
+      COALESCE(SUM(w.hours), 0) as total_hours,
+      COUNT(w.id) as entry_count
+    FROM clients c
+    LEFT JOIN work_entries w ON c.id = w.client_id AND w.user_email = ?
+    WHERE c.user_email = ?
+    GROUP BY c.id
+    ORDER BY last_entry_date ASC`,
+    [req.userEmail, req.userEmail],
+    (err, clients) => {
+      if (err) {
+        console.error('Database error:', err);
+        return res.status(500).json({ error: 'Internal server error' });
+      }
+      
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const defaulters = clients.map(client => {
+        const lastEntryDate = new Date(client.last_entry_date);
+        lastEntryDate.setHours(0, 0, 0, 0);
+        const daysSinceLastEntry = Math.floor((today - lastEntryDate) / (1000 * 60 * 60 * 24));
+        
+        let status = 'ok';
+        if (daysSinceLastEntry >= daysThreshold * 2) {
+          status = 'critical';
+        } else if (daysSinceLastEntry >= daysThreshold) {
+          status = 'warning';
+        }
+        
+        return {
+          name: client.name,
+          description: client.description || '',
+          last_entry_date: client.last_entry_date,
+          days_since_last_entry: daysSinceLastEntry,
+          total_hours: parseFloat(client.total_hours) || 0,
+          entry_count: client.entry_count,
+          status
+        };
+      }).filter(d => d.status !== 'ok');
+      
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const filename = `defaulters_report_${timestamp}.csv`;
+      const tempPath = path.join(__dirname, '../../temp', filename);
+      
+      const tempDir = path.dirname(tempPath);
+      if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true });
+      }
+      
+      const csvWriter = createCsvWriter({
+        path: tempPath,
+        header: [
+          { id: 'name', title: 'Client Name' },
+          { id: 'description', title: 'Description' },
+          { id: 'last_entry_date', title: 'Last Entry Date' },
+          { id: 'days_since_last_entry', title: 'Days Since Last Entry' },
+          { id: 'total_hours', title: 'Total Hours' },
+          { id: 'entry_count', title: 'Entry Count' },
+          { id: 'status', title: 'Status' }
+        ]
+      });
+      
+      csvWriter.writeRecords(defaulters)
+        .then(() => {
+          res.download(tempPath, filename, (err) => {
+            if (err) {
+              console.error('Error sending file:', err);
+            }
+            fs.unlink(tempPath, (unlinkErr) => {
+              if (unlinkErr) {
+                console.error('Error deleting temp file:', unlinkErr);
+              }
+            });
+          });
+        })
+        .catch((error) => {
+          console.error('Error creating CSV:', error);
+          res.status(500).json({ error: 'Failed to generate CSV report' });
+        });
+    }
+  );
+});
+
+// Export defaulters report as PDF
+router.get('/defaulters/export/pdf', (req, res) => {
+  const db = getDatabase();
+  const daysThreshold = parseInt(req.query.days) || 7;
+  
+  db.all(
+    `SELECT 
+      c.id,
+      c.name,
+      c.description,
+      c.created_at,
+      COALESCE(MAX(w.date), c.created_at) as last_entry_date,
+      COALESCE(SUM(w.hours), 0) as total_hours,
+      COUNT(w.id) as entry_count
+    FROM clients c
+    LEFT JOIN work_entries w ON c.id = w.client_id AND w.user_email = ?
+    WHERE c.user_email = ?
+    GROUP BY c.id
+    ORDER BY last_entry_date ASC`,
+    [req.userEmail, req.userEmail],
+    (err, clients) => {
+      if (err) {
+        console.error('Database error:', err);
+        return res.status(500).json({ error: 'Internal server error' });
+      }
+      
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const defaulters = clients.map(client => {
+        const lastEntryDate = new Date(client.last_entry_date);
+        lastEntryDate.setHours(0, 0, 0, 0);
+        const daysSinceLastEntry = Math.floor((today - lastEntryDate) / (1000 * 60 * 60 * 24));
+        
+        let status = 'ok';
+        if (daysSinceLastEntry >= daysThreshold * 2) {
+          status = 'critical';
+        } else if (daysSinceLastEntry >= daysThreshold) {
+          status = 'warning';
+        }
+        
+        return {
+          name: client.name,
+          description: client.description || '',
+          lastEntryDate: client.last_entry_date,
+          daysSinceLastEntry,
+          totalHours: parseFloat(client.total_hours) || 0,
+          entryCount: client.entry_count,
+          status
+        };
+      }).filter(d => d.status !== 'ok');
+      
+      const doc = new PDFDocument();
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const filename = `defaulters_report_${timestamp}.pdf`;
+      
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      
+      doc.pipe(res);
+      
+      doc.fontSize(20).text('Defaulters Report', { align: 'center' });
+      doc.moveDown();
+      
+      doc.fontSize(14).text(`Total Defaulters: ${defaulters.length}`);
+      doc.text(`Critical: ${defaulters.filter(d => d.status === 'critical').length}`);
+      doc.text(`Warning: ${defaulters.filter(d => d.status === 'warning').length}`);
+      doc.text(`Days Threshold: ${daysThreshold}`);
+      doc.text(`Generated: ${new Date().toLocaleString()}`);
+      doc.moveDown();
+      
+      doc.fontSize(12).text('Client', 50, doc.y, { width: 120 });
+      doc.text('Last Entry', 170, doc.y - 15, { width: 80 });
+      doc.text('Days', 250, doc.y - 15, { width: 50 });
+      doc.text('Hours', 300, doc.y - 15, { width: 50 });
+      doc.text('Status', 350, doc.y - 15, { width: 80 });
+      doc.moveDown();
+      
+      doc.moveTo(50, doc.y).lineTo(450, doc.y).stroke();
+      doc.moveDown(0.5);
+      
+      defaulters.forEach((client, index) => {
+        const y = doc.y;
+        
+        if (y > 700) {
+          doc.addPage();
+        }
+        
+        doc.text(client.name.substring(0, 20), 50, doc.y, { width: 120 });
+        doc.text(client.lastEntryDate, 170, y, { width: 80 });
+        doc.text(client.daysSinceLastEntry.toString(), 250, y, { width: 50 });
+        doc.text(client.totalHours.toFixed(1), 300, y, { width: 50 });
+        doc.text(client.status.toUpperCase(), 350, y, { width: 80 });
+        doc.moveDown();
+        
+        if ((index + 1) % 5 === 0) {
+          doc.moveTo(50, doc.y).lineTo(450, doc.y).stroke();
+          doc.moveDown(0.5);
+        }
+      });
+      
+      doc.end();
+    }
+  );
+});
+
 module.exports = router;
