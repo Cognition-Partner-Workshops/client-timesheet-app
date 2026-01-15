@@ -454,4 +454,32 @@ describe('Client Routes', () => {
       expect(response.status).toBe(200);
     });
   });
+
+  describe('POST /api/clients - Catch Block Coverage', () => {
+    test('should handle synchronous error in POST handler', async () => {
+      getDatabase.mockImplementation(() => {
+        throw new Error('Unexpected sync error');
+      });
+
+      const response = await request(app)
+        .post('/api/clients')
+        .send({ name: 'Test Client' });
+
+      expect(response.status).toBe(500);
+    });
+  });
+
+  describe('PUT /api/clients/:id - Catch Block Coverage', () => {
+    test('should handle synchronous error in PUT handler', async () => {
+      getDatabase.mockImplementation(() => {
+        throw new Error('Unexpected sync error');
+      });
+
+      const response = await request(app)
+        .put('/api/clients/1')
+        .send({ name: 'Updated Name' });
+
+      expect(response.status).toBe(500);
+    });
+  });
 });
