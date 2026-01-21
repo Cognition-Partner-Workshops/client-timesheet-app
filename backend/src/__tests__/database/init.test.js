@@ -142,6 +142,66 @@ describe('Database Initialization', () => {
 
       expect(consoleErrorSpy).not.toHaveBeenCalled();
     });
+
+    test('should resolve immediately when database is null', async () => {
+      jest.resetModules();
+      
+      jest.doMock('sqlite3', () => {
+        return {
+          verbose: jest.fn(() => ({
+            Database: jest.fn((path, callback) => {
+              callback(null);
+              return {
+                serialize: jest.fn((cb) => cb()),
+                run: jest.fn((q, cb) => { if (typeof cb === 'function') cb(null); }),
+                close: jest.fn((cb) => cb(null))
+              };
+            })
+          }))
+        };
+      });
+
+      const { closeDatabase: closeDatabaseFresh } = require('../../database/init');
+      
+      await expect(closeDatabaseFresh()).resolves.toBeUndefined();
+    });
+
+    test('should wait when close is already in progress', async () => {
+      jest.resetModules();
+      
+      let closeCallback = null;
+      const mockDb = {
+        serialize: jest.fn((cb) => cb()),
+        run: jest.fn((q, cb) => { if (typeof cb === 'function') cb(null); }),
+        close: jest.fn((cb) => {
+          closeCallback = cb;
+        })
+      };
+
+      jest.doMock('sqlite3', () => {
+        return {
+          verbose: jest.fn(() => ({
+            Database: jest.fn((path, callback) => {
+              callback(null);
+              return mockDb;
+            })
+          }))
+        };
+      });
+
+      const { getDatabase: getDbFresh, closeDatabase: closeDbFresh } = require('../../database/init');
+      
+      getDbFresh();
+      
+      const closePromise1 = closeDbFresh();
+      const closePromise2 = closeDbFresh();
+      
+      setTimeout(() => {
+        if (closeCallback) closeCallback(null);
+      }, 20);
+      
+      await Promise.all([closePromise1, closePromise2]);
+    });
   });
 
   describe('Database Schema', () => {

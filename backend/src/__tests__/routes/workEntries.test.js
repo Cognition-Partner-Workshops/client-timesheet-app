@@ -585,4 +585,42 @@ describe('Work Entry Routes', () => {
       expect(response.body.message).toBe('Work entry updated successfully');
     });
   });
+
+  describe('POST /api/work-entries - Catch Block Coverage', () => {
+    test('should handle synchronous exception in POST handler', async () => {
+      const { workEntrySchema } = require('../../validation/schemas');
+      const originalValidate = workEntrySchema.validate;
+      
+      workEntrySchema.validate = jest.fn(() => {
+        throw new Error('Unexpected sync error');
+      });
+
+      const response = await request(app)
+        .post('/api/work-entries')
+        .send({ clientId: 1, hours: 5, date: '2024-01-15' });
+
+      expect(response.status).toBe(500);
+      
+      workEntrySchema.validate = originalValidate;
+    });
+  });
+
+  describe('PUT /api/work-entries/:id - Catch Block Coverage', () => {
+    test('should handle synchronous exception in PUT handler', async () => {
+      const { updateWorkEntrySchema } = require('../../validation/schemas');
+      const originalValidate = updateWorkEntrySchema.validate;
+      
+      updateWorkEntrySchema.validate = jest.fn(() => {
+        throw new Error('Unexpected sync error');
+      });
+
+      const response = await request(app)
+        .put('/api/work-entries/1')
+        .send({ hours: 8 });
+
+      expect(response.status).toBe(500);
+      
+      updateWorkEntrySchema.validate = originalValidate;
+    });
+  });
 });
