@@ -1,10 +1,49 @@
+/**
+ * @module database/init
+ * @description Database initialization and connection management module for the timesheet application.
+ * Provides singleton pattern database access using SQLite with in-memory storage.
+ * Handles database lifecycle including connection creation, table initialization, and graceful shutdown.
+ */
+
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
+/**
+ * Singleton database connection instance.
+ * @type {sqlite3.Database|null}
+ * @private
+ */
 let db = null;
+
+/**
+ * Flag indicating if the database is currently in the process of closing.
+ * @type {boolean}
+ * @private
+ */
 let isClosing = false;
+
+/**
+ * Flag indicating if the database connection has been closed.
+ * @type {boolean}
+ * @private
+ */
 let isClosed = false;
 
+/**
+ * Retrieves the singleton database connection instance.
+ * Creates a new in-memory SQLite database connection if one doesn't exist.
+ * Resets closing/closed state flags when creating a new connection.
+ *
+ * @returns {sqlite3.Database} The SQLite database connection instance.
+ * @throws {Error} Throws if there's an error opening the database connection.
+ *
+ * @example
+ * const db = getDatabase();
+ * db.all('SELECT * FROM users', [], (err, rows) => {
+ *   if (err) console.error(err);
+ *   console.log(rows);
+ * });
+ */
 function getDatabase() {
   if (!db) {
     // Reset state when creating a new database connection
@@ -22,6 +61,27 @@ function getDatabase() {
   return db;
 }
 
+/**
+ * Initializes the database by creating all required tables and indexes.
+ * Creates the following tables if they don't exist:
+ * - users: Stores user accounts with email as primary key
+ * - clients: Stores client information linked to users
+ * - work_entries: Stores time tracking entries linked to clients and users
+ *
+ * Also creates performance indexes on frequently queried columns:
+ * - idx_clients_user_email: For filtering clients by user
+ * - idx_work_entries_client_id: For filtering entries by client
+ * - idx_work_entries_user_email: For filtering entries by user
+ * - idx_work_entries_date: For date-based queries and sorting
+ *
+ * @async
+ * @returns {Promise<void>} Resolves when all tables and indexes are created.
+ * @throws {Error} Throws if there's an error during table creation.
+ *
+ * @example
+ * await initializeDatabase();
+ * console.log('Database ready for use');
+ */
 async function initializeDatabase() {
   const database = getDatabase();
   
@@ -76,6 +136,22 @@ async function initializeDatabase() {
   });
 }
 
+/**
+ * Closes the database connection gracefully.
+ * Handles multiple close scenarios:
+ * - If already closed, resolves immediately
+ * - If currently closing, waits for the close operation to complete
+ * - If no connection exists, resolves immediately
+ * - Otherwise, initiates the close operation
+ *
+ * Uses state flags to prevent race conditions during concurrent close calls.
+ *
+ * @returns {Promise<void>} Resolves when the database connection is closed.
+ *
+ * @example
+ * await closeDatabase();
+ * console.log('Database connection closed');
+ */
 function closeDatabase() {
   return new Promise((resolve, reject) => {
     if (isClosed) {
