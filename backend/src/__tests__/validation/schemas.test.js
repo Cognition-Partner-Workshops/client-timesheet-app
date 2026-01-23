@@ -3,7 +3,9 @@ const {
   workEntrySchema,
   updateWorkEntrySchema,
   updateClientSchema,
-  emailSchema
+  emailSchema,
+  loginSchema,
+  registerSchema
 } = require('../../validation/schemas');
 
 describe('Validation Schemas', () => {
@@ -323,6 +325,126 @@ describe('Validation Schemas', () => {
 
       const { error } = emailSchema.validate(data);
       expect(error).toBeUndefined();
+    });
+  });
+
+  describe('loginSchema', () => {
+    test('should validate valid login data', () => {
+      const data = {
+        email: 'test@example.com',
+        password: 'anypassword'
+      };
+
+      const { error } = loginSchema.validate(data);
+      expect(error).toBeUndefined();
+    });
+
+    test('should reject missing email', () => {
+      const data = {
+        password: 'anypassword'
+      };
+
+      const { error } = loginSchema.validate(data);
+      expect(error).toBeDefined();
+    });
+
+    test('should reject missing password', () => {
+      const data = {
+        email: 'test@example.com'
+      };
+
+      const { error } = loginSchema.validate(data);
+      expect(error).toBeDefined();
+    });
+
+    test('should reject invalid email', () => {
+      const data = {
+        email: 'invalid-email',
+        password: 'anypassword'
+      };
+
+      const { error } = loginSchema.validate(data);
+      expect(error).toBeDefined();
+    });
+  });
+
+  describe('registerSchema', () => {
+    test('should validate valid registration data', () => {
+      const data = {
+        email: 'test@example.com',
+        password: 'Password123!'
+      };
+
+      const { error } = registerSchema.validate(data);
+      expect(error).toBeUndefined();
+    });
+
+    test('should reject password without uppercase', () => {
+      const data = {
+        email: 'test@example.com',
+        password: 'password123!'
+      };
+
+      const { error } = registerSchema.validate(data);
+      expect(error).toBeDefined();
+    });
+
+    test('should reject password without lowercase', () => {
+      const data = {
+        email: 'test@example.com',
+        password: 'PASSWORD123!'
+      };
+
+      const { error } = registerSchema.validate(data);
+      expect(error).toBeDefined();
+    });
+
+    test('should reject password without number', () => {
+      const data = {
+        email: 'test@example.com',
+        password: 'Password!'
+      };
+
+      const { error } = registerSchema.validate(data);
+      expect(error).toBeDefined();
+    });
+
+    test('should reject password without special character', () => {
+      const data = {
+        email: 'test@example.com',
+        password: 'Password123'
+      };
+
+      const { error } = registerSchema.validate(data);
+      expect(error).toBeDefined();
+    });
+
+    test('should reject password shorter than 8 characters', () => {
+      const data = {
+        email: 'test@example.com',
+        password: 'Pass1!'
+      };
+
+      const { error } = registerSchema.validate(data);
+      expect(error).toBeDefined();
+    });
+
+    test('should reject missing email', () => {
+      const data = {
+        password: 'Password123!'
+      };
+
+      const { error } = registerSchema.validate(data);
+      expect(error).toBeDefined();
+    });
+
+    test('should reject missing password', () => {
+      const data = {
+        email: 'test@example.com'
+      };
+
+      const { error } = registerSchema.validate(data);
+      expect(error).toBeDefined();
     });
   });
 });
