@@ -50,16 +50,15 @@ async function initializeDatabase() {
         )
       `);
 
-      // Create clients table
+      // Create clients table (global clients - shared across all users)
       database.run(`
         CREATE TABLE IF NOT EXISTS clients (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
-          name TEXT NOT NULL,
+          name TEXT NOT NULL UNIQUE,
           description TEXT,
-          user_email TEXT NOT NULL,
+          created_by TEXT,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (user_email) REFERENCES users (email) ON DELETE CASCADE
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
       `);
 
@@ -80,7 +79,7 @@ async function initializeDatabase() {
       `);
 
       // Create indexes for better performance
-      database.run(`CREATE INDEX IF NOT EXISTS idx_clients_user_email ON clients (user_email)`);
+      database.run(`CREATE INDEX IF NOT EXISTS idx_clients_name ON clients (name)`);
       database.run(`CREATE INDEX IF NOT EXISTS idx_work_entries_client_id ON work_entries (client_id)`);
       database.run(`CREATE INDEX IF NOT EXISTS idx_work_entries_user_email ON work_entries (user_email)`);
       database.run(`CREATE INDEX IF NOT EXISTS idx_work_entries_date ON work_entries (date)`);

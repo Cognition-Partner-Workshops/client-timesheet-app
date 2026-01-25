@@ -39,10 +39,10 @@ describe('Client Routes', () => {
   });
 
   describe('GET /api/clients', () => {
-    test('should return all clients for authenticated user', async () => {
+    test('should return all clients (global)', async () => {
       const mockClients = [
-        { id: 1, name: 'Client A', description: 'Desc A', created_at: '2024-01-01', updated_at: '2024-01-01' },
-        { id: 2, name: 'Client B', description: 'Desc B', created_at: '2024-01-02', updated_at: '2024-01-02' }
+        { id: 1, name: 'Client A', description: 'Desc A', created_by: 'user1@example.com', created_at: '2024-01-01', updated_at: '2024-01-01' },
+        { id: 2, name: 'Client B', description: 'Desc B', created_by: 'user2@example.com', created_at: '2024-01-02', updated_at: '2024-01-02' }
       ];
 
       mockDb.all.mockImplementation((query, params, callback) => {
@@ -55,7 +55,7 @@ describe('Client Routes', () => {
       expect(response.body).toEqual({ clients: mockClients });
       expect(mockDb.all).toHaveBeenCalledWith(
         expect.stringContaining('SELECT id, name, description'),
-        ['test@example.com'],
+        [],
         expect.any(Function)
       );
     });
@@ -84,8 +84,8 @@ describe('Client Routes', () => {
   });
 
   describe('GET /api/clients/:id', () => {
-    test('should return specific client', async () => {
-      const mockClient = { id: 1, name: 'Client A', description: 'Desc A' };
+    test('should return specific client (global)', async () => {
+      const mockClient = { id: 1, name: 'Client A', description: 'Desc A', created_by: 'user@example.com' };
 
       mockDb.get.mockImplementation((query, params, callback) => {
         callback(null, mockClient);
@@ -128,9 +128,9 @@ describe('Client Routes', () => {
   });
 
   describe('POST /api/clients', () => {
-    test('should create new client with valid data', async () => {
+    test('should create new client with valid data (global)', async () => {
       const newClient = { name: 'New Client', description: 'New Description' };
-      const createdClient = { id: 1, ...newClient, created_at: '2024-01-01', updated_at: '2024-01-01' };
+      const createdClient = { id: 1, ...newClient, created_by: 'test@example.com', created_at: '2024-01-01', updated_at: '2024-01-01' };
 
       mockDb.run.mockImplementation(function(query, params, callback) {
         this.lastID = 1;
