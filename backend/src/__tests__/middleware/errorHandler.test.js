@@ -1,4 +1,5 @@
 const { errorHandler } = require('../../middleware/errorHandler');
+const logger = require('../../utils/logger');
 
 describe('Error Handler Middleware', () => {
   let req, res, next;
@@ -10,13 +11,11 @@ describe('Error Handler Middleware', () => {
       json: jest.fn()
     };
     next = jest.fn();
-    
-    // Mock console.error to avoid cluttering test output
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.clearAllMocks();
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    jest.clearAllMocks();
   });
 
   describe('Joi Validation Errors', () => {
@@ -126,13 +125,13 @@ describe('Error Handler Middleware', () => {
     });
   });
 
-  describe('Console Logging', () => {
-    test('should log error to console', () => {
-      const error = new Error('Test error');
+    describe('Logging', () => {
+      test('should log error to logger', () => {
+        const error = new Error('Test error');
       
-      errorHandler(error, req, res, next);
+        errorHandler(error, req, res, next);
 
-      expect(console.error).toHaveBeenCalledWith('Error:', error);
+        expect(logger.error).toHaveBeenCalledWith('Error:', error);
+      });
     });
-  });
 });

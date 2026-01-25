@@ -2,6 +2,7 @@ const express = require('express');
 const { getDatabase } = require('../database/init');
 const { authenticateUser } = require('../middleware/auth');
 const { clientSchema, updateClientSchema } = require('../validation/schemas');
+const logger = require('../utils/logger');
 
 const router = express.Router();
 
@@ -17,7 +18,7 @@ router.get('/', (req, res) => {
     [req.userEmail],
     (err, rows) => {
       if (err) {
-        console.error('Database error:', err);
+        logger.error('Database error:', err);
         return res.status(500).json({ error: 'Internal server error' });
       }
       
@@ -41,7 +42,7 @@ router.get('/:id', (req, res) => {
     [clientId, req.userEmail],
     (err, row) => {
       if (err) {
-        console.error('Database error:', err);
+        logger.error('Database error:', err);
         return res.status(500).json({ error: 'Internal server error' });
       }
       
@@ -70,7 +71,7 @@ router.post('/', (req, res, next) => {
       [name, description || null, req.userEmail],
       function(err) {
         if (err) {
-          console.error('Database error:', err);
+          logger.error('Database error:', err);
           return res.status(500).json({ error: 'Failed to create client' });
         }
 
@@ -80,7 +81,7 @@ router.post('/', (req, res, next) => {
           [this.lastID],
           (err, row) => {
             if (err) {
-              console.error('Database error:', err);
+              logger.error('Database error:', err);
               return res.status(500).json({ error: 'Client created but failed to retrieve' });
             }
 
@@ -119,7 +120,7 @@ router.put('/:id', (req, res, next) => {
       [clientId, req.userEmail],
       (err, row) => {
         if (err) {
-          console.error('Database error:', err);
+          logger.error('Database error:', err);
           return res.status(500).json({ error: 'Internal server error' });
         }
 
@@ -148,7 +149,7 @@ router.put('/:id', (req, res, next) => {
 
         db.run(query, values, function(err) {
           if (err) {
-            console.error('Database error:', err);
+            logger.error('Database error:', err);
             return res.status(500).json({ error: 'Failed to update client' });
           }
 
@@ -158,7 +159,7 @@ router.put('/:id', (req, res, next) => {
             [clientId],
             (err, row) => {
               if (err) {
-                console.error('Database error:', err);
+                logger.error('Database error:', err);
                 return res.status(500).json({ error: 'Client updated but failed to retrieve' });
               }
 
@@ -192,7 +193,7 @@ router.delete('/:id', (req, res) => {
     [clientId, req.userEmail],
     (err, row) => {
       if (err) {
-        console.error('Database error:', err);
+        logger.error('Database error:', err);
         return res.status(500).json({ error: 'Internal server error' });
       }
       
@@ -206,7 +207,7 @@ router.delete('/:id', (req, res) => {
         [clientId, req.userEmail],
         function(err) {
           if (err) {
-            console.error('Database error:', err);
+            logger.error('Database error:', err);
             return res.status(500).json({ error: 'Failed to delete client' });
           }
           

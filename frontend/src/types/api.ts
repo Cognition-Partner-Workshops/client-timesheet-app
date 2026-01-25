@@ -7,23 +7,23 @@ export interface Client {
   id: number;
   name: string;
   description: string | null;
-  created_at: string;
-  updated_at: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface WorkEntry {
   id: number;
-  client_id: number;
+  clientId: number;
   hours: number;
   description: string | null;
   date: string;
-  created_at: string;
-  updated_at: string;
-  client_name?: string;
+  createdAt: string;
+  updatedAt: string;
+  clientName?: string;
 }
 
 export interface WorkEntryWithClient extends WorkEntry {
-  client_name: string;
+  clientName: string;
 }
 
 export interface ClientReport {

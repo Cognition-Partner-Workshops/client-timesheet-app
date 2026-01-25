@@ -185,7 +185,7 @@ const ClientsPage: React.FC = () => {
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2" color="text.secondary">
-                        {new Date(client.created_at).toLocaleDateString()}
+                        {new Date(client.createdAt).toLocaleDateString()}
                       </Typography>
                     </TableCell>
                     <TableCell align="right">
