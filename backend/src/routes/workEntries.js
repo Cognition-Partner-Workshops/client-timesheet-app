@@ -8,7 +8,40 @@ const router = express.Router();
 // All routes require authentication
 router.use(authenticateUser);
 
-// Get all work entries for authenticated user (with optional client filter)
+/**
+ * @swagger
+ * /api/work-entries:
+ *   get:
+ *     summary: Get all work entries
+ *     description: Returns all work entries for the authenticated user, optionally filtered by client
+ *     tags: [Work Entries]
+ *     security:
+ *       - EmailAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: clientId
+ *         schema:
+ *           type: integer
+ *         description: Filter by client ID (optional)
+ *     responses:
+ *       200:
+ *         description: List of work entries retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 workEntries:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/WorkEntry'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
 router.get('/', (req, res) => {
   const { clientId } = req.query;
   const db = getDatabase();
@@ -44,7 +77,41 @@ router.get('/', (req, res) => {
   });
 });
 
-// Get specific work entry
+/**
+ * @swagger
+ * /api/work-entries/{id}:
+ *   get:
+ *     summary: Get a specific work entry
+ *     description: Returns a single work entry by ID if it belongs to the authenticated user
+ *     tags: [Work Entries]
+ *     security:
+ *       - EmailAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Work entry ID
+ *     responses:
+ *       200:
+ *         description: Work entry retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 workEntry:
+ *                   $ref: '#/components/schemas/WorkEntry'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
 router.get('/:id', (req, res) => {
   const workEntryId = parseInt(req.params.id);
   
@@ -76,7 +143,41 @@ router.get('/:id', (req, res) => {
   );
 });
 
-// Create new work entry
+/**
+ * @swagger
+ * /api/work-entries:
+ *   post:
+ *     summary: Create a new work entry
+ *     description: Creates a new work entry for the authenticated user. The client must belong to the user.
+ *     tags: [Work Entries]
+ *     security:
+ *       - EmailAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/WorkEntryInput'
+ *     responses:
+ *       201:
+ *         description: Work entry created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Work entry created successfully
+ *                 workEntry:
+ *                   $ref: '#/components/schemas/WorkEntry'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
 router.post('/', (req, res, next) => {
   try {
     const { error, value } = workEntrySchema.validate(req.body);
@@ -140,7 +241,50 @@ router.post('/', (req, res, next) => {
   }
 });
 
-// Update work entry
+/**
+ * @swagger
+ * /api/work-entries/{id}:
+ *   put:
+ *     summary: Update a work entry
+ *     description: Updates an existing work entry. At least one field must be provided. If clientId is updated, the new client must belong to the user.
+ *     tags: [Work Entries]
+ *     security:
+ *       - EmailAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Work entry ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/WorkEntryUpdateInput'
+ *     responses:
+ *       200:
+ *         description: Work entry updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Work entry updated successfully
+ *                 workEntry:
+ *                   $ref: '#/components/schemas/WorkEntry'
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
 router.put('/:id', (req, res, next) => {
   try {
     const workEntryId = parseInt(req.params.id);
@@ -257,7 +401,42 @@ router.put('/:id', (req, res, next) => {
   }
 });
 
-// Delete work entry
+/**
+ * @swagger
+ * /api/work-entries/{id}:
+ *   delete:
+ *     summary: Delete a work entry
+ *     description: Deletes a work entry by ID if it belongs to the authenticated user
+ *     tags: [Work Entries]
+ *     security:
+ *       - EmailAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Work entry ID
+ *     responses:
+ *       200:
+ *         description: Work entry deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Work entry deleted successfully
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ *       500:
+ *         $ref: '#/components/responses/InternalServerError'
+ */
 router.delete('/:id', (req, res) => {
   const workEntryId = parseInt(req.params.id);
   
