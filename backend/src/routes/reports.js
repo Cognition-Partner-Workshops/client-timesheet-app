@@ -244,4 +244,67 @@ router.get('/export/pdf/:clientId', (req, res) => {
   );
 });
 
+// Export client report as JSON
+router.get('/export/json/:clientId', (req, res) => {
+  const clientId = parseInt(req.params.clientId);
+  
+  if (isNaN(clientId)) {
+    return res.status(400).json({ error: 'Invalid client ID' });
+  }
+  
+  const db = getDatabase();
+  
+  // Verify client belongs to user and get data
+  db.get(
+    'SELECT id, name FROM clients WHERE id = ? AND user_email = ?',
+    [clientId, req.userEmail],
+    (err, client) => {
+      if (err) {
+        console.error('Database error:', err);
+        return res.status(500).json({ error: 'Internal server error' });
+      }
+      
+      if (!client) {
+        return res.status(404).json({ error: 'Client not found' });
+      }
+      
+      // Get work entries
+      db.all(
+        `SELECT id, hours, description, date, created_at, updated_at
+         FROM work_entries 
+         WHERE client_id = ? AND user_email = ? 
+         ORDER BY date DESC`,
+        [clientId, req.userEmail],
+        (err, workEntries) => {
+          if (err) {
+            console.error('Database error:', err);
+            return res.status(500).json({ error: 'Internal server error' });
+          }
+          
+          // Calculate total hours
+          const totalHours = workEntries.reduce((sum, entry) => sum + parseFloat(entry.hours), 0);
+          
+          // Create JSON report
+          const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+          const filename = `${client.name.replace(/[^a-zA-Z0-9]/g, '_')}_report_${timestamp}.json`;
+          
+          const reportData = {
+            client: client,
+            workEntries: workEntries,
+            totalHours: totalHours,
+            entryCount: workEntries.length,
+            generatedAt: new Date().toISOString()
+          };
+          
+          // Set response headers for file download
+          res.setHeader('Content-Type', 'application/json');
+          res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+          
+          res.json(reportData);
+        }
+      );
+    }
+  );
+});
+
 module.exports = router;
