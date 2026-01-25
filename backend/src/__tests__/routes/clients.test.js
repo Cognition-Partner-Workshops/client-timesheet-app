@@ -454,4 +454,42 @@ describe('Client Routes', () => {
       expect(response.status).toBe(200);
     });
   });
+
+  describe('POST /api/clients - Catch Block Coverage', () => {
+    test('should handle synchronous exception in POST handler', async () => {
+      const { clientSchema } = require('../../validation/schemas');
+      const originalValidate = clientSchema.validate;
+      
+      clientSchema.validate = jest.fn(() => {
+        throw new Error('Unexpected sync error');
+      });
+
+      const response = await request(app)
+        .post('/api/clients')
+        .send({ name: 'Test Client' });
+
+      expect(response.status).toBe(500);
+      
+      clientSchema.validate = originalValidate;
+    });
+  });
+
+  describe('PUT /api/clients/:id - Catch Block Coverage', () => {
+    test('should handle synchronous exception in PUT handler', async () => {
+      const { updateClientSchema } = require('../../validation/schemas');
+      const originalValidate = updateClientSchema.validate;
+      
+      updateClientSchema.validate = jest.fn(() => {
+        throw new Error('Unexpected sync error');
+      });
+
+      const response = await request(app)
+        .put('/api/clients/1')
+        .send({ name: 'Updated Name' });
+
+      expect(response.status).toBe(500);
+      
+      updateClientSchema.validate = originalValidate;
+    });
+  });
 });
