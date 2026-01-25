@@ -28,10 +28,36 @@ const emailSchema = Joi.object({
   email: Joi.string().email().required()
 });
 
+const mobileNumberSchema = Joi.object({
+  mobileNumber: Joi.string()
+    .pattern(/^\+?[1-9]\d{6,14}$/)
+    .required()
+    .messages({
+      'string.pattern.base': 'Mobile number must be a valid phone number (7-15 digits, optionally starting with +)'
+    })
+});
+
+const verifyCodeSchema = Joi.object({
+  mobileNumber: Joi.string()
+    .pattern(/^\+?[1-9]\d{6,14}$/)
+    .required()
+    .messages({
+      'string.pattern.base': 'Mobile number must be a valid phone number (7-15 digits, optionally starting with +)'
+    }),
+  code: Joi.string()
+    .pattern(/^\d{6}$/)
+    .required()
+    .messages({
+      'string.pattern.base': 'Auth code must be a 6-digit number'
+    })
+});
+
 module.exports = {
   clientSchema,
   workEntrySchema,
   updateWorkEntrySchema,
   updateClientSchema,
-  emailSchema
+  emailSchema,
+  mobileNumberSchema,
+  verifyCodeSchema
 };
