@@ -5,6 +5,7 @@ import apiClient from '../api/client';
 interface AuthContextType {
   user: User | null;
   login: (email: string) => Promise<void>;
+  loginWithMobile: (mobile: string) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
   isAuthenticated: boolean;
@@ -12,6 +13,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (context === undefined) {
@@ -51,9 +53,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const response = await apiClient.login(email);
       setUser(response.user);
-      localStorage.setItem('userEmail', email);
+      localStorage.setItem('userEmail', response.user.email);
     } catch (error) {
       console.error('Login failed:', error);
+      throw error;
+    }
+  };
+
+  const loginWithMobile = async (mobile: string) => {
+    try {
+      const response = await apiClient.loginWithMobile(mobile);
+      setUser(response.user);
+      // Store the email (which may be a placeholder for mobile users)
+      localStorage.setItem('userEmail', response.user.email);
+    } catch (error) {
+      console.error('Login with mobile failed:', error);
       throw error;
     }
   };
@@ -66,6 +80,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const value: AuthContextType = {
     user,
     login,
+    loginWithMobile,
     logout,
     isLoading,
     isAuthenticated: !!user,

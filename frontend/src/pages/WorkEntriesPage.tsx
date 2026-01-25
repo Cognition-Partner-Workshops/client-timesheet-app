@@ -23,11 +23,15 @@ import {
   Select,
   MenuItem,
   Chip,
+  FormControlLabel,
+  Checkbox,
 } from '@mui/material';
 import {
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
+  AttachMoney as BillableIcon,
+  MoneyOff as NonBillableIcon,
 } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -41,9 +45,11 @@ const WorkEntriesPage: React.FC = () => {
   const [editingEntry, setEditingEntry] = useState<WorkEntry | null>(null);
   const [formData, setFormData] = useState({
     clientId: 0,
+    projectId: 0,
     hours: '',
     description: '',
     date: new Date(),
+    isBillable: true,
   });
   const [error, setError] = useState('');
 
@@ -59,8 +65,16 @@ const WorkEntriesPage: React.FC = () => {
     queryFn: () => apiClient.getClients(),
   });
 
+  const { data: projectsData } = useQuery({
+    queryKey: ['projects', formData.clientId],
+    queryFn: () => apiClient.getProjectsByClient(formData.clientId),
+    enabled: formData.clientId > 0,
+  });
+
+  const projects = projectsData?.projects || [];
+
   const createMutation = useMutation({
-    mutationFn: (entryData: { clientId: number; hours: number; description?: string; date: string }) =>
+    mutationFn: (entryData: { clientId: number; projectId?: number | null; hours: number; description?: string; date: string; isBillable?: boolean }) =>
       apiClient.createWorkEntry(entryData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['workEntries'] });
@@ -73,7 +87,7 @@ const WorkEntriesPage: React.FC = () => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: { clientId?: number; hours?: number; description?: string; date?: string } }) =>
+    mutationFn: ({ id, data }: { id: number; data: { clientId?: number; projectId?: number | null; hours?: number; description?: string; date?: string; isBillable?: boolean } }) =>
       apiClient.updateWorkEntry(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['workEntries'] });
@@ -104,17 +118,21 @@ const WorkEntriesPage: React.FC = () => {
       setEditingEntry(entry);
       setFormData({
         clientId: entry.client_id,
+        projectId: entry.project_id || 0,
         hours: entry.hours.toString(),
         description: entry.description || '',
         date: new Date(entry.date),
+        isBillable: entry.is_billable !== false,
       });
     } else {
       setEditingEntry(null);
       setFormData({
         clientId: 0,
+        projectId: 0,
         hours: '',
         description: '',
         date: new Date(),
+        isBillable: true,
       });
     }
     setError('');
@@ -126,9 +144,11 @@ const WorkEntriesPage: React.FC = () => {
     setEditingEntry(null);
     setFormData({
       clientId: 0,
+      projectId: 0,
       hours: '',
       description: '',
       date: new Date(),
+      isBillable: true,
     });
     setError('');
   };
@@ -155,9 +175,11 @@ const WorkEntriesPage: React.FC = () => {
 
     const entryData = {
       clientId: formData.clientId,
+      projectId: formData.projectId || null,
       hours,
       description: formData.description || undefined,
       date: formData.date.toISOString().split('T')[0],
+      isBillable: formData.isBillable,
     };
 
     if (editingEntry) {
@@ -215,9 +237,10 @@ const WorkEntriesPage: React.FC = () => {
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell>Client</TableCell>
+                    <TableCell>Client / Project</TableCell>
                     <TableCell>Date</TableCell>
                     <TableCell>Hours</TableCell>
+                    <TableCell>Billable</TableCell>
                     <TableCell>Description</TableCell>
                     <TableCell align="right">Actions</TableCell>
                   </TableRow>
@@ -230,6 +253,11 @@ const WorkEntriesPage: React.FC = () => {
                           <Typography variant="subtitle1" fontWeight="medium">
                             {entry.client_name}
                           </Typography>
+                          {entry.project_name && (
+                            <Typography variant="body2" color="text.secondary">
+                              {entry.project_name}
+                            </Typography>
+                          )}
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2">
@@ -242,6 +270,24 @@ const WorkEntriesPage: React.FC = () => {
                             color="primary" 
                             variant="outlined" 
                           />
+                        </TableCell>
+                        <TableCell>
+                          {entry.is_billable ? (
+                            <Chip
+                              icon={<BillableIcon />}
+                              label="Billable"
+                              color="success"
+                              size="small"
+                              variant="outlined"
+                            />
+                          ) : (
+                            <Chip
+                              icon={<NonBillableIcon />}
+                              label="Non-billable"
+                              size="small"
+                              variant="outlined"
+                            />
+                          )}
                         </TableCell>
                         <TableCell>
                           {entry.description ? (
@@ -295,7 +341,7 @@ const WorkEntriesPage: React.FC = () => {
                 <InputLabel>Client</InputLabel>
                 <Select
                   value={formData.clientId}
-                  onChange={(e) => setFormData({ ...formData, clientId: Number(e.target.value) })}
+                  onChange={(e) => setFormData({ ...formData, clientId: Number(e.target.value), projectId: 0 })}
                   disabled={createMutation.isPending || updateMutation.isPending}
                 >
                   {clients.map((client: { id: number; name: string }) => (
@@ -305,6 +351,25 @@ const WorkEntriesPage: React.FC = () => {
                   ))}
                 </Select>
               </FormControl>
+
+              {formData.clientId > 0 && projects.length > 0 && (
+                <FormControl fullWidth margin="dense">
+                  <InputLabel>Project (Optional)</InputLabel>
+                  <Select
+                    value={formData.projectId}
+                    onChange={(e) => setFormData({ ...formData, projectId: Number(e.target.value) })}
+                    label="Project (Optional)"
+                    disabled={createMutation.isPending || updateMutation.isPending}
+                  >
+                    <MenuItem value={0}>No project selected</MenuItem>
+                    {projects.map((project: { id: number; name: string }) => (
+                      <MenuItem key={project.id} value={project.id}>
+                        {project.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              )}
 
               <TextField
                 margin="dense"
@@ -341,6 +406,18 @@ const WorkEntriesPage: React.FC = () => {
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 disabled={createMutation.isPending || updateMutation.isPending}
+              />
+
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={formData.isBillable}
+                    onChange={(e) => setFormData({ ...formData, isBillable: e.target.checked })}
+                    disabled={createMutation.isPending || updateMutation.isPending}
+                  />
+                }
+                label="Billable"
+                sx={{ mt: 1 }}
               />
             </DialogContent>
             <DialogActions>
