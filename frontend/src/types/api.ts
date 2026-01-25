@@ -71,3 +71,28 @@ export interface ApiResponse<T> {
   error?: string;
   message?: string;
 }
+
+export interface Defaulter {
+  id: number;
+  name: string;
+  description: string | null;
+  lastEntryDate: string;
+  daysSinceLastEntry: number;
+  totalHours: number;
+  entryCount: number;
+  status: 'ok' | 'warning' | 'critical';
+}
+
+export interface DefaultersSummary {
+  totalClients: number;
+  defaultersCount: number;
+  criticalCount: number;
+  warningCount: number;
+  daysThreshold: number;
+}
+
+export interface DefaultersReport {
+  defaulters: Defaulter[];
+  allClients: Defaulter[];
+  summary: DefaultersSummary;
+}
