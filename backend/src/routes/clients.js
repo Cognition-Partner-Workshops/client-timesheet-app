@@ -21,7 +21,7 @@ router.get('/', (req, res) => {
         return res.status(500).json({ error: 'Internal server error' });
       }
       
-      res.json({ clients: rows });
+      res.json({ data: rows, count: rows.length });
     }
   );
 });
