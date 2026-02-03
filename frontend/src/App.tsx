@@ -15,10 +15,74 @@ import ReportsPage from './pages/ReportsPage';
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#1976d2',
+      main: '#0D47A1',
+      light: '#1565C0',
+      dark: '#0A3D91',
     },
     secondary: {
-      main: '#dc004e',
+      main: '#2E7D32',
+      light: '#43A047',
+      dark: '#1B5E20',
+    },
+    background: {
+      default: '#F5F7FA',
+      paper: '#FFFFFF',
+    },
+  },
+  components: {
+    MuiAppBar: {
+      styleOverrides: {
+        root: {
+          backgroundColor: '#0D47A1',
+        },
+      },
+    },
+    MuiDrawer: {
+      styleOverrides: {
+        paper: {
+          backgroundColor: '#0A3D91',
+          color: '#FFFFFF',
+        },
+      },
+    },
+    MuiListItemButton: {
+      styleOverrides: {
+        root: {
+          '&.Mui-selected': {
+            backgroundColor: 'rgba(46, 125, 50, 0.3)',
+            '&:hover': {
+              backgroundColor: 'rgba(46, 125, 50, 0.4)',
+            },
+          },
+          '&:hover': {
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+          },
+        },
+      },
+    },
+    MuiListItemIcon: {
+      styleOverrides: {
+        root: {
+          color: '#FFFFFF',
+        },
+      },
+    },
+    MuiListItemText: {
+      styleOverrides: {
+        primary: {
+          color: '#FFFFFF',
+        },
+      },
+    },
+    MuiButton: {
+      styleOverrides: {
+        containedPrimary: {
+          backgroundColor: '#2E7D32',
+          '&:hover': {
+            backgroundColor: '#1B5E20',
+          },
+        },
+      },
     },
   },
 });
