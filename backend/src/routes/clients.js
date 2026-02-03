@@ -5,6 +5,52 @@ const { clientSchema, updateClientSchema } = require('../validation/schemas');
 
 const router = express.Router();
 
+const CLIENT_SELECT_FIELDS = 'id, name, description, department, email, created_at, updated_at';
+
+function handleDatabaseError(res, message = 'Internal server error') {
+  return (err) => {
+    if (err) {
+      console.error('Database error:', err);
+      res.status(500).json({ error: message });
+      return true;
+    }
+    return false;
+  };
+}
+
+function buildClientUpdateQuery(value) {
+  const updates = [];
+  const values = [];
+
+  if (value.name !== undefined) {
+    updates.push('name = ?');
+    values.push(value.name);
+  }
+  if (value.description !== undefined) {
+    updates.push('description = ?');
+    values.push(value.description || null);
+  }
+  if (value.department !== undefined) {
+    updates.push('department = ?');
+    values.push(value.department || null);
+  }
+  if (value.email !== undefined) {
+    updates.push('email = ?');
+    values.push(value.email || null);
+  }
+  updates.push('updated_at = CURRENT_TIMESTAMP');
+
+  return { updates, values };
+}
+
+function fetchClientById(db, clientId, callback) {
+  db.get(
+    `SELECT ${CLIENT_SELECT_FIELDS} FROM clients WHERE id = ?`,
+    [clientId],
+    callback
+  );
+}
+
 // All routes require authentication
 router.use(authenticateUser);
 
@@ -99,92 +145,57 @@ router.post('/', (req, res, next) => {
 
 // Update client
 router.put('/:id', (req, res, next) => {
-  try {
-    const clientId = parseInt(req.params.id);
-    
-    if (isNaN(clientId)) {
-      return res.status(400).json({ error: 'Invalid client ID' });
-    }
-
-    const { error, value } = updateClientSchema.validate(req.body);
-    if (error) {
-      return next(error);
-    }
-
-    const db = getDatabase();
-
-    // Check if client exists and belongs to user
-    db.get(
-      'SELECT id FROM clients WHERE id = ? AND user_email = ?',
-      [clientId, req.userEmail],
-      (err, row) => {
-        if (err) {
-          console.error('Database error:', err);
-          return res.status(500).json({ error: 'Internal server error' });
-        }
-
-        if (!row) {
-          return res.status(404).json({ error: 'Client not found' });
-        }
-
-        // Build update query dynamically
-        const updates = [];
-        const values = [];
-
-        if (value.name !== undefined) {
-          updates.push('name = ?');
-          values.push(value.name);
-        }
-
-        if (value.description !== undefined) {
-          updates.push('description = ?');
-          values.push(value.description || null);
-        }
-
-        if (value.department !== undefined) {
-          updates.push('department = ?');
-          values.push(value.department || null);
-        }
-
-        if (value.email !== undefined) {
-          updates.push('email = ?');
-          values.push(value.email || null);
-        }
-
-        updates.push('updated_at = CURRENT_TIMESTAMP');
-        values.push(clientId, req.userEmail);
-
-        const query = `UPDATE clients SET ${updates.join(', ')} WHERE id = ? AND user_email = ?`;
-
-        db.run(query, values, function(err) {
-          if (err) {
-            console.error('Database error:', err);
-            return res.status(500).json({ error: 'Failed to update client' });
-          }
-
-          // Return updated client
-          db.get(
-            'SELECT id, name, description, department, email, created_at, updated_at FROM clients WHERE id = ?',
-            [clientId],
-            (err, row) => {
-              if (err) {
-                console.error('Database error:', err);
-                return res.status(500).json({ error: 'Client updated but failed to retrieve' });
-              }
-
-              res.json({
-                message: 'Client updated successfully',
-                client: row
-              });
-            }
-          );
-        });
-      }
-    );
-  } catch (error) {
-    next(error);
+  const clientId = parseInt(req.params.id);
+  
+  if (isNaN(clientId)) {
+    return res.status(400).json({ error: 'Invalid client ID' });
   }
+
+  const { error, value } = updateClientSchema.validate(req.body);
+  if (error) {
+    return next(error);
+  }
+
+  const db = getDatabase();
+
+  verifyClientExists(db, clientId, req.userEmail, res, () => {
+    executeClientUpdate(db, clientId, req.userEmail, value, res);
+  });
 });
+
+function verifyClientExists(db, clientId, userEmail, res, onSuccess) {
+  db.get(
+    'SELECT id FROM clients WHERE id = ? AND user_email = ?',
+    [clientId, userEmail],
+    (err, row) => {
+      if (handleDatabaseError(res)(err)) return;
+      if (!row) {
+        return res.status(404).json({ error: 'Client not found' });
+      }
+      onSuccess();
+    }
+  );
+}
+
+function executeClientUpdate(db, clientId, userEmail, value, res) {
+  const { updates, values } = buildClientUpdateQuery(value);
+  values.push(clientId, userEmail);
+
+  const query = `UPDATE clients SET ${updates.join(', ')} WHERE id = ? AND user_email = ?`;
+
+  db.run(query, values, function(err) {
+    if (handleDatabaseError(res, 'Failed to update client')(err)) return;
+
+    fetchClientById(db, clientId, (err, row) => {
+      if (handleDatabaseError(res, 'Client updated but failed to retrieve')(err)) return;
+
+      res.json({
+        message: 'Client updated successfully',
+        client: row
+      });
+    });
+  });
+}
 
 // Delete all clients for authenticated user
 router.delete('/', (req, res) => {

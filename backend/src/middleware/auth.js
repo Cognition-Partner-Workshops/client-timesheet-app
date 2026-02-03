@@ -8,8 +8,10 @@ function authenticateUser(req, res, next) {
     return res.status(401).json({ error: 'User email required in x-user-email header' });
   }
 
-  // Validate email format
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  // Validate email format using a safe regex pattern that avoids catastrophic backtracking
+  // This pattern requires a TLD (at least one dot in domain), supports subdomains,
+  // and uses specific character classes to prevent ReDoS vulnerabilities
+  const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
   if (!emailRegex.test(userEmail)) {
     return res.status(400).json({ error: 'Invalid email format' });
   }
