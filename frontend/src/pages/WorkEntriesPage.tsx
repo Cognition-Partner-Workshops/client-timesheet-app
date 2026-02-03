@@ -34,13 +34,14 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import apiClient from '../api/client';
-import { type WorkEntry } from '../types/api';
+import { type WorkEntry, type Activity } from '../types/api';
 
 const WorkEntriesPage: React.FC = () => {
   const [open, setOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<WorkEntry | null>(null);
   const [formData, setFormData] = useState({
     clientId: 0,
+    activityId: null as number | null,
     hours: '',
     description: '',
     date: new Date(),
@@ -59,8 +60,13 @@ const WorkEntriesPage: React.FC = () => {
     queryFn: () => apiClient.getClients(),
   });
 
+  const { data: activitiesData, isLoading: activitiesLoading } = useQuery({
+    queryKey: ['activities'],
+    queryFn: () => apiClient.getActivities(),
+  });
+
   const createMutation = useMutation({
-    mutationFn: (entryData: { clientId: number; hours: number; description?: string; date: string }) =>
+    mutationFn: (entryData: { clientId: number; activityId?: number | null; hours: number; description?: string; date: string }) =>
       apiClient.createWorkEntry(entryData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['workEntries'] });
@@ -73,7 +79,7 @@ const WorkEntriesPage: React.FC = () => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: { clientId?: number; hours?: number; description?: string; date?: string } }) =>
+    mutationFn: ({ id, data }: { id: number; data: { clientId?: number; activityId?: number | null; hours?: number; description?: string; date?: string } }) =>
       apiClient.updateWorkEntry(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['workEntries'] });
@@ -98,12 +104,14 @@ const WorkEntriesPage: React.FC = () => {
 
   const workEntries = workEntriesData?.workEntries || [];
   const clients = clientsData?.clients || [];
+  const activities = activitiesData?.activities || [];
 
   const handleOpen = (entry?: WorkEntry) => {
     if (entry) {
       setEditingEntry(entry);
       setFormData({
         clientId: entry.client_id,
+        activityId: entry.activity_id,
         hours: entry.hours.toString(),
         description: entry.description || '',
         date: new Date(entry.date),
@@ -112,6 +120,7 @@ const WorkEntriesPage: React.FC = () => {
       setEditingEntry(null);
       setFormData({
         clientId: 0,
+        activityId: null,
         hours: '',
         description: '',
         date: new Date(),
@@ -126,6 +135,7 @@ const WorkEntriesPage: React.FC = () => {
     setEditingEntry(null);
     setFormData({
       clientId: 0,
+      activityId: null,
       hours: '',
       description: '',
       date: new Date(),
@@ -155,6 +165,7 @@ const WorkEntriesPage: React.FC = () => {
 
     const entryData = {
       clientId: formData.clientId,
+      activityId: formData.activityId,
       hours,
       description: formData.description || undefined,
       date: formData.date.toISOString().split('T')[0],
@@ -176,7 +187,7 @@ const WorkEntriesPage: React.FC = () => {
     }
   };
 
-  if (entriesLoading || clientsLoading) {
+  if (entriesLoading || clientsLoading || activitiesLoading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
         <CircularProgress />
@@ -216,6 +227,7 @@ const WorkEntriesPage: React.FC = () => {
                 <TableHead>
                   <TableRow>
                     <TableCell>Client</TableCell>
+                    <TableCell>Activity</TableCell>
                     <TableCell>Date</TableCell>
                     <TableCell>Hours</TableCell>
                     <TableCell>Description</TableCell>
@@ -230,6 +242,13 @@ const WorkEntriesPage: React.FC = () => {
                           <Typography variant="subtitle1" fontWeight="medium">
                             {entry.client_name}
                           </Typography>
+                        </TableCell>
+                        <TableCell>
+                          {entry.activity_name ? (
+                            <Chip label={entry.activity_name} size="small" color="secondary" variant="outlined" />
+                          ) : (
+                            <Chip label="No activity" size="small" variant="outlined" />
+                          )}
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2">
@@ -272,7 +291,7 @@ const WorkEntriesPage: React.FC = () => {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={5} align="center">
+                      <TableCell colSpan={6} align="center">
                         <Typography color="text.secondary" sx={{ py: 3 }}>
                           No work entries found. Add your first work entry to get started.
                         </Typography>
@@ -301,6 +320,24 @@ const WorkEntriesPage: React.FC = () => {
                   {clients.map((client: { id: number; name: string }) => (
                     <MenuItem key={client.id} value={client.id}>
                       {client.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              <FormControl fullWidth margin="dense">
+                <InputLabel>Activity (Optional)</InputLabel>
+                <Select
+                  value={formData.activityId || ''}
+                  onChange={(e) => setFormData({ ...formData, activityId: e.target.value ? Number(e.target.value) : null })}
+                  disabled={createMutation.isPending || updateMutation.isPending}
+                >
+                  <MenuItem value="">
+                    <em>None</em>
+                  </MenuItem>
+                  {activities.map((activity: Activity) => (
+                    <MenuItem key={activity.id} value={activity.id}>
+                      {activity.name}
                     </MenuItem>
                   ))}
                 </Select>

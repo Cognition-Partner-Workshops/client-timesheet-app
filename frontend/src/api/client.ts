@@ -86,6 +86,32 @@ class ApiClient {
     return response.data;
   }
 
+  // Activity endpoints
+  async getActivities() {
+    const response = await this.client.get('/api/activities');
+    return response.data;
+  }
+
+  async getActivity(id: number) {
+    const response = await this.client.get(`/api/activities/${id}`);
+    return response.data;
+  }
+
+  async createActivity(activityData: { name: string; description?: string }) {
+    const response = await this.client.post('/api/activities', activityData);
+    return response.data;
+  }
+
+  async updateActivity(id: number, activityData: { name?: string; description?: string }) {
+    const response = await this.client.put(`/api/activities/${id}`, activityData);
+    return response.data;
+  }
+
+  async deleteActivity(id: number) {
+    const response = await this.client.delete(`/api/activities/${id}`);
+    return response.data;
+  }
+
   // Work entry endpoints
   async getWorkEntries(clientId?: number) {
     const params = clientId ? { clientId } : {};
@@ -98,12 +124,12 @@ class ApiClient {
     return response.data;
   }
 
-  async createWorkEntry(entryData: { clientId: number; hours: number; description?: string; date: string }) {
+  async createWorkEntry(entryData: { clientId: number; activityId?: number | null; hours: number; description?: string; date: string }) {
     const response = await this.client.post('/api/work-entries', entryData);
     return response.data;
   }
 
-  async updateWorkEntry(id: number, entryData: { clientId?: number; hours?: number; description?: string; date?: string }) {
+  async updateWorkEntry(id: number, entryData: { clientId?: number; activityId?: number | null; hours?: number; description?: string; date?: string }) {
     const response = await this.client.put(`/api/work-entries/${id}`, entryData);
     return response.data;
   }
