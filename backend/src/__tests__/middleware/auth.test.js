@@ -29,12 +29,12 @@ describe('Authentication Middleware', () => {
   });
 
   describe('Email Header Validation', () => {
-    test('should return 401 if x-user-email header is missing', () => {
+    test('should return 401 if no authentication provided', () => {
       authenticateUser(req, res, next);
 
       expect(res.status).toHaveBeenCalledWith(401);
       expect(res.json).toHaveBeenCalledWith({
-        error: 'User email required in x-user-email header'
+        error: 'Authentication required. Please provide a valid JWT token in the Authorization header.'
       });
       expect(next).not.toHaveBeenCalled();
     });

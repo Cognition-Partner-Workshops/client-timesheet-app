@@ -4,6 +4,10 @@ import axios, { type AxiosInstance, type AxiosResponse } from 'axios';
 // Vite proxy will forward /api requests to the backend
 const API_BASE_URL = '';
 
+// Storage keys for authentication
+const TOKEN_KEY = 'authToken';
+const USER_EMAIL_KEY = 'userEmail';
+
 class ApiClient {
   private client: AxiosInstance;
 
@@ -16,12 +20,18 @@ class ApiClient {
       },
     });
 
-    // Request interceptor to add email header
+    // Request interceptor to add JWT token or fallback to email header
     this.client.interceptors.request.use(
       (config) => {
-        const userEmail = localStorage.getItem('userEmail');
-        if (userEmail) {
-          config.headers['x-user-email'] = userEmail;
+        const token = localStorage.getItem(TOKEN_KEY);
+        if (token) {
+          config.headers['Authorization'] = `Bearer ${token}`;
+        } else {
+          // Fallback to x-user-email header for backward compatibility
+          const userEmail = localStorage.getItem(USER_EMAIL_KEY);
+          if (userEmail) {
+            config.headers['x-user-email'] = userEmail;
+          }
         }
         return config;
       },
@@ -35,8 +45,9 @@ class ApiClient {
       (response: AxiosResponse) => response,
       (error) => {
         if (error.response?.status === 401) {
-          // Clear stored email on auth error
-          localStorage.removeItem('userEmail');
+          // Clear stored credentials on auth error
+          localStorage.removeItem(TOKEN_KEY);
+          localStorage.removeItem(USER_EMAIL_KEY);
           window.location.href = '/login';
         }
         return Promise.reject(error);
