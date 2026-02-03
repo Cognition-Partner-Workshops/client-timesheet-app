@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useEffect, type ReactNode } from 'react';
 import { type User } from '../types/api';
 import apiClient from '../api/client';
@@ -13,6 +15,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useEffect(() => {
     const checkAuth = async () => {
+      if (typeof window === 'undefined') {
+        setIsLoading(false);
+        return;
+      }
+      
       const storedEmail = localStorage.getItem('userEmail');
       
       if (storedEmail) {
@@ -34,7 +41,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const response = await apiClient.login(email);
       setUser(response.user);
-      localStorage.setItem('userEmail', email);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('userEmail', email);
+      }
     } catch (error) {
       console.error('Login failed:', error);
       throw error;
@@ -43,7 +52,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('userEmail');
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('userEmail');
+    }
   };
 
   const value: AuthContextType = {

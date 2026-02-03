@@ -1,8 +1,6 @@
 import axios, { type AxiosInstance, type AxiosResponse } from 'axios';
 
-// Use empty string to make requests relative to the current origin
-// Vite proxy will forward /api requests to the backend
-const API_BASE_URL = '';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 class ApiClient {
   private client: AxiosInstance;
@@ -16,12 +14,13 @@ class ApiClient {
       },
     });
 
-    // Request interceptor to add email header
     this.client.interceptors.request.use(
       (config) => {
-        const userEmail = localStorage.getItem('userEmail');
-        if (userEmail) {
-          config.headers['x-user-email'] = userEmail;
+        if (typeof window !== 'undefined') {
+          const userEmail = localStorage.getItem('userEmail');
+          if (userEmail) {
+            config.headers['x-user-email'] = userEmail;
+          }
         }
         return config;
       },
@@ -30,12 +29,10 @@ class ApiClient {
       }
     );
 
-    // Response interceptor for error handling
     this.client.interceptors.response.use(
       (response: AxiosResponse) => response,
       (error) => {
-        if (error.response?.status === 401) {
-          // Clear stored email on auth error
+        if (typeof window !== 'undefined' && error.response?.status === 401) {
           localStorage.removeItem('userEmail');
           window.location.href = '/login';
         }
@@ -44,7 +41,6 @@ class ApiClient {
     );
   }
 
-  // Auth endpoints
   async login(email: string) {
     const response = await this.client.post('/api/auth/login', { email });
     return response.data;
@@ -55,7 +51,6 @@ class ApiClient {
     return response.data;
   }
 
-  // Client endpoints
   async getClients() {
     const response = await this.client.get('/api/clients');
     return response.data;
@@ -86,7 +81,6 @@ class ApiClient {
     return response.data;
   }
 
-  // Work entry endpoints
   async getWorkEntries(clientId?: number) {
     const params = clientId ? { clientId } : {};
     const response = await this.client.get('/api/work-entries', { params });
@@ -113,7 +107,6 @@ class ApiClient {
     return response.data;
   }
 
-  // Report endpoints
   async getClientReport(clientId: number) {
     const response = await this.client.get(`/api/reports/client/${clientId}`);
     return response.data;
@@ -133,7 +126,6 @@ class ApiClient {
     return response.data;
   }
 
-  // Health check
   async healthCheck() {
     const response = await this.client.get('/health');
     return response.data;
