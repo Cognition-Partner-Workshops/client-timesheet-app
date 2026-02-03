@@ -8,47 +8,47 @@ const router = express.Router();
 // All routes require authentication
 router.use(authenticateUser);
 
-// Get all clients for authenticated user
+// Get all clients (shared across all users)
 router.get('/', (req, res) => {
   const db = getDatabase();
-  
+
   db.all(
-    'SELECT id, name, description, department, email, created_at, updated_at FROM clients WHERE user_email = ? ORDER BY name',
-    [req.userEmail],
+    'SELECT id, name, description, department, email, user_email, created_at, updated_at FROM clients ORDER BY name',
+    [],
     (err, rows) => {
       if (err) {
         console.error('Database error:', err);
         return res.status(500).json({ error: 'Internal server error' });
       }
-      
+
       res.json({ clients: rows });
     }
   );
 });
 
-// Get specific client
+// Get specific client (shared across all users)
 router.get('/:id', (req, res) => {
   const clientId = parseInt(req.params.id);
-  
+
   if (isNaN(clientId)) {
     return res.status(400).json({ error: 'Invalid client ID' });
   }
-  
+
   const db = getDatabase();
-  
+
   db.get(
-    'SELECT id, name, description, department, email, created_at, updated_at FROM clients WHERE id = ? AND user_email = ?',
-    [clientId, req.userEmail],
+    'SELECT id, name, description, department, email, user_email, created_at, updated_at FROM clients WHERE id = ?',
+    [clientId],
     (err, row) => {
       if (err) {
         console.error('Database error:', err);
         return res.status(500).json({ error: 'Internal server error' });
       }
-      
+
       if (!row) {
         return res.status(404).json({ error: 'Client not found' });
       }
-      
+
       res.json({ client: row });
     }
   );
@@ -84,9 +84,9 @@ router.post('/', (req, res, next) => {
               return res.status(500).json({ error: 'Client created but failed to retrieve' });
             }
 
-            res.status(201).json({ 
+            res.status(201).json({
               message: 'Client created successfully',
-              client: row 
+              client: row
             });
           }
         );
@@ -97,11 +97,11 @@ router.post('/', (req, res, next) => {
   }
 });
 
-// Update client
+// Update client (shared across all users)
 router.put('/:id', (req, res, next) => {
   try {
     const clientId = parseInt(req.params.id);
-    
+
     if (isNaN(clientId)) {
       return res.status(400).json({ error: 'Invalid client ID' });
     }
@@ -113,10 +113,10 @@ router.put('/:id', (req, res, next) => {
 
     const db = getDatabase();
 
-    // Check if client exists and belongs to user
+    // Check if client exists (shared across all users)
     db.get(
-      'SELECT id FROM clients WHERE id = ? AND user_email = ?',
-      [clientId, req.userEmail],
+      'SELECT id FROM clients WHERE id = ?',
+      [clientId],
       (err, row) => {
         if (err) {
           console.error('Database error:', err);
@@ -152,9 +152,9 @@ router.put('/:id', (req, res, next) => {
         }
 
         updates.push('updated_at = CURRENT_TIMESTAMP');
-        values.push(clientId, req.userEmail);
+        values.push(clientId);
 
-        const query = `UPDATE clients SET ${updates.join(', ')} WHERE id = ? AND user_email = ?`;
+        const query = `UPDATE clients SET ${updates.join(', ')} WHERE id = ?`;
 
         db.run(query, values, function(err) {
           if (err) {
@@ -164,7 +164,7 @@ router.put('/:id', (req, res, next) => {
 
           // Return updated client
           db.get(
-            'SELECT id, name, description, department, email, created_at, updated_at FROM clients WHERE id = ?',
+            'SELECT id, name, description, department, email, user_email, created_at, updated_at FROM clients WHERE id = ?',
             [clientId],
             (err, row) => {
               if (err) {
@@ -186,20 +186,20 @@ router.put('/:id', (req, res, next) => {
   }
 });
 
-// Delete all clients for authenticated user
+// Delete all clients (shared across all users)
 router.delete('/', (req, res) => {
   const db = getDatabase();
-  
+
   db.run(
-    'DELETE FROM clients WHERE user_email = ?',
-    [req.userEmail],
+    'DELETE FROM clients',
+    [],
     function(err) {
       if (err) {
         console.error('Database error:', err);
         return res.status(500).json({ error: 'Failed to delete clients' });
       }
-      
-      res.json({ 
+
+      res.json({
         message: 'All clients deleted successfully',
         deletedCount: this.changes
       });
@@ -207,40 +207,40 @@ router.delete('/', (req, res) => {
   );
 });
 
-// Delete client
+// Delete client (shared across all users)
 router.delete('/:id', (req, res) => {
   const clientId = parseInt(req.params.id);
-  
+
   if (isNaN(clientId)) {
     return res.status(400).json({ error: 'Invalid client ID' });
   }
-  
+
   const db = getDatabase();
-  
-  // Check if client exists and belongs to user
+
+  // Check if client exists (shared across all users)
   db.get(
-    'SELECT id FROM clients WHERE id = ? AND user_email = ?',
-    [clientId, req.userEmail],
+    'SELECT id FROM clients WHERE id = ?',
+    [clientId],
     (err, row) => {
       if (err) {
         console.error('Database error:', err);
         return res.status(500).json({ error: 'Internal server error' });
       }
-      
+
       if (!row) {
         return res.status(404).json({ error: 'Client not found' });
       }
-      
+
       // Delete client (work entries will be deleted due to CASCADE)
       db.run(
-        'DELETE FROM clients WHERE id = ? AND user_email = ?',
-        [clientId, req.userEmail],
+        'DELETE FROM clients WHERE id = ?',
+        [clientId],
         function(err) {
           if (err) {
             console.error('Database error:', err);
             return res.status(500).json({ error: 'Failed to delete client' });
           }
-          
+
           res.json({ message: 'Client deleted successfully' });
         }
       );
