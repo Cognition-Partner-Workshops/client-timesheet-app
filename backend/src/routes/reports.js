@@ -100,16 +100,10 @@ router.get('/export/csv/:clientId', (req, res) => {
             return res.status(500).json({ error: 'Internal server error' });
           }
           
-          // Create temporary CSV file
+          // Create temporary CSV file using system temp directory for better compatibility
           const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
           const filename = `${client.name.replace(/[^a-zA-Z0-9]/g, '_')}_report_${timestamp}.csv`;
-          const tempPath = path.join(__dirname, '../../temp', filename);
-          
-          // Ensure temp directory exists
-          const tempDir = path.dirname(tempPath);
-          if (!fs.existsSync(tempDir)) {
-            fs.mkdirSync(tempDir, { recursive: true });
-          }
+          const tempPath = path.join(require('os').tmpdir(), filename);
           
           const csvWriter = createCsvWriter({
             path: tempPath,
