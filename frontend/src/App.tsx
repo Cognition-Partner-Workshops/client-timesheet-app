@@ -8,6 +8,7 @@ import Layout from './components/Layout';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import ClientsPage from './pages/ClientsPage';
+import ActivitiesPage from './pages/ActivitiesPage';
 import WorkEntriesPage from './pages/WorkEntriesPage';
 import ReportsPage from './pages/ReportsPage';
 
@@ -50,6 +51,7 @@ const AppContent: React.FC = () => {
                 <Routes>
                   <Route path="/dashboard" element={<DashboardPage />} />
                   <Route path="/clients" element={<ClientsPage />} />
+                  <Route path="/activities" element={<ActivitiesPage />} />
                   <Route path="/work-entries" element={<WorkEntriesPage />} />
                   <Route path="/reports" element={<ReportsPage />} />
                   <Route path="/" element={<Navigate to="/dashboard" replace />} />

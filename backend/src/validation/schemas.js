@@ -5,8 +5,19 @@ const clientSchema = Joi.object({
   description: Joi.string().trim().max(1000).optional().allow('')
 });
 
+const activitySchema = Joi.object({
+  name: Joi.string().trim().min(1).max(255).required(),
+  description: Joi.string().trim().max(1000).optional().allow('')
+});
+
+const updateActivitySchema = Joi.object({
+  name: Joi.string().trim().min(1).max(255).optional(),
+  description: Joi.string().trim().max(1000).optional().allow('')
+}).min(1);
+
 const workEntrySchema = Joi.object({
   clientId: Joi.number().integer().positive().required(),
+  activityId: Joi.number().integer().positive().optional().allow(null),
   hours: Joi.number().positive().max(24).precision(2).required(),
   description: Joi.string().trim().max(1000).optional().allow(''),
   date: Joi.date().iso().required()
@@ -14,6 +25,7 @@ const workEntrySchema = Joi.object({
 
 const updateWorkEntrySchema = Joi.object({
   clientId: Joi.number().integer().positive().optional(),
+  activityId: Joi.number().integer().positive().optional().allow(null),
   hours: Joi.number().positive().max(24).precision(2).optional(),
   description: Joi.string().trim().max(1000).optional().allow(''),
   date: Joi.date().iso().optional()
@@ -30,6 +42,8 @@ const emailSchema = Joi.object({
 
 module.exports = {
   clientSchema,
+  activitySchema,
+  updateActivitySchema,
   workEntrySchema,
   updateWorkEntrySchema,
   updateClientSchema,

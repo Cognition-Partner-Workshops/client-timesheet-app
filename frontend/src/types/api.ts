@@ -11,15 +11,25 @@ export interface Client {
   updated_at: string;
 }
 
+export interface Activity {
+  id: number;
+  name: string;
+  description: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface WorkEntry {
   id: number;
   client_id: number;
+  activity_id: number | null;
   hours: number;
   description: string | null;
   date: string;
   created_at: string;
   updated_at: string;
   client_name?: string;
+  activity_name?: string | null;
 }
 
 export interface WorkEntryWithClient extends WorkEntry {
@@ -43,8 +53,19 @@ export interface UpdateClientRequest {
   description?: string;
 }
 
+export interface CreateActivityRequest {
+  name: string;
+  description?: string;
+}
+
+export interface UpdateActivityRequest {
+  name?: string;
+  description?: string;
+}
+
 export interface CreateWorkEntryRequest {
   clientId: number;
+  activityId?: number | null;
   hours: number;
   description?: string;
   date: string;
@@ -52,6 +73,7 @@ export interface CreateWorkEntryRequest {
 
 export interface UpdateWorkEntryRequest {
   clientId?: number;
+  activityId?: number | null;
   hours?: number;
   description?: string;
   date?: string;
