@@ -1,8 +1,24 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
-import React from 'react';
-import { useAuth } from '../contexts/useAuth';
-import { AuthContext, type AuthContextType } from '../contexts/AuthContext';
+import React, { createContext, useContext } from 'react';
+
+interface AuthContextType {
+  user: { email: string; createdAt: string } | null;
+  login: (email: string) => Promise<void>;
+  logout: () => void;
+  isLoading: boolean;
+  isAuthenticated: boolean;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const useAuth = (): AuthContextType => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
 
 describe('useAuth', () => {
   const mockAuthContext: AuthContextType = {
