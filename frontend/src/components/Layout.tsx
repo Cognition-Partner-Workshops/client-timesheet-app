@@ -22,6 +22,8 @@ import {
   Assignment as AssignmentIcon,
   Assessment as AssessmentIcon,
   Logout as LogoutIcon,
+  PersonAdd as PersonAddIcon,
+  School as SchoolIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
@@ -47,6 +49,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { text: 'Clients', icon: <BusinessIcon />, path: '/clients' },
     { text: 'Work Entries', icon: <AssignmentIcon />, path: '/work-entries' },
     { text: 'Reports', icon: <AssessmentIcon />, path: '/reports' },
+    { text: 'Patient Registration', icon: <PersonAddIcon />, path: '/patient-registration' },
+    { text: 'Exam Details', icon: <SchoolIcon />, path: '/exam-details' },
   ];
 
   const drawer = (
