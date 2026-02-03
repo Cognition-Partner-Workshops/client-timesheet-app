@@ -6,14 +6,17 @@ export const config = {
     exclude: [],
     maxInstances: 1,
     capabilities: [{
-        browserName: process.env.BROWSER || 'chrome',
+        browserName: getBrowserName(),
         'goog:chromeOptions': {
+            binary: process.env.CHROME_BIN || undefined,
             args: process.env.HEADLESS === 'true' ? ['--headless', '--disable-gpu', '--no-sandbox', '--disable-dev-shm-usage'] : ['--no-sandbox', '--disable-dev-shm-usage']
         },
         'moz:firefoxOptions': {
+            binary: process.env.FIREFOX_BIN || undefined,
             args: process.env.HEADLESS === 'true' ? ['-headless'] : []
         },
         'ms:edgeOptions': {
+            binary: process.env.EDGE_BIN || undefined,
             args: process.env.HEADLESS === 'true' ? ['--headless', '--disable-gpu'] : []
         }
     }],
@@ -48,8 +51,17 @@ export const config = {
     }
 };
 
+function getBrowserName() {
+    const browser = process.env.BROWSER || 'chrome';
+    const validBrowsers = ['chrome', 'firefox', 'MicrosoftEdge'];
+    if (validBrowsers.includes(browser)) {
+        return browser;
+    }
+    return 'chrome';
+}
+
 function getServices() {
-    const browserName = process.env.BROWSER || 'chrome';
+    const browserName = getBrowserName();
     const services = [];
     
     if (browserName === 'chrome') {
