@@ -77,3 +77,24 @@ export interface ApiResponse<T> {
   error?: string;
   message?: string;
 }
+
+export interface Leave {
+  id: number;
+  description: string;
+  start_date: string;
+  end_date: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateLeaveRequest {
+  description: string;
+  start_date: string;
+  end_date: string;
+}
+
+export interface UpdateLeaveRequest {
+  description?: string;
+  start_date?: string;
+  end_date?: string;
+}
