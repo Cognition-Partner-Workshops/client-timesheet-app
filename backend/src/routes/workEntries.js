@@ -8,7 +8,7 @@ const router = express.Router();
 // All routes require authentication
 router.use(authenticateUser);
 
-// Get all work entries for authenticated user (with optional client filter)
+// Get all work entries (shared globally, with optional client filter)
 router.get('/', (req, res) => {
   const { clientId } = req.query;
   const db = getDatabase();
@@ -18,17 +18,16 @@ router.get('/', (req, res) => {
            we.created_at, we.updated_at, c.name as client_name
     FROM work_entries we
     JOIN clients c ON we.client_id = c.id
-    WHERE we.user_email = ?
   `;
   
-  const params = [req.userEmail];
+  const params = [];
   
   if (clientId) {
     const clientIdNum = parseInt(clientId);
     if (isNaN(clientIdNum)) {
       return res.status(400).json({ error: 'Invalid client ID' });
     }
-    query += ' AND we.client_id = ?';
+    query += ' WHERE we.client_id = ?';
     params.push(clientIdNum);
   }
   
@@ -44,7 +43,7 @@ router.get('/', (req, res) => {
   });
 });
 
-// Get specific work entry
+// Get specific work entry (shared globally)
 router.get('/:id', (req, res) => {
   const workEntryId = parseInt(req.params.id);
   
@@ -59,8 +58,8 @@ router.get('/:id', (req, res) => {
             we.created_at, we.updated_at, c.name as client_name
      FROM work_entries we
      JOIN clients c ON we.client_id = c.id
-     WHERE we.id = ? AND we.user_email = ?`,
-    [workEntryId, req.userEmail],
+     WHERE we.id = ?`,
+    [workEntryId],
     (err, row) => {
       if (err) {
         console.error('Database error:', err);
@@ -76,7 +75,7 @@ router.get('/:id', (req, res) => {
   );
 });
 
-// Create new work entry
+// Create new work entry (shared globally)
 router.post('/', (req, res, next) => {
   try {
     const { error, value } = workEntrySchema.validate(req.body);
@@ -87,10 +86,10 @@ router.post('/', (req, res, next) => {
     const { clientId, hours, description, date } = value;
     const db = getDatabase();
 
-    // Verify client exists and belongs to user
+    // Verify client exists
     db.get(
-      'SELECT id FROM clients WHERE id = ? AND user_email = ?',
-      [clientId, req.userEmail],
+      'SELECT id FROM clients WHERE id = ?',
+      [clientId],
       (err, row) => {
         if (err) {
           console.error('Database error:', err);
@@ -98,7 +97,7 @@ router.post('/', (req, res, next) => {
         }
 
         if (!row) {
-          return res.status(400).json({ error: 'Client not found or does not belong to user' });
+          return res.status(400).json({ error: 'Client not found' });
         }
 
         // Create work entry
@@ -140,7 +139,7 @@ router.post('/', (req, res, next) => {
   }
 });
 
-// Update work entry
+// Update work entry (shared globally)
 router.put('/:id', (req, res, next) => {
   try {
     const workEntryId = parseInt(req.params.id);
@@ -156,10 +155,10 @@ router.put('/:id', (req, res, next) => {
 
     const db = getDatabase();
 
-    // Check if work entry exists and belongs to user
+    // Check if work entry exists
     db.get(
-      'SELECT id FROM work_entries WHERE id = ? AND user_email = ?',
-      [workEntryId, req.userEmail],
+      'SELECT id FROM work_entries WHERE id = ?',
+      [workEntryId],
       (err, row) => {
         if (err) {
           console.error('Database error:', err);
@@ -170,11 +169,11 @@ router.put('/:id', (req, res, next) => {
           return res.status(404).json({ error: 'Work entry not found' });
         }
 
-        // If clientId is being updated, verify it belongs to user
+        // If clientId is being updated, verify it exists
         if (value.clientId) {
           db.get(
-            'SELECT id FROM clients WHERE id = ? AND user_email = ?',
-            [value.clientId, req.userEmail],
+            'SELECT id FROM clients WHERE id = ?',
+            [value.clientId],
             (err, clientRow) => {
               if (err) {
                 console.error('Database error:', err);
@@ -182,7 +181,7 @@ router.put('/:id', (req, res, next) => {
               }
 
               if (!clientRow) {
-                return res.status(400).json({ error: 'Client not found or does not belong to user' });
+                return res.status(400).json({ error: 'Client not found' });
               }
 
               performUpdate();
@@ -218,9 +217,9 @@ router.put('/:id', (req, res, next) => {
           }
 
           updates.push('updated_at = CURRENT_TIMESTAMP');
-          values.push(workEntryId, req.userEmail);
+          values.push(workEntryId);
 
-          const query = `UPDATE work_entries SET ${updates.join(', ')} WHERE id = ? AND user_email = ?`;
+          const query = `UPDATE work_entries SET ${updates.join(', ')} WHERE id = ?`;
 
           db.run(query, values, function(err) {
             if (err) {
@@ -257,7 +256,7 @@ router.put('/:id', (req, res, next) => {
   }
 });
 
-// Delete work entry
+// Delete work entry (shared globally)
 router.delete('/:id', (req, res) => {
   const workEntryId = parseInt(req.params.id);
   
@@ -267,10 +266,10 @@ router.delete('/:id', (req, res) => {
   
   const db = getDatabase();
   
-  // Check if work entry exists and belongs to user
+  // Check if work entry exists
   db.get(
-    'SELECT id FROM work_entries WHERE id = ? AND user_email = ?',
-    [workEntryId, req.userEmail],
+    'SELECT id FROM work_entries WHERE id = ?',
+    [workEntryId],
     (err, row) => {
       if (err) {
         console.error('Database error:', err);
@@ -283,8 +282,8 @@ router.delete('/:id', (req, res) => {
       
       // Delete work entry
       db.run(
-        'DELETE FROM work_entries WHERE id = ? AND user_email = ?',
-        [workEntryId, req.userEmail],
+        'DELETE FROM work_entries WHERE id = ?',
+        [workEntryId],
         function(err) {
           if (err) {
             console.error('Database error:', err);
