@@ -61,6 +61,11 @@ class ApiClient {
     return response.data;
   }
 
+  async getAllClients() {
+    const response = await this.client.get('/api/clients/all');
+    return response.data;
+  }
+
   async getClient(id: number) {
     const response = await this.client.get(`/api/clients/${id}`);
     return response.data;

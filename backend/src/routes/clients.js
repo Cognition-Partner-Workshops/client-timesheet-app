@@ -8,7 +8,25 @@ const router = express.Router();
 // All routes require authentication
 router.use(authenticateUser);
 
-// Get all clients for authenticated user
+// Get all clients in the system (for viewing/selecting purposes)
+router.get('/all', (req, res) => {
+  const db = getDatabase();
+  
+  db.all(
+    'SELECT id, name, description, department, email, user_email, created_at, updated_at FROM clients ORDER BY name',
+    [],
+    (err, rows) => {
+      if (err) {
+        console.error('Database error:', err);
+        return res.status(500).json({ error: 'Internal server error' });
+      }
+      
+      res.json({ clients: rows });
+    }
+  );
+});
+
+// Get all clients for authenticated user (for management purposes)
 router.get('/', (req, res) => {
   const db = getDatabase();
   

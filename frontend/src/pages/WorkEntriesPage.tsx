@@ -55,8 +55,8 @@ const WorkEntriesPage: React.FC = () => {
   });
 
   const { data: clientsData, isLoading: clientsLoading } = useQuery({
-    queryKey: ['clients'],
-    queryFn: () => apiClient.getClients(),
+    queryKey: ['allClients'],
+    queryFn: () => apiClient.getAllClients(),
   });
 
   const createMutation = useMutation({
