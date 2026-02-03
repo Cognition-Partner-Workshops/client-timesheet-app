@@ -437,5 +437,34 @@ describe('Report Routes', () => {
         expect.any(Function)
       );
     });
+
+  });
+
+  describe('CSV Export Full Success Path', () => {
+    test('should handle client name with special characters in CSV filename', async () => {
+      const mockClient = { id: 1, name: 'Test/Client:Name*Special' };
+      const mockWorkEntries = [];
+
+      mockDb.get.mockImplementation((query, params, callback) => {
+        callback(null, mockClient);
+      });
+
+      mockDb.all.mockImplementation((query, params, callback) => {
+        callback(null, mockWorkEntries);
+      });
+
+      const csvWriter = require('csv-writer');
+      csvWriter.createObjectCsvWriter.mockReturnValue({
+        writeRecords: jest.fn().mockRejectedValue(new Error('Write failed'))
+      });
+
+      await request(app).get('/api/reports/export/csv/1');
+
+      expect(csvWriter.createObjectCsvWriter).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: expect.stringContaining('Test_Client_Name_Special')
+        })
+      );
+    });
   });
 });

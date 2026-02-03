@@ -384,6 +384,22 @@ describe('Work Entry Routes', () => {
   });
 
   describe('POST /api/work-entries - Error Handling', () => {
+    test('should handle unexpected error in try-catch block for POST', async () => {
+      getDatabase.mockImplementation(() => {
+        throw new Error('Unexpected error');
+      });
+
+      const response = await request(app)
+        .post('/api/work-entries')
+        .send({
+          clientId: 1,
+          hours: 5,
+          date: '2024-01-15'
+        });
+
+      expect(response.status).toBe(500);
+    });
+
     test('should handle database error when verifying client', async () => {
       mockDb.get.mockImplementation((query, params, callback) => {
         callback(new Error('Database error'), null);
@@ -431,6 +447,18 @@ describe('Work Entry Routes', () => {
   });
 
   describe('PUT /api/work-entries/:id - Error Handling', () => {
+    test('should handle unexpected error in try-catch block for PUT', async () => {
+      getDatabase.mockImplementation(() => {
+        throw new Error('Unexpected error');
+      });
+
+      const response = await request(app)
+        .put('/api/work-entries/1')
+        .send({ hours: 8 });
+
+      expect(response.status).toBe(500);
+    });
+
     test('should handle database error when checking work entry existence', async () => {
       mockDb.get.mockImplementation((query, params, callback) => {
         callback(new Error('Database error'), null);
