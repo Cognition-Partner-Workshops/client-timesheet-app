@@ -30,15 +30,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const storedEmail = localStorage.getItem('userEmail');
-      
-      if (storedEmail) {
+      // Check if we have a valid token
+      if (apiClient.isAuthenticated()) {
         try {
           const response = await apiClient.getCurrentUser();
           setUser(response.user);
         } catch (error) {
           console.error('Auth check failed:', error);
-          localStorage.removeItem('userEmail');
+          apiClient.clearAuthData();
         }
       }
       setIsLoading(false);
@@ -50,8 +49,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (email: string) => {
     try {
       const response = await apiClient.login(email);
+      // Store JWT token and email
+      apiClient.setAuthData(response.token, email);
       setUser(response.user);
-      localStorage.setItem('userEmail', email);
     } catch (error) {
       console.error('Login failed:', error);
       throw error;
@@ -60,7 +60,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('userEmail');
+    apiClient.clearAuthData();
   };
 
   const value: AuthContextType = {

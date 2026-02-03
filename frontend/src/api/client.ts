@@ -4,6 +4,10 @@ import axios, { type AxiosInstance, type AxiosResponse } from 'axios';
 // Vite proxy will forward /api requests to the backend
 const API_BASE_URL = '';
 
+// Token storage key
+const TOKEN_KEY = 'authToken';
+const USER_EMAIL_KEY = 'userEmail';
+
 class ApiClient {
   private client: AxiosInstance;
 
@@ -16,12 +20,12 @@ class ApiClient {
       },
     });
 
-    // Request interceptor to add email header
+    // Request interceptor to add JWT token
     this.client.interceptors.request.use(
       (config) => {
-        const userEmail = localStorage.getItem('userEmail');
-        if (userEmail) {
-          config.headers['x-user-email'] = userEmail;
+        const token = localStorage.getItem(TOKEN_KEY);
+        if (token) {
+          config.headers['Authorization'] = `Bearer ${token}`;
         }
         return config;
       },
@@ -35,13 +39,36 @@ class ApiClient {
       (response: AxiosResponse) => response,
       (error) => {
         if (error.response?.status === 401) {
-          // Clear stored email on auth error
-          localStorage.removeItem('userEmail');
+          // Clear stored token and email on auth error
+          localStorage.removeItem(TOKEN_KEY);
+          localStorage.removeItem(USER_EMAIL_KEY);
           window.location.href = '/login';
         }
         return Promise.reject(error);
       }
     );
+  }
+
+  // Store authentication data
+  setAuthData(token: string, email: string) {
+    localStorage.setItem(TOKEN_KEY, token);
+    localStorage.setItem(USER_EMAIL_KEY, email);
+  }
+
+  // Clear authentication data
+  clearAuthData() {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_EMAIL_KEY);
+  }
+
+  // Check if user is authenticated
+  isAuthenticated(): boolean {
+    return !!localStorage.getItem(TOKEN_KEY);
+  }
+
+  // Get stored email
+  getStoredEmail(): string | null {
+    return localStorage.getItem(USER_EMAIL_KEY);
   }
 
   // Auth endpoints

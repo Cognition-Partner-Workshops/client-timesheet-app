@@ -65,8 +65,7 @@ describe('Error Handler Middleware', () => {
 
       expect(res.status).toHaveBeenCalledWith(500);
       expect(res.json).toHaveBeenCalledWith({
-        error: 'Database error',
-        message: 'An error occurred while processing your request'
+        error: 'An error occurred while processing your request'
       });
     });
 
@@ -80,8 +79,7 @@ describe('Error Handler Middleware', () => {
 
       expect(res.status).toHaveBeenCalledWith(500);
       expect(res.json).toHaveBeenCalledWith({
-        error: 'Database error',
-        message: 'An error occurred while processing your request'
+        error: 'An error occurred while processing your request'
       });
     });
   });
@@ -129,10 +127,16 @@ describe('Error Handler Middleware', () => {
   describe('Console Logging', () => {
     test('should log error to console', () => {
       const error = new Error('Test error');
+      req.path = '/test';
+      req.method = 'GET';
       
       errorHandler(error, req, res, next);
 
-      expect(console.error).toHaveBeenCalledWith('Error:', error);
+      expect(console.error).toHaveBeenCalledWith('Error:', expect.objectContaining({
+        message: 'Test error',
+        path: '/test',
+        method: 'GET'
+      }));
     });
   });
 });
