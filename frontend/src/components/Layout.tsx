@@ -106,7 +106,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               onClick={logout}
               size="small"
             >
-              Logout
+              Sign Out
             </Button>
           </Box>
         </Toolbar>
