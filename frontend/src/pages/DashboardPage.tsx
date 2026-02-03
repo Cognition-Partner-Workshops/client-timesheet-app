@@ -39,13 +39,6 @@ const DashboardPage: React.FC = () => {
 
   const statsCards = [
     {
-      title: 'Total Clients',
-      value: clients.length,
-      icon: <BusinessIcon />,
-      color: '#1976d2',
-      action: () => navigate('/clients'),
-    },
-    {
       title: 'Total Work Entries',
       value: workEntries.length,
       icon: <AssignmentIcon />,
@@ -58,6 +51,13 @@ const DashboardPage: React.FC = () => {
       icon: <AssessmentIcon />,
       color: '#f57c00',
       action: () => navigate('/reports'),
+    },
+    {
+      title: 'Total Clients',
+      value: clients.length,
+      icon: <BusinessIcon />,
+      color: '#1976d2',
+      action: () => navigate('/clients'),
     },
   ];
 
