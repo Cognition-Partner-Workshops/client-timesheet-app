@@ -249,6 +249,36 @@ router.put('/:id', (req, res, next) => {
 });
 
 /**
+ * DELETE /api/clients
+ * 
+ * Deletes all clients for the authenticated user.
+ * Associated work entries are also deleted (cascade delete).
+ * 
+ * @route DELETE /api/clients
+ * @returns {Object} 200 - Deletion confirmation with count
+ * @returns {Object} 500 - Database error
+ */
+router.delete('/', (req, res) => {
+  const db = getDatabase();
+  
+  db.run(
+    'DELETE FROM clients WHERE user_email = ?',
+    [req.userEmail],
+    function(err) {
+      if (err) {
+        console.error('Database error:', err);
+        return res.status(500).json({ error: 'Failed to delete clients' });
+      }
+      
+      res.json({ 
+        message: 'All clients deleted successfully',
+        deletedCount: this.changes
+      });
+    }
+  );
+});
+
+/**
  * DELETE /api/clients/:id
  * 
  * Deletes a client and all associated work entries (cascade delete).

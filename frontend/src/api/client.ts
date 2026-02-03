@@ -181,6 +181,17 @@ class ApiClient {
     return response.data;
   }
 
+  /**
+   * Deletes all clients for the authenticated user.
+   * Associated work entries are also deleted (cascade delete).
+   * 
+   * @returns Promise resolving to deletion confirmation with count
+   */
+  async deleteAllClients() {
+    const response = await this.client.delete('/api/clients');
+    return response.data;
+  }
+
   // ==================== Work Entry Endpoints ====================
 
   /**
