@@ -6,6 +6,7 @@ const {
   getTimeSeriesMetrics,
   getSLOTargets,
 } = require('../middleware/sloMetrics');
+const { businessLogger } = require('../utils/logger');
 
 // GET /api/slo/metrics - Get overall SLO metrics summary
 router.get('/metrics', (req, res) => {
@@ -60,6 +61,14 @@ router.get('/quality-gates', (req, res) => {
   try {
     const timeWindow = parseInt(req.query.timeWindow) || 60;
     const metrics = getSLOMetrics(timeWindow);
+    
+    // Log quality gate status
+    businessLogger.logQualityGatesChecked(
+      metrics.qualityGates.passed,
+      metrics.qualityGates.gates,
+      req.correlationId
+    );
+    
     res.json({
       passed: metrics.qualityGates.passed,
       gates: metrics.qualityGates.gates,

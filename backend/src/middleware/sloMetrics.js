@@ -1,4 +1,5 @@
 const { getDatabase } = require('../database/init');
+const { metricsLogger, businessLogger } = require('../utils/logger');
 
 // In-memory metrics store for real-time calculations
 const metricsStore = {
@@ -59,6 +60,22 @@ function sloMetricsMiddleware(req, res, next) {
     };
 
     metricsStore.requests.push(metric);
+
+    // Log metrics for observability
+    metricsLogger.logLatencyMetrics({
+      endpoint: metric.endpoint,
+      durationMs: metric.duration,
+      correlationId: req.correlationId,
+    });
+
+    if (metric.isError) {
+      metricsLogger.logErrorMetrics({
+        endpoint: metric.endpoint,
+        statusCode: metric.statusCode,
+        errorType: metric.isServerError ? 'server_error' : 'client_error',
+        correlationId: req.correlationId,
+      });
+    }
 
     // Periodically clean old metrics
     if (metricsStore.requests.length % 100 === 0) {

@@ -5,6 +5,7 @@ const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 const PDFDocument = require('pdfkit');
 const path = require('path');
 const fs = require('fs');
+const { businessLogger } = require('../utils/logger');
 
 const router = express.Router();
 
@@ -50,6 +51,9 @@ router.get('/client/:clientId', (req, res) => {
           
           // Calculate total hours
           const totalHours = workEntries.reduce((sum, entry) => sum + parseFloat(entry.hours), 0);
+          
+          // Log business event
+          businessLogger.logReportGenerated('client_hours', clientId, req.userEmail, req.correlationId);
           
           res.json({
             client: client,
@@ -123,6 +127,9 @@ router.get('/export/csv/:clientId', (req, res) => {
           
           csvWriter.writeRecords(workEntries)
             .then(() => {
+              // Log business event
+              businessLogger.logReportExported('csv', clientId, workEntries.length, req.userEmail, req.correlationId);
+              
               // Send file and clean up
               res.download(tempPath, filename, (err) => {
                 if (err) {
@@ -235,6 +242,9 @@ router.get('/export/pdf/:clientId', (req, res) => {
               doc.moveDown(0.5);
             }
           });
+          
+          // Log business event
+          businessLogger.logReportExported('pdf', clientId, workEntries.length, req.userEmail, req.correlationId);
           
           // Finalize PDF
           doc.end();

@@ -1,4 +1,5 @@
 const {
+  sloMetricsMiddleware,
   getSLOMetrics,
   getMetricsByEndpoint,
   getTimeSeriesMetrics,
@@ -16,9 +17,91 @@ jest.mock('../../database/init', () => ({
   })),
 }));
 
+// Mock the logger module
+jest.mock('../../utils/logger', () => ({
+  metricsLogger: {
+    logLatencyMetrics: jest.fn(),
+    logErrorMetrics: jest.fn(),
+  },
+  businessLogger: {
+    logQualityGatesChecked: jest.fn(),
+  },
+}));
+
 describe('SLO Metrics Middleware', () => {
+  let mockReq;
+  let mockRes;
+  let nextFn;
+  
   beforeEach(() => {
     resetMetrics();
+    
+    mockReq = {
+      method: 'GET',
+      path: '/api/clients',
+      correlationId: 'test-correlation-id',
+    };
+    
+    mockRes = {
+      statusCode: 200,
+      on: jest.fn(),
+    };
+    
+    nextFn = jest.fn();
+  });
+
+  describe('sloMetricsMiddleware', () => {
+    test('should skip health check endpoint', () => {
+      mockReq.path = '/health';
+      
+      sloMetricsMiddleware(mockReq, mockRes, nextFn);
+      
+      expect(nextFn).toHaveBeenCalled();
+      expect(mockRes.on).not.toHaveBeenCalled();
+    });
+
+    test('should register finish event handler for non-health endpoints', () => {
+      sloMetricsMiddleware(mockReq, mockRes, nextFn);
+      
+      expect(nextFn).toHaveBeenCalled();
+      expect(mockRes.on).toHaveBeenCalledWith('finish', expect.any(Function));
+    });
+
+    test('should record metrics on response finish', () => {
+      sloMetricsMiddleware(mockReq, mockRes, nextFn);
+      
+      // Get the finish handler and call it
+      const finishHandler = mockRes.on.mock.calls[0][1];
+      finishHandler();
+      
+      // Check that metrics were recorded
+      const metrics = getSLOMetrics(60);
+      expect(metrics.totalRequests).toBe(1);
+    });
+
+    test('should record error metrics for 4xx responses', () => {
+      mockRes.statusCode = 404;
+      
+      sloMetricsMiddleware(mockReq, mockRes, nextFn);
+      
+      const finishHandler = mockRes.on.mock.calls[0][1];
+      finishHandler();
+      
+      const metrics = getSLOMetrics(60);
+      expect(metrics.errorRate.errorCount).toBe(1);
+    });
+
+    test('should record server error metrics for 5xx responses', () => {
+      mockRes.statusCode = 500;
+      
+      sloMetricsMiddleware(mockReq, mockRes, nextFn);
+      
+      const finishHandler = mockRes.on.mock.calls[0][1];
+      finishHandler();
+      
+      const metrics = getSLOMetrics(60);
+      expect(metrics.availability.failureCount).toBe(1);
+    });
   });
 
   describe('getSLOTargets', () => {
@@ -120,6 +203,18 @@ describe('SLO Metrics Middleware', () => {
       expect(Array.isArray(endpoints)).toBe(true);
       expect(endpoints.length).toBe(0);
     });
+
+    test('should return metrics grouped by endpoint', () => {
+      // Simulate some requests
+      sloMetricsMiddleware(mockReq, mockRes, nextFn);
+      const finishHandler = mockRes.on.mock.calls[0][1];
+      finishHandler();
+      
+      const endpoints = getMetricsByEndpoint(60);
+      expect(endpoints.length).toBe(1);
+      expect(endpoints[0].endpoint).toBe('GET /api/clients');
+      expect(endpoints[0].totalRequests).toBe(1);
+    });
   });
 
   describe('getTimeSeriesMetrics', () => {
@@ -128,6 +223,20 @@ describe('SLO Metrics Middleware', () => {
       
       expect(Array.isArray(timeSeries)).toBe(true);
       expect(timeSeries.length).toBe(0);
+    });
+
+    test('should return time series data with requests', () => {
+      // Simulate some requests
+      sloMetricsMiddleware(mockReq, mockRes, nextFn);
+      const finishHandler = mockRes.on.mock.calls[0][1];
+      finishHandler();
+      
+      const timeSeries = getTimeSeriesMetrics(60, 5);
+      expect(timeSeries.length).toBeGreaterThan(0);
+      expect(timeSeries[0]).toHaveProperty('timestamp');
+      expect(timeSeries[0]).toHaveProperty('requests');
+      expect(timeSeries[0]).toHaveProperty('errorRate');
+      expect(timeSeries[0]).toHaveProperty('avgLatency');
     });
   });
 
