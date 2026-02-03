@@ -42,28 +42,31 @@ const DashboardPage: React.FC = () => {
       title: 'Total Clients',
       value: clients.length,
       icon: <BusinessIcon />,
-      color: '#1976d2',
+      color: '#0033A0',
+      gradient: 'linear-gradient(135deg, #0033A0 0%, #3366CC 100%)',
       action: () => navigate('/clients'),
     },
     {
       title: 'Total Work Entries',
       value: workEntries.length,
       icon: <AssignmentIcon />,
-      color: '#388e3c',
+      color: '#E31B6D',
+      gradient: 'linear-gradient(135deg, #E31B6D 0%, #FF4D94 100%)',
       action: () => navigate('/work-entries'),
     },
     {
       title: 'Total Hours',
       value: totalHours.toFixed(2),
       icon: <AssessmentIcon />,
-      color: '#f57c00',
+      color: '#0033A0',
+      gradient: 'linear-gradient(135deg, #002080 0%, #0033A0 100%)',
       action: () => navigate('/reports'),
     },
   ];
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>
+      <Typography variant="h4" gutterBottom sx={{ color: '#0033A0', fontWeight: 600 }}>
         Dashboard
       </Typography>
 
@@ -74,9 +77,12 @@ const DashboardPage: React.FC = () => {
             <Card
               sx={{
                 cursor: 'pointer',
-                transition: 'transform 0.2s',
+                transition: 'all 0.3s ease',
+                background: stat.gradient,
+                color: 'white',
                 '&:hover': {
-                  transform: 'translateY(-4px)',
+                  transform: 'translateY(-6px)',
+                  boxShadow: `0 12px 24px rgba(0, 51, 160, 0.25)`,
                 },
               }}
               onClick={stat.action}
@@ -84,18 +90,18 @@ const DashboardPage: React.FC = () => {
               <CardContent>
                 <Box display="flex" alignItems="center" justifyContent="space-between" gap={3}>
                   <Box>
-                    <Typography color="textSecondary" gutterBottom variant="h6">
+                    <Typography sx={{ color: 'rgba(255,255,255,0.85)' }} gutterBottom variant="h6">
                       {stat.title}
                     </Typography>
-                    <Typography variant="h4" component="div">
+                    <Typography variant="h4" component="div" sx={{ fontWeight: 700, color: 'white' }}>
                       {stat.value}
                     </Typography>
                   </Box>
                   <Box
                     sx={{
-                      backgroundColor: stat.color,
-                      borderRadius: 1,
-                      p: 1,
+                      backgroundColor: 'rgba(255,255,255,0.2)',
+                      borderRadius: 2,
+                      p: 1.5,
                       color: 'white',
                       flexShrink: 0,
                     }}
@@ -112,9 +118,9 @@ const DashboardPage: React.FC = () => {
       <Grid container spacing={3}>
         {/* @ts-expect-error - MUI Grid item prop type issue */}
         <Grid item xs={12} md={8}>
-          <Paper sx={{ p: 3 }}>
+          <Paper sx={{ p: 3, border: '1px solid rgba(0, 51, 160, 0.1)' }}>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={2} gap={3}>
-              <Typography variant="h6">Recent Work Entries</Typography>
+              <Typography variant="h6" sx={{ color: '#0033A0', fontWeight: 600 }}>Recent Work Entries</Typography>
               <Button
                 variant="outlined"
                 startIcon={<AddIcon />}
@@ -146,8 +152,8 @@ const DashboardPage: React.FC = () => {
 
         {/* @ts-expect-error - MUI Grid item prop type issue */}
         <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" mb={2}>
+          <Paper sx={{ p: 3, border: '1px solid rgba(0, 51, 160, 0.1)' }}>
+            <Typography variant="h6" mb={2} sx={{ color: '#0033A0', fontWeight: 600 }}>
               Quick Actions
             </Typography>
             <Box display="flex" flexDirection="column" gap={2}>
