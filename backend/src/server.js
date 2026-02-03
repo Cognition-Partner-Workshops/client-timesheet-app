@@ -1,4 +1,4 @@
- t/**
+/**
  * @fileoverview Main server entry point for the Client Timesheet API.
  * This module configures and starts the Express server with all middleware,
  * routes, and database initialization.
