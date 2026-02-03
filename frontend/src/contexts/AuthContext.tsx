@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { type User } from '../types/api';
 import apiClient from '../api/client';
 
@@ -27,6 +28,7 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -49,6 +51,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const login = async (email: string) => {
     try {
+      // Clear any cached data from previous user before logging in
+      queryClient.clear();
       const response = await apiClient.login(email);
       setUser(response.user);
       localStorage.setItem('userEmail', email);
@@ -61,6 +65,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = () => {
     setUser(null);
     localStorage.removeItem('userEmail');
+    // Clear all cached data when user logs out to prevent data leakage
+    queryClient.clear();
   };
 
   const value: AuthContextType = {
