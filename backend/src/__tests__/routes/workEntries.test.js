@@ -692,4 +692,38 @@ describe('Work Entry Routes', () => {
       expect(response.body).toEqual({ error: 'Invalid work entry ID' });
     });
   });
+
+  describe('Catch Block Error Handling', () => {
+    test('should handle unexpected error in POST route catch block', async () => {
+      const workEntrySchema = require('../../validation/schemas').workEntrySchema;
+      const originalValidate = workEntrySchema.validate;
+      workEntrySchema.validate = jest.fn(() => {
+        throw new Error('Unexpected validation error');
+      });
+
+      const response = await request(app)
+        .post('/api/work-entries')
+        .send({ clientId: 1, hours: 5, date: '2024-01-15' });
+
+      expect(response.status).toBe(500);
+
+      workEntrySchema.validate = originalValidate;
+    });
+
+    test('should handle unexpected error in PUT route catch block', async () => {
+      const updateWorkEntrySchema = require('../../validation/schemas').updateWorkEntrySchema;
+      const originalValidate = updateWorkEntrySchema.validate;
+      updateWorkEntrySchema.validate = jest.fn(() => {
+        throw new Error('Unexpected validation error');
+      });
+
+      const response = await request(app)
+        .put('/api/work-entries/1')
+        .send({ hours: 8 });
+
+      expect(response.status).toBe(500);
+
+      updateWorkEntrySchema.validate = originalValidate;
+    });
+  });
 });

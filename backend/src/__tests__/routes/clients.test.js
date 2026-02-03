@@ -533,4 +533,38 @@ describe('Client Routes', () => {
       expect(response.body).toEqual({ error: 'Invalid client ID' });
     });
   });
+
+  describe('Catch Block Error Handling', () => {
+    test('should handle unexpected error in POST route catch block', async () => {
+      const clientSchema = require('../../validation/schemas').clientSchema;
+      const originalValidate = clientSchema.validate;
+      clientSchema.validate = jest.fn(() => {
+        throw new Error('Unexpected validation error');
+      });
+
+      const response = await request(app)
+        .post('/api/clients')
+        .send({ name: 'Test Client' });
+
+      expect(response.status).toBe(500);
+
+      clientSchema.validate = originalValidate;
+    });
+
+    test('should handle unexpected error in PUT route catch block', async () => {
+      const updateClientSchema = require('../../validation/schemas').updateClientSchema;
+      const originalValidate = updateClientSchema.validate;
+      updateClientSchema.validate = jest.fn(() => {
+        throw new Error('Unexpected validation error');
+      });
+
+      const response = await request(app)
+        .put('/api/clients/1')
+        .send({ name: 'Updated Client' });
+
+      expect(response.status).toBe(500);
+
+      updateClientSchema.validate = originalValidate;
+    });
+  });
 });
