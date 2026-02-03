@@ -1,3 +1,9 @@
+/**
+ * @fileoverview Reports page component for viewing and exporting client time reports.
+ * Provides client selection, summary statistics, and export functionality
+ * for CSV and PDF formats.
+ */
+
 import React, { useState } from 'react';
 import {
   Box,
@@ -31,6 +37,20 @@ import { useQuery } from '@tanstack/react-query';
 import apiClient from '../api/client';
 import { type ClientReport } from '../types/api';
 
+/**
+ * Reports page component for viewing and exporting client time reports.
+ * Allows users to select a client and view aggregated time tracking data
+ * with options to export as CSV or PDF.
+ *
+ * Features:
+ * - Client dropdown selection
+ * - Summary cards showing total hours, entry count, and average hours
+ * - Detailed table of all work entries for selected client
+ * - CSV export with automatic file download
+ * - PDF export with formatted report document
+ *
+ * @returns The reports page with client selector, statistics, and export options.
+ */
 const ReportsPage: React.FC = () => {
   const [selectedClientId, setSelectedClientId] = useState<number>(0);
   const [error, setError] = useState('');

@@ -1,3 +1,9 @@
+/**
+ * @fileoverview Work entries management page for time tracking CRUD operations.
+ * Provides a table view of all work entries with actions to create, edit, and delete.
+ * Includes date picker and client selection for entry management.
+ */
+
 import React, { useState } from 'react';
 import {
   Box,
@@ -36,6 +42,20 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import apiClient from '../api/client';
 import { type WorkEntry } from '../types/api';
 
+/**
+ * Work entries page component for managing time tracking records.
+ * Displays a table of all work entries with options to add, edit, and delete.
+ * Uses a modal dialog with date picker and client dropdown for entry management.
+ *
+ * Features:
+ * - Table view with client name, date, hours, and description
+ * - Modal form with date picker and client selection
+ * - Hours validation (0.01-24 range)
+ * - Client ownership validation
+ * - Real-time cache invalidation on mutations
+ *
+ * @returns The work entries management page with table and action dialogs.
+ */
 const WorkEntriesPage: React.FC = () => {
   const [open, setOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<WorkEntry | null>(null);

@@ -1,3 +1,9 @@
+/**
+ * @fileoverview Login page component for user authentication.
+ * Provides a simple email-based login form without password requirement.
+ * Designed for trusted internal network environments.
+ */
+
 import React, { useState } from 'react';
 import {
   Container,
@@ -12,13 +18,35 @@ import {
 import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 
+/**
+ * Login page component that handles user authentication.
+ * Displays an email input form and handles the login flow.
+ * On successful login, redirects to the dashboard.
+ *
+ * Features:
+ * - Email validation via backend
+ * - Loading state during authentication
+ * - Error display for failed login attempts
+ * - Automatic user creation for new emails
+ *
+ * @returns The login page with email form and submit button.
+ */
 const LoginPage: React.FC = () => {
+  /** User's email input value */
   const [email, setEmail] = useState('');
+  /** Error message to display, empty if no error */
   const [error, setError] = useState('');
+  /** Loading state during login request */
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
+  /**
+   * Handles form submission for login.
+   * Validates email with backend, stores session, and redirects on success.
+   *
+   * @param e - Form submit event.
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');

@@ -1,3 +1,9 @@
+/**
+ * @fileoverview Dashboard page component displaying overview metrics and quick actions.
+ * Serves as the main landing page after login, providing summary statistics
+ * and navigation to key features of the application.
+ */
+
 import React from 'react';
 import {
   Grid,
@@ -18,6 +24,15 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '../api/client';
 
+/**
+ * Dashboard page component that displays key metrics and quick actions.
+ * Shows summary cards for total clients, work entries, and hours logged.
+ * Also displays recent work entries and provides quick action buttons.
+ *
+ * Data is fetched using React Query for automatic caching and refetching.
+ *
+ * @returns The dashboard page with metrics cards, recent entries, and quick actions.
+ */
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
 
