@@ -1,11 +1,24 @@
 const express = require('express');
+const jwt = require('jsonwebtoken');
 const { getDatabase } = require('../database/init');
 const { emailSchema } = require('../validation/schemas');
 const { authenticateUser } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Login endpoint - creates user if doesn't exist
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';
+
+// Helper function to generate JWT token
+const generateToken = (email) => {
+  return jwt.sign(
+    { email },
+    JWT_SECRET,
+    { expiresIn: JWT_EXPIRES_IN }
+  );
+};
+
+// Login endpoint - creates user if doesn't exist, returns JWT token
 router.post('/login', async (req, res, next) => {
   try {
     const { error, value } = emailSchema.validate(req.body);
@@ -24,9 +37,11 @@ router.post('/login', async (req, res, next) => {
       }
 
       if (row) {
-        // User exists
+        // User exists - generate token
+        const token = generateToken(row.email);
         return res.json({
           message: 'Login successful',
+          token,
           user: {
             email: row.email,
             createdAt: row.created_at
@@ -40,11 +55,15 @@ router.post('/login', async (req, res, next) => {
             return res.status(500).json({ error: 'Failed to create user' });
           }
 
+          const createdAt = new Date().toISOString();
+          const token = generateToken(email);
+
           res.status(201).json({
             message: 'User created and logged in successfully',
+            token,
             user: {
               email: email,
-              createdAt: new Date().toISOString()
+              createdAt: createdAt
             }
           });
         });
