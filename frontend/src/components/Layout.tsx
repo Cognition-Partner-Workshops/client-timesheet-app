@@ -51,7 +51,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const drawer = (
     <div>
-      <Toolbar sx={{ backgroundColor: '#0A3D91' }}>
+      <Toolbar sx={{ backgroundColor: '#062654' }}>
         <Typography variant="h6" noWrap component="div" sx={{ color: '#FFFFFF', fontWeight: 600 }}>
           Time Tracker
         </Typography>

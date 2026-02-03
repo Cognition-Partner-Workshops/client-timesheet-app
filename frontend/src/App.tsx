@@ -15,25 +15,31 @@ import ReportsPage from './pages/ReportsPage';
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#0D47A1',
-      light: '#1565C0',
-      dark: '#0A3D91',
+      main: '#0A3D91',
+      light: '#0D47A1',
+      dark: '#062654',
+      contrastText: '#FFFFFF',
     },
     secondary: {
-      main: '#2E7D32',
-      light: '#43A047',
-      dark: '#1B5E20',
+      main: '#1B5E20',
+      light: '#2E7D32',
+      dark: '#0D3D12',
+      contrastText: '#FFFFFF',
     },
     background: {
       default: '#F5F7FA',
       paper: '#FFFFFF',
+    },
+    text: {
+      primary: '#1A1A1A',
+      secondary: '#4A4A4A',
     },
   },
   components: {
     MuiAppBar: {
       styleOverrides: {
         root: {
-          backgroundColor: '#0D47A1',
+          backgroundColor: '#062654',
         },
       },
     },
@@ -49,13 +55,17 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           '&.Mui-selected': {
-            backgroundColor: 'rgba(46, 125, 50, 0.3)',
+            backgroundColor: 'rgba(27, 94, 32, 0.4)',
             '&:hover': {
-              backgroundColor: 'rgba(46, 125, 50, 0.4)',
+              backgroundColor: 'rgba(27, 94, 32, 0.5)',
             },
           },
           '&:hover': {
-            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            backgroundColor: 'rgba(255, 255, 255, 0.15)',
+          },
+          '&:focus-visible': {
+            outline: '3px solid #FFFFFF',
+            outlineOffset: '2px',
           },
         },
       },
@@ -71,15 +81,75 @@ const theme = createTheme({
       styleOverrides: {
         primary: {
           color: '#FFFFFF',
+          fontWeight: 500,
         },
       },
     },
     MuiButton: {
       styleOverrides: {
+        root: {
+          '&:focus-visible': {
+            outline: '3px solid #0A3D91',
+            outlineOffset: '2px',
+          },
+        },
         containedPrimary: {
-          backgroundColor: '#2E7D32',
+          backgroundColor: '#1B5E20',
+          color: '#FFFFFF',
+          fontWeight: 600,
           '&:hover': {
-            backgroundColor: '#1B5E20',
+            backgroundColor: '#0D3D12',
+          },
+        },
+        outlinedPrimary: {
+          borderColor: '#0A3D91',
+          color: '#0A3D91',
+          borderWidth: '2px',
+          '&:hover': {
+            borderWidth: '2px',
+            backgroundColor: 'rgba(10, 61, 145, 0.08)',
+          },
+        },
+      },
+    },
+    MuiTextField: {
+      styleOverrides: {
+        root: {
+          '& .MuiOutlinedInput-root': {
+            '&:focus-within': {
+              '& .MuiOutlinedInput-notchedOutline': {
+                borderColor: '#0A3D91',
+                borderWidth: '2px',
+              },
+            },
+          },
+          '& .MuiInputLabel-root': {
+            color: '#4A4A4A',
+            '&.Mui-focused': {
+              color: '#0A3D91',
+            },
+          },
+        },
+      },
+    },
+    MuiLink: {
+      styleOverrides: {
+        root: {
+          color: '#0A3D91',
+          textDecorationColor: '#0A3D91',
+          '&:focus-visible': {
+            outline: '3px solid #0A3D91',
+            outlineOffset: '2px',
+          },
+        },
+      },
+    },
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          '&:focus-visible': {
+            outline: '3px solid #0A3D91',
+            outlineOffset: '2px',
           },
         },
       },
