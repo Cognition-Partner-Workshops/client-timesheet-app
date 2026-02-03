@@ -156,9 +156,11 @@ class ApiClient {
    * @param clientData - Client creation data
    * @param clientData.name - Client name (required)
    * @param clientData.description - Optional client description
+   * @param clientData.department - Optional client department
+   * @param clientData.email - Optional client email
    * @returns Promise resolving to created client object
    */
-  async createClient(clientData: { name: string; description?: string }) {
+  async createClient(clientData: { name: string; description?: string; department?: string; email?: string }) {
     const response = await this.client.post('/api/clients', clientData);
     return response.data;
   }
@@ -168,9 +170,13 @@ class ApiClient {
    * 
    * @param id - Client ID to update
    * @param clientData - Fields to update (partial update supported)
+   * @param clientData.name - Optional updated client name
+   * @param clientData.description - Optional updated description
+   * @param clientData.department - Optional updated department
+   * @param clientData.email - Optional updated email
    * @returns Promise resolving to updated client object
    */
-  async updateClient(id: number, clientData: { name?: string; description?: string }) {
+  async updateClient(id: number, clientData: { name?: string; description?: string; department?: string; email?: string }) {
     const response = await this.client.put(`/api/clients/${id}`, clientData);
     return response.data;
   }
