@@ -63,9 +63,16 @@ const DashboardPage: React.FC = () => {
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>
-        Dashboard
-      </Typography>
+      <Box display="flex" alignItems="center" gap={2} mb={2}>
+        <img
+          src="/dashboard.png"
+          alt="Dashboard"
+          style={{ width: 40, height: 40 }}
+        />
+        <Typography variant="h4">
+          Dashboard
+        </Typography>
+      </Box>
 
       <Grid container spacing={3} sx={{ mb: 4 }}>
         {statsCards.map((stat, index) => (
