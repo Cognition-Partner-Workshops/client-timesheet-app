@@ -1,0 +1,52 @@
+name: "CodeQL Configuration for Node.js/Express Security"
+
+# Specify the languages to analyze
+languages:
+  - javascript-typescript
+
+# Enable security-extended and security-and-quality query suites
+queries:
+  - uses: security-extended
+  - uses: security-and-quality
+
+# Custom query filters for Node.js/Express specific issues
+query-filters:
+  - include:
+      tags contain: security
+  - include:
+      tags contain: correctness
+  - include:
+      problem.severity:
+        - error
+        - warning
+
+# Paths to analyze
+paths:
+  - frontend/src
+  - backend/src
+
+# Paths to exclude from analysis
+paths-ignore:
+  - '**/node_modules/**'
+  - '**/dist/**'
+  - '**/build/**'
+  - '**/*.test.js'
+  - '**/*.test.ts'
+  - '**/*.spec.js'
+  - '**/*.spec.ts'
+  - '**/coverage/**'
+  - '**/__tests__/**'
+  - '**/test/**'
+  - '**/tests/**'
+
+# Threat models to consider
+threat-models:
+  - remote
+
+# Additional configuration for JavaScript/TypeScript
+extraction:
+  javascript:
+    index:
+      # Include TypeScript files
+      typescript:
+        enabled: true

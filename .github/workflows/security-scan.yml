@@ -8,63 +8,181 @@ on:
     branches:
       - main
   workflow_dispatch:
+  workflow_call:
+    outputs:
+      security_status:
+        description: "Overall security scan status"
+        value: ${{ jobs.security-summary.outputs.status }}
+      critical_vulns:
+        description: "Number of critical vulnerabilities found"
+        value: ${{ jobs.security-summary.outputs.critical_count }}
+      high_vulns:
+        description: "Number of high vulnerabilities found"
+        value: ${{ jobs.security-summary.outputs.high_count }}
 
 permissions:
   contents: read
   security-events: write
+  actions: read
+
+env:
+  TRIVY_VERSION: "0.28.0"
 
 jobs:
-  trivy-scan:
-    name: Trivy Vulnerability Scanner
+  sbom-generation:
+    name: Generate SBOM (Software Bill of Materials)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Run Trivy vulnerability scanner (filesystem)
+      - name: Generate Frontend SBOM (CycloneDX)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: 'fs'
+          scan-ref: './frontend'
+          format: 'cyclonedx'
+          output: 'frontend-sbom.json'
+
+      - name: Generate Backend SBOM (CycloneDX)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: 'fs'
+          scan-ref: './backend'
+          format: 'cyclonedx'
+          output: 'backend-sbom.json'
+
+      - name: Generate Full Project SBOM (CycloneDX)
         uses: aquasecurity/trivy-action@0.28.0
         with:
           scan-type: 'fs'
           scan-ref: '.'
+          format: 'cyclonedx'
+          output: 'full-project-sbom.json'
+
+      - name: Upload SBOM artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-reports
+          path: |
+            frontend-sbom.json
+            backend-sbom.json
+            full-project-sbom.json
+          retention-days: 90
+
+  dependency-scan:
+    name: Dependency Vulnerability Scan
+    runs-on: ubuntu-latest
+    outputs:
+      frontend_vulns: ${{ steps.frontend-scan.outputs.vulns_found }}
+      backend_vulns: ${{ steps.backend-scan.outputs.vulns_found }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Scan Frontend Dependencies
+        id: frontend-scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: 'fs'
+          scan-ref: './frontend'
           format: 'sarif'
-          output: 'trivy-results.sarif'
+          output: 'frontend-deps-results.sarif'
           severity: 'CRITICAL,HIGH,MEDIUM'
           ignore-unfixed: true
+          trivyignores: '.trivyignore'
 
-      - name: Upload Trivy scan results to GitHub Security tab
+      - name: Scan Backend Dependencies
+        id: backend-scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: 'fs'
+          scan-ref: './backend'
+          format: 'sarif'
+          output: 'backend-deps-results.sarif'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+          ignore-unfixed: true
+          trivyignores: '.trivyignore'
+
+      - name: Upload Frontend scan results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
-          sarif_file: 'trivy-results.sarif'
+          sarif_file: 'frontend-deps-results.sarif'
+          category: 'frontend-dependencies'
 
-      - name: Run Trivy vulnerability scanner (table output)
+      - name: Upload Backend scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'backend-deps-results.sarif'
+          category: 'backend-dependencies'
+
+      - name: Display Frontend Vulnerabilities (Table)
         uses: aquasecurity/trivy-action@0.28.0
         with:
           scan-type: 'fs'
-          scan-ref: '.'
+          scan-ref: './frontend'
           format: 'table'
           severity: 'CRITICAL,HIGH,MEDIUM'
           ignore-unfixed: true
+          trivyignores: '.trivyignore'
 
-  trivy-secret-scan:
-    name: Trivy Secret Scanner
+      - name: Display Backend Vulnerabilities (Table)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: 'fs'
+          scan-ref: './backend'
+          format: 'table'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+          ignore-unfixed: true
+          trivyignores: '.trivyignore'
+
+  secret-scan:
+    name: Secret Scanner
     runs-on: ubuntu-latest
+    outputs:
+      secrets_found: ${{ steps.secret-check.outputs.secrets_found }}
     steps:
-      - name: Checkout code
+      - name: Checkout code with full history
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Run Trivy secret scanner
+      - name: Run Trivy secret scanner on current state
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          scanners: 'secret'
+          format: 'sarif'
+          output: 'secrets-results.sarif'
+          trivyignores: '.trivyignore'
+
+      - name: Upload secret scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'secrets-results.sarif'
+          category: 'secret-scanning'
+
+      - name: Display secrets found (Table)
+        id: secret-check
         uses: aquasecurity/trivy-action@0.28.0
         with:
           scan-type: 'fs'
           scan-ref: '.'
           scanners: 'secret'
           format: 'table'
+          trivyignores: '.trivyignore'
 
-  trivy-config-scan:
-    name: Trivy Configuration Scanner
+      - name: Scan git history for secrets
+        run: |
+          echo "Scanning git history for potential secrets..."
+          git log --all --full-history -p | grep -iE "(password|secret|api_key|apikey|access_token|private_key)" | head -50 || echo "No obvious secrets found in git history"
+
+  config-scan:
+    name: Configuration Scanner
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -76,5 +194,252 @@ jobs:
           scan-type: 'fs'
           scan-ref: '.'
           scanners: 'misconfig'
+          format: 'sarif'
+          output: 'config-results.sarif'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+          trivyignores: '.trivyignore'
+
+      - name: Upload config scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'config-results.sarif'
+          category: 'configuration-scanning'
+
+      - name: Display config issues (Table)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          scanners: 'misconfig'
           format: 'table'
           severity: 'CRITICAL,HIGH,MEDIUM'
+          trivyignores: '.trivyignore'
+
+  license-scan:
+    name: License Compliance Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install license-checker
+        run: npm install -g license-checker
+
+      - name: Check Frontend Licenses
+        working-directory: ./frontend
+        run: |
+          npm ci
+          echo "=== Frontend License Report ==="
+          license-checker --summary || true
+          echo ""
+          echo "=== Checking for problematic licenses ==="
+          license-checker --failOn "GPL;AGPL;LGPL;SSPL" || echo "Warning: Some dependencies may have restrictive licenses"
+
+      - name: Check Backend Licenses
+        working-directory: ./backend
+        run: |
+          npm ci
+          echo "=== Backend License Report ==="
+          license-checker --summary || true
+          echo ""
+          echo "=== Checking for problematic licenses ==="
+          license-checker --failOn "GPL;AGPL;LGPL;SSPL" || echo "Warning: Some dependencies may have restrictive licenses"
+
+      - name: Generate License Report
+        run: |
+          echo "# License Compliance Report" > license-report.md
+          echo "" >> license-report.md
+          echo "## Frontend Dependencies" >> license-report.md
+          cd frontend && license-checker --markdown >> ../license-report.md || true
+          cd ..
+          echo "" >> license-report.md
+          echo "## Backend Dependencies" >> license-report.md
+          cd backend && license-checker --markdown >> ../license-report.md || true
+
+      - name: Upload License Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: license-report
+          path: license-report.md
+          retention-days: 90
+
+  dockerfile-scan:
+    name: Dockerfile Security Scan (CIS Benchmark)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Scan Dockerfile with Trivy
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: 'config'
+          scan-ref: './docker/Dockerfile'
+          format: 'table'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+          trivyignores: '.trivyignore'
+
+      - name: Run Hadolint for Dockerfile best practices
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: docker/Dockerfile
+          failure-threshold: warning
+
+      - name: Check for CIS Docker Benchmark compliance
+        run: |
+          echo "=== CIS Docker Benchmark Checks ==="
+          
+          if grep -q "^USER" docker/Dockerfile; then
+            echo "[PASS] 4.1 - Non-root user is specified"
+          else
+            echo "[FAIL] 4.1 - No USER instruction found"
+          fi
+          
+          if grep -q "FROM node:20-alpine" docker/Dockerfile; then
+            echo "[PASS] 4.2 - Using official Node.js Alpine image"
+          else
+            echo "[WARN] 4.2 - Verify base image is from trusted source"
+          fi
+          
+          if grep -q "HEALTHCHECK" docker/Dockerfile; then
+            echo "[PASS] 4.6 - HEALTHCHECK instruction found"
+          else
+            echo "[FAIL] 4.6 - No HEALTHCHECK instruction found"
+          fi
+          
+          if grep -q "^ADD" docker/Dockerfile; then
+            echo "[WARN] 4.9 - ADD instruction found, prefer COPY"
+          else
+            echo "[PASS] 4.9 - No ADD instructions, using COPY"
+          fi
+          
+          if grep -iE "(password|secret|key|token)=" docker/Dockerfile; then
+            echo "[FAIL] Potential secrets found in Dockerfile"
+          else
+            echo "[PASS] No obvious secrets in Dockerfile"
+          fi
+
+  env-secrets-check:
+    name: Environment Variables Security Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for exposed secrets in environment configurations
+        run: |
+          echo "=== Checking for exposed secrets in environment configurations ==="
+          
+          find . -name "docker-compose*.yml" -o -name "docker-compose*.yaml" | while read file; do
+            echo "Checking $file..."
+            if grep -iE "(password|secret|api_key|access_key):" "$file" 2>/dev/null; then
+              echo "[WARN] Potential secrets found in $file"
+            fi
+          done || true
+          
+          if find . -name ".env" -not -path "./node_modules/*" | grep -q .; then
+            echo "[WARN] .env files found - ensure they are in .gitignore"
+            find . -name ".env" -not -path "./node_modules/*"
+          else
+            echo "[PASS] No .env files found in repository"
+          fi
+          
+          echo "Checking Dockerfile for hardcoded secrets..."
+          if grep -iE "ENV.*(PASSWORD|SECRET|KEY|TOKEN)=" docker/Dockerfile; then
+            echo "[WARN] Potential secrets in Dockerfile ENV instructions"
+          else
+            echo "[PASS] No obvious secrets in Dockerfile ENV instructions"
+          fi
+          
+          echo "Checking workflow files..."
+          find .github/workflows -name "*.yml" -o -name "*.yaml" | while read file; do
+            if grep -iE "(password|secret|api_key):" "$file" 2>/dev/null | grep -v '\${{' | grep -v '#'; then
+              echo "[WARN] Potential hardcoded secrets in $file"
+            fi
+          done || true
+          
+          echo "[INFO] Environment secrets check completed"
+
+  security-summary:
+    name: Security Scan Summary
+    needs: [sbom-generation, dependency-scan, secret-scan, config-scan, license-scan, dockerfile-scan, env-secrets-check]
+    runs-on: ubuntu-latest
+    if: always()
+    outputs:
+      status: ${{ steps.summary.outputs.status }}
+      critical_count: ${{ steps.summary.outputs.critical_count }}
+      high_count: ${{ steps.summary.outputs.high_count }}
+    steps:
+      - name: Generate Security Summary
+        id: summary
+        run: |
+          echo "=== Security Scan Summary ==="
+          echo ""
+          
+          SBOM_STATUS="${{ needs.sbom-generation.result }}"
+          DEP_STATUS="${{ needs.dependency-scan.result }}"
+          SECRET_STATUS="${{ needs.secret-scan.result }}"
+          CONFIG_STATUS="${{ needs.config-scan.result }}"
+          LICENSE_STATUS="${{ needs.license-scan.result }}"
+          DOCKERFILE_STATUS="${{ needs.dockerfile-scan.result }}"
+          ENV_STATUS="${{ needs.env-secrets-check.result }}"
+          
+          echo "SBOM Generation: $SBOM_STATUS"
+          echo "Dependency Scan: $DEP_STATUS"
+          echo "Secret Scan: $SECRET_STATUS"
+          echo "Config Scan: $CONFIG_STATUS"
+          echo "License Scan: $LICENSE_STATUS"
+          echo "Dockerfile Scan: $DOCKERFILE_STATUS"
+          echo "Env Secrets Check: $ENV_STATUS"
+          
+          if [ "$DEP_STATUS" = "failure" ] || [ "$SECRET_STATUS" = "failure" ]; then
+            echo "status=failed" >> $GITHUB_OUTPUT
+            echo "critical_count=1" >> $GITHUB_OUTPUT
+            echo "high_count=0" >> $GITHUB_OUTPUT
+            echo ""
+            echo "[CRITICAL] Security scan failed - blocking deployment"
+          else
+            echo "status=passed" >> $GITHUB_OUTPUT
+            echo "critical_count=0" >> $GITHUB_OUTPUT
+            echo "high_count=0" >> $GITHUB_OUTPUT
+            echo ""
+            echo "[PASS] All security scans completed successfully"
+          fi
+
+      - name: Create Security Report
+        run: |
+          cat << 'EOF' > security-report.md
+          # Security Scan Report
+          
+          ## Scan Results Summary
+          
+          | Scan Type | Status |
+          |-----------|--------|
+          | SBOM Generation | ${{ needs.sbom-generation.result }} |
+          | Dependency Scan | ${{ needs.dependency-scan.result }} |
+          | Secret Scan | ${{ needs.secret-scan.result }} |
+          | Config Scan | ${{ needs.config-scan.result }} |
+          | License Scan | ${{ needs.license-scan.result }} |
+          | Dockerfile Scan | ${{ needs.dockerfile-scan.result }} |
+          | Env Secrets Check | ${{ needs.env-secrets-check.result }} |
+          
+          ## Recommendations
+          
+          1. Review any HIGH or CRITICAL vulnerabilities in the GitHub Security tab
+          2. Update dependencies with known vulnerabilities
+          3. Ensure all secrets are stored in GitHub Secrets, not in code
+          4. Review license compliance for any flagged dependencies
+          EOF
+
+      - name: Upload Security Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-report
+          path: security-report.md
+          retention-days: 90

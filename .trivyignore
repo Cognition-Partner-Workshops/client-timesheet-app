@@ -1,0 +1,69 @@
+# Trivy Ignore File
+# This file contains CVE IDs and rules to ignore during security scanning
+# to reduce false positives while maintaining security posture.
+
+# =============================================================================
+# FALSE POSITIVES - Known safe patterns
+# =============================================================================
+
+# Test files and development dependencies that don't affect production
+# These are only used during development/testing and not in production builds
+
+# =============================================================================
+# ACCEPTED RISKS - Documented and reviewed
+# =============================================================================
+
+# The following vulnerabilities have been reviewed and accepted with mitigations:
+
+# Example format (uncomment and add actual CVEs as needed):
+# CVE-YYYY-XXXXX  # Package: description of why this is acceptable
+
+# =============================================================================
+# SECRET SCANNING FALSE POSITIVES
+# =============================================================================
+
+# JWT secret patterns in test files (not real secrets)
+# backend/src/__tests__/**
+
+# Example tokens in documentation
+# *.md
+
+# Mock/test data files
+# **/*.test.js
+# **/*.spec.js
+# **/fixtures/**
+# **/mocks/**
+
+# =============================================================================
+# CONFIGURATION SCANNING EXCLUSIONS
+# =============================================================================
+
+# Development-only Dockerfiles
+# docker/Dockerfile.dev
+
+# Local development configurations
+# docker-compose.dev.yml
+# docker-compose.local.yml
+
+# =============================================================================
+# DEPENDENCY VULNERABILITIES - Mitigated or Not Applicable
+# =============================================================================
+
+# Add specific CVEs here after security review with justification:
+
+# Example:
+# CVE-2023-XXXXX  # express: Not exploitable in our configuration because...
+
+# =============================================================================
+# NOTES
+# =============================================================================
+# 
+# Before adding a CVE to this file:
+# 1. Verify the vulnerability doesn't affect your specific use case
+# 2. Document the reason for ignoring
+# 3. Set a reminder to review periodically
+# 4. Consider if there's a patch or workaround available
+#
+# This file should be reviewed quarterly by the security team.
+# Last reviewed: [DATE]
+# Next review: [DATE + 3 months]
