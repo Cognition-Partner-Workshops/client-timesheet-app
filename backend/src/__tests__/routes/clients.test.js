@@ -53,9 +53,10 @@ describe('Client Routes', () => {
 
       expect(response.status).toBe(200);
       expect(response.body).toEqual({ clients: mockClients });
+      // Clients are now visible to all users, so no user_email filter
       expect(mockDb.all).toHaveBeenCalledWith(
         expect.stringContaining('SELECT id, name, description'),
-        ['test@example.com'],
+        [],
         expect.any(Function)
       );
     });
