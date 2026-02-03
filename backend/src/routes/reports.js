@@ -1,3 +1,10 @@
+/**
+ * @fileoverview Report generation routes for client time tracking data.
+ * Provides endpoints for viewing reports and exporting data in CSV and PDF formats.
+ * All routes require authentication via the x-user-email header.
+ * @module routes/reports
+ */
+
 const express = require('express');
 const { getDatabase } = require('../database/init');
 const { authenticateUser } = require('../middleware/auth');
@@ -6,12 +13,39 @@ const PDFDocument = require('pdfkit');
 const path = require('path');
 const fs = require('fs');
 
+/**
+ * Express router for report generation endpoints.
+ * All routes are protected by authentication middleware.
+ * @type {import('express').Router}
+ */
 const router = express.Router();
 
-// All routes require authentication
 router.use(authenticateUser);
 
-// Get hourly report for specific client
+/**
+ * @route GET /api/reports/client/:clientId
+ * @description Generates a detailed time report for a specific client.
+ * Returns all work entries with aggregated statistics including total hours
+ * and entry count. Verifies client ownership before generating report.
+ * 
+ * @param {string} req.params.clientId - Client ID to generate report for.
+ * @param {string} req.headers.x-user-email - Authenticated user's email address.
+ * 
+ * @returns {Object} 200 - Report data with client info, work entries, and statistics.
+ * @returns {Object} 400 - Invalid client ID format.
+ * @returns {Object} 401 - Authentication required.
+ * @returns {Object} 404 - Client not found or doesn't belong to user.
+ * @returns {Object} 500 - Internal server error.
+ * 
+ * @example
+ * // Response
+ * {
+ *   "client": { "id": 1, "name": "Acme Corp" },
+ *   "workEntries": [...],
+ *   "totalHours": 40.5,
+ *   "entryCount": 5
+ * }
+ */
 router.get('/client/:clientId', (req, res) => {
   const clientId = parseInt(req.params.clientId);
   
@@ -63,7 +97,21 @@ router.get('/client/:clientId', (req, res) => {
   );
 });
 
-// Export client report as CSV
+/**
+ * @route GET /api/reports/export/csv/:clientId
+ * @description Exports a client's time report as a downloadable CSV file.
+ * Creates a temporary file, streams it to the client, then cleans up.
+ * CSV includes columns: Date, Hours, Description, Created At.
+ * 
+ * @param {string} req.params.clientId - Client ID to export report for.
+ * @param {string} req.headers.x-user-email - Authenticated user's email address.
+ * 
+ * @returns {Blob} 200 - CSV file download with Content-Disposition header.
+ * @returns {Object} 400 - Invalid client ID format.
+ * @returns {Object} 401 - Authentication required.
+ * @returns {Object} 404 - Client not found or doesn't belong to user.
+ * @returns {Object} 500 - Internal server error or CSV generation failure.
+ */
 router.get('/export/csv/:clientId', (req, res) => {
   const clientId = parseInt(req.params.clientId);
   
@@ -146,7 +194,27 @@ router.get('/export/csv/:clientId', (req, res) => {
   );
 });
 
-// Export client report as PDF
+/**
+ * @route GET /api/reports/export/pdf/:clientId
+ * @description Exports a client's time report as a downloadable PDF document.
+ * Generates a formatted PDF with client name, summary statistics, and a
+ * table of all work entries. Streams directly to the response.
+ * 
+ * PDF includes:
+ * - Report title with client name
+ * - Total hours and entry count summary
+ * - Generation timestamp
+ * - Tabular list of all work entries with date, hours, and description
+ * 
+ * @param {string} req.params.clientId - Client ID to export report for.
+ * @param {string} req.headers.x-user-email - Authenticated user's email address.
+ * 
+ * @returns {Blob} 200 - PDF file download with Content-Disposition header.
+ * @returns {Object} 400 - Invalid client ID format.
+ * @returns {Object} 401 - Authentication required.
+ * @returns {Object} 404 - Client not found or doesn't belong to user.
+ * @returns {Object} 500 - Internal server error or PDF generation failure.
+ */
 router.get('/export/pdf/:clientId', (req, res) => {
   const clientId = parseInt(req.params.clientId);
   

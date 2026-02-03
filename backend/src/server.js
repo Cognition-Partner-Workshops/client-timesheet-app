@@ -1,3 +1,10 @@
+/**
+ * @fileoverview Express server configuration and application entry point.
+ * Sets up middleware, routes, security features, and database initialization.
+ * This is the main entry point for the backend API server.
+ * @module server
+ */
+
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -12,50 +19,103 @@ const reportRoutes = require('./routes/reports');
 const { initializeDatabase } = require('./database/init');
 const { errorHandler } = require('./middleware/errorHandler');
 
+/**
+ * Express application instance.
+ * @type {import('express').Application}
+ */
 const app = express();
+
+/**
+ * Server port number. Defaults to 3001 if PORT environment variable is not set.
+ * @type {number}
+ */
 const PORT = process.env.PORT || 3001;
 
-// Security middleware
+/**
+ * Security middleware configuration.
+ * Helmet adds various HTTP headers for security.
+ * CORS is configured to allow requests from the frontend URL.
+ */
 app.use(helmet());
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:5173',
   credentials: true
 }));
 
-// Rate limiting
+/**
+ * Rate limiter configuration to prevent abuse.
+ * Limits each IP to 100 requests per 15-minute window.
+ * @type {import('express-rate-limit').RateLimitRequestHandler}
+ */
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+  windowMs: 15 * 60 * 1000,
+  max: 100
 });
 app.use(limiter);
 
-// Logging
+/**
+ * HTTP request logging middleware using Morgan.
+ * Uses 'combined' format for detailed access logs.
+ */
 app.use(morgan('combined'));
 
-// Body parsing
+/**
+ * Body parsing middleware configuration.
+ * Supports JSON payloads up to 10MB and URL-encoded data.
+ */
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Health check
+/**
+ * @route GET /health
+ * @description Health check endpoint for monitoring and load balancer probes.
+ * Returns server status and current timestamp.
+ * 
+ * @returns {Object} 200 - Server health status with timestamp.
+ * 
+ * @example
+ * // Response
+ * { "status": "OK", "timestamp": "2024-01-15T10:30:00.000Z" }
+ */
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-// Routes
+/**
+ * API route mounting.
+ * All API routes are prefixed with /api for clear separation.
+ */
 app.use('/api/auth', authRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/api/work-entries', workEntryRoutes);
 app.use('/api/reports', reportRoutes);
 
-// Error handling
+/**
+ * Global error handling middleware.
+ * Must be registered after all routes.
+ */
 app.use(errorHandler);
 
-// 404 handler
+/**
+ * 404 handler for unmatched routes.
+ * Catches all requests that don't match defined routes.
+ */
 app.use('*', (req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
-// Initialize database and start server
+/**
+ * Initializes the database and starts the Express server.
+ * This is the main application bootstrap function.
+ * 
+ * @async
+ * @returns {Promise<void>}
+ * @throws {Error} If database initialization or server startup fails.
+ * 
+ * @example
+ * // Called automatically when this module is executed
+ * startServer();
+ */
 async function startServer() {
   try {
     await initializeDatabase();

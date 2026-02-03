@@ -1,3 +1,9 @@
+/**
+ * @fileoverview Clients management page component for CRUD operations on clients.
+ * Provides a table view of all clients with actions to create, edit, and delete.
+ * Uses React Query for data fetching and cache management.
+ */
+
 import React, { useState } from 'react';
 import {
   Box,
@@ -29,6 +35,19 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../api/client';
 import { type Client } from '../types/api';
 
+/**
+ * Clients page component for managing client records.
+ * Displays a table of all clients with options to add, edit, and delete.
+ * Uses a modal dialog for create/edit operations.
+ *
+ * Features:
+ * - Sortable client list with name, description, and creation date
+ * - Modal form for creating and editing clients
+ * - Confirmation dialog for delete operations
+ * - Real-time cache invalidation on mutations
+ *
+ * @returns The clients management page with table and action dialogs.
+ */
 const ClientsPage: React.FC = () => {
   const [open, setOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);

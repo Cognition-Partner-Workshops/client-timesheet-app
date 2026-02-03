@@ -1,14 +1,39 @@
+/**
+ * @fileoverview Client management routes for CRUD operations on client records.
+ * All routes require authentication via the x-user-email header.
+ * Clients are scoped to individual users for data isolation.
+ * @module routes/clients
+ */
+
 const express = require('express');
 const { getDatabase } = require('../database/init');
 const { authenticateUser } = require('../middleware/auth');
 const { clientSchema, updateClientSchema } = require('../validation/schemas');
 
+/**
+ * Express router for client management endpoints.
+ * All routes are protected by authentication middleware.
+ * @type {import('express').Router}
+ */
 const router = express.Router();
 
-// All routes require authentication
 router.use(authenticateUser);
 
-// Get all clients for authenticated user
+/**
+ * @route GET /api/clients
+ * @description Retrieves all clients belonging to the authenticated user.
+ * Results are sorted alphabetically by client name.
+ * 
+ * @param {string} req.headers.x-user-email - Authenticated user's email address.
+ * 
+ * @returns {Object} 200 - Array of client objects.
+ * @returns {Object} 401 - Authentication required.
+ * @returns {Object} 500 - Internal server error.
+ * 
+ * @example
+ * // Response
+ * { "clients": [{ "id": 1, "name": "Acme Corp", "description": "Main client", "created_at": "...", "updated_at": "..." }] }
+ */
 router.get('/', (req, res) => {
   const db = getDatabase();
   
@@ -26,7 +51,20 @@ router.get('/', (req, res) => {
   );
 });
 
-// Get specific client
+/**
+ * @route GET /api/clients/:id
+ * @description Retrieves a specific client by ID. Only returns the client
+ * if it belongs to the authenticated user.
+ * 
+ * @param {string} req.params.id - Client ID (must be a valid integer).
+ * @param {string} req.headers.x-user-email - Authenticated user's email address.
+ * 
+ * @returns {Object} 200 - Client object found.
+ * @returns {Object} 400 - Invalid client ID format.
+ * @returns {Object} 401 - Authentication required.
+ * @returns {Object} 404 - Client not found or doesn't belong to user.
+ * @returns {Object} 500 - Internal server error.
+ */
 router.get('/:id', (req, res) => {
   const clientId = parseInt(req.params.id);
   
@@ -54,7 +92,29 @@ router.get('/:id', (req, res) => {
   );
 });
 
-// Create new client
+/**
+ * @route POST /api/clients
+ * @description Creates a new client for the authenticated user.
+ * Validates input using Joi schema before database insertion.
+ * 
+ * @param {Object} req.body - Client data to create.
+ * @param {string} req.body.name - Client name (required, 1-255 characters).
+ * @param {string} [req.body.description] - Optional client description (max 1000 characters).
+ * @param {string} req.headers.x-user-email - Authenticated user's email address.
+ * 
+ * @returns {Object} 201 - Client created successfully with client data.
+ * @returns {Object} 400 - Validation error (invalid input data).
+ * @returns {Object} 401 - Authentication required.
+ * @returns {Object} 500 - Internal server error.
+ * 
+ * @example
+ * // Request
+ * POST /api/clients
+ * { "name": "Acme Corp", "description": "Main client account" }
+ * 
+ * // Response
+ * { "message": "Client created successfully", "client": { "id": 1, "name": "Acme Corp", ... } }
+ */
 router.post('/', (req, res, next) => {
   try {
     const { error, value } = clientSchema.validate(req.body);
@@ -97,7 +157,23 @@ router.post('/', (req, res, next) => {
   }
 });
 
-// Update client
+/**
+ * @route PUT /api/clients/:id
+ * @description Updates an existing client's information. Only updates fields
+ * that are provided in the request body. Verifies client ownership before updating.
+ * 
+ * @param {string} req.params.id - Client ID to update (must be a valid integer).
+ * @param {Object} req.body - Client data to update (at least one field required).
+ * @param {string} [req.body.name] - Updated client name (1-255 characters).
+ * @param {string} [req.body.description] - Updated description (max 1000 characters).
+ * @param {string} req.headers.x-user-email - Authenticated user's email address.
+ * 
+ * @returns {Object} 200 - Client updated successfully with updated data.
+ * @returns {Object} 400 - Invalid client ID or validation error.
+ * @returns {Object} 401 - Authentication required.
+ * @returns {Object} 404 - Client not found or doesn't belong to user.
+ * @returns {Object} 500 - Internal server error.
+ */
 router.put('/:id', (req, res, next) => {
   try {
     const clientId = parseInt(req.params.id);
@@ -176,7 +252,20 @@ router.put('/:id', (req, res, next) => {
   }
 });
 
-// Delete client
+/**
+ * @route DELETE /api/clients/:id
+ * @description Deletes a client and all associated work entries (via CASCADE).
+ * Verifies client ownership before deletion.
+ * 
+ * @param {string} req.params.id - Client ID to delete (must be a valid integer).
+ * @param {string} req.headers.x-user-email - Authenticated user's email address.
+ * 
+ * @returns {Object} 200 - Client deleted successfully.
+ * @returns {Object} 400 - Invalid client ID format.
+ * @returns {Object} 401 - Authentication required.
+ * @returns {Object} 404 - Client not found or doesn't belong to user.
+ * @returns {Object} 500 - Internal server error.
+ */
 router.delete('/:id', (req, res) => {
   const clientId = parseInt(req.params.id);
   

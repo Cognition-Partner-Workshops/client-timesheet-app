@@ -1,10 +1,50 @@
+/**
+ * @fileoverview Database initialization and connection management module.
+ * Provides singleton database connection, schema initialization, and graceful shutdown.
+ * Uses SQLite with in-memory storage for development and file-based storage for production.
+ * @module database/init
+ */
+
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
+/**
+ * Singleton database connection instance.
+ * @type {sqlite3.Database|null}
+ * @private
+ */
 let db = null;
+
+/**
+ * Flag indicating if the database is currently in the process of closing.
+ * Prevents multiple simultaneous close operations.
+ * @type {boolean}
+ * @private
+ */
 let isClosing = false;
+
+/**
+ * Flag indicating if the database connection has been closed.
+ * Used to prevent operations on a closed database.
+ * @type {boolean}
+ * @private
+ */
 let isClosed = false;
 
+/**
+ * Retrieves the singleton SQLite database connection.
+ * Creates a new in-memory database connection if one doesn't exist.
+ * Resets closing/closed state flags when creating a new connection.
+ * 
+ * @returns {sqlite3.Database} The SQLite database connection instance.
+ * @throws {Error} If the database connection cannot be established.
+ * 
+ * @example
+ * const db = getDatabase();
+ * db.get('SELECT * FROM users WHERE email = ?', [email], (err, row) => {
+ *   // Handle result
+ * });
+ */
 function getDatabase() {
   if (!db) {
     // Reset state when creating a new database connection
@@ -22,6 +62,24 @@ function getDatabase() {
   return db;
 }
 
+/**
+ * Initializes the database schema by creating all required tables and indexes.
+ * Creates the following tables:
+ * - users: Stores user accounts with email as primary key
+ * - clients: Stores client information linked to users
+ * - work_entries: Stores time tracking entries linked to clients and users
+ * 
+ * Also creates performance indexes on frequently queried columns.
+ * Uses foreign key constraints with CASCADE delete for data integrity.
+ * 
+ * @async
+ * @returns {Promise<void>} Resolves when all tables and indexes are created.
+ * @throws {Error} If database operations fail during schema creation.
+ * 
+ * @example
+ * await initializeDatabase();
+ * console.log('Database schema initialized successfully');
+ */
 async function initializeDatabase() {
   const database = getDatabase();
   
@@ -76,6 +134,24 @@ async function initializeDatabase() {
   });
 }
 
+/**
+ * Gracefully closes the database connection.
+ * Handles multiple close scenarios:
+ * - Already closed: Resolves immediately
+ * - Currently closing: Waits for existing close operation to complete
+ * - No connection: Resolves immediately
+ * - Active connection: Closes and cleans up resources
+ * 
+ * Thread-safe implementation prevents race conditions during shutdown.
+ * 
+ * @returns {Promise<void>} Resolves when the database connection is closed.
+ * 
+ * @example
+ * process.on('SIGTERM', async () => {
+ *   await closeDatabase();
+ *   process.exit(0);
+ * });
+ */
 function closeDatabase() {
   return new Promise((resolve, reject) => {
     if (isClosed) {
