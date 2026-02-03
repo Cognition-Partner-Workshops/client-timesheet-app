@@ -1,3 +1,9 @@
+/**
+ * @fileoverview Client management routes for CRUD operations on clients.
+ * All routes require authentication.
+ * @module routes/clients
+ */
+
 const express = require('express');
 const { getDatabase } = require('../database/init');
 const { authenticateUser } = require('../middleware/auth');
@@ -5,13 +11,16 @@ const { clientSchema, updateClientSchema } = require('../validation/schemas');
 
 const router = express.Router();
 
-// All routes require authentication
 router.use(authenticateUser);
 
-// Get all clients for authenticated user
+/**
+ * GET /api/clients
+ * Retrieves all clients for the authenticated user.
+ * @returns {Object} Array of client objects
+ */
 router.get('/', (req, res) => {
   const db = getDatabase();
-  
+
   db.all(
     'SELECT id, name, description, department, email, created_at, updated_at FROM clients WHERE user_email = ? ORDER BY name',
     [req.userEmail],
@@ -20,22 +29,27 @@ router.get('/', (req, res) => {
         console.error('Database error:', err);
         return res.status(500).json({ error: 'Internal server error' });
       }
-      
+
       res.json({ clients: rows });
     }
   );
 });
 
-// Get specific client
+/**
+ * GET /api/clients/:id
+ * Retrieves a specific client by ID.
+ * @param {number} req.params.id - Client ID
+ * @returns {Object} Client object or 404 error
+ */
 router.get('/:id', (req, res) => {
   const clientId = parseInt(req.params.id);
-  
+
   if (isNaN(clientId)) {
     return res.status(400).json({ error: 'Invalid client ID' });
   }
-  
+
   const db = getDatabase();
-  
+
   db.get(
     'SELECT id, name, description, department, email, created_at, updated_at FROM clients WHERE id = ? AND user_email = ?',
     [clientId, req.userEmail],
@@ -44,11 +58,11 @@ router.get('/:id', (req, res) => {
         console.error('Database error:', err);
         return res.status(500).json({ error: 'Internal server error' });
       }
-      
+
       if (!row) {
         return res.status(404).json({ error: 'Client not found' });
       }
-      
+
       res.json({ client: row });
     }
   );
@@ -84,9 +98,9 @@ router.post('/', (req, res, next) => {
               return res.status(500).json({ error: 'Client created but failed to retrieve' });
             }
 
-            res.status(201).json({ 
+            res.status(201).json({
               message: 'Client created successfully',
-              client: row 
+              client: row
             });
           }
         );
@@ -101,7 +115,7 @@ router.post('/', (req, res, next) => {
 router.put('/:id', (req, res, next) => {
   try {
     const clientId = parseInt(req.params.id);
-    
+
     if (isNaN(clientId)) {
       return res.status(400).json({ error: 'Invalid client ID' });
     }
@@ -189,7 +203,7 @@ router.put('/:id', (req, res, next) => {
 // Delete all clients for authenticated user
 router.delete('/', (req, res) => {
   const db = getDatabase();
-  
+
   db.run(
     'DELETE FROM clients WHERE user_email = ?',
     [req.userEmail],
@@ -198,8 +212,8 @@ router.delete('/', (req, res) => {
         console.error('Database error:', err);
         return res.status(500).json({ error: 'Failed to delete clients' });
       }
-      
-      res.json({ 
+
+      res.json({
         message: 'All clients deleted successfully',
         deletedCount: this.changes
       });
@@ -210,13 +224,13 @@ router.delete('/', (req, res) => {
 // Delete client
 router.delete('/:id', (req, res) => {
   const clientId = parseInt(req.params.id);
-  
+
   if (isNaN(clientId)) {
     return res.status(400).json({ error: 'Invalid client ID' });
   }
-  
+
   const db = getDatabase();
-  
+
   // Check if client exists and belongs to user
   db.get(
     'SELECT id FROM clients WHERE id = ? AND user_email = ?',
@@ -226,11 +240,11 @@ router.delete('/:id', (req, res) => {
         console.error('Database error:', err);
         return res.status(500).json({ error: 'Internal server error' });
       }
-      
+
       if (!row) {
         return res.status(404).json({ error: 'Client not found' });
       }
-      
+
       // Delete client (work entries will be deleted due to CASCADE)
       db.run(
         'DELETE FROM clients WHERE id = ? AND user_email = ?',
@@ -240,7 +254,7 @@ router.delete('/:id', (req, res) => {
             console.error('Database error:', err);
             return res.status(500).json({ error: 'Failed to delete client' });
           }
-          
+
           res.json({ message: 'Client deleted successfully' });
         }
       );

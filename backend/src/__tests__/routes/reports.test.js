@@ -2,7 +2,7 @@ const request = require('supertest');
 const express = require('express');
 const { getDatabase } = require('../../database/init');
 const fs = require('fs');
-const path = require('path');
+const _path = require('path');
 
 jest.mock('../../database/init');
 jest.mock('fs');
@@ -47,7 +47,7 @@ describe('Report Routes', () => {
       get: jest.fn()
     };
     getDatabase.mockReturnValue(mockDb);
-    
+
     // Mock fs methods
     fs.existsSync = jest.fn().mockReturnValue(true);
     fs.mkdirSync = jest.fn();
@@ -403,7 +403,6 @@ describe('Report Routes', () => {
     });
   });
 
-
   describe('PDF Export Success Path', () => {
     test('should handle database error when fetching work entries for PDF', async () => {
       mockDb.get.mockImplementation((query, params, callback) => {
@@ -437,5 +436,6 @@ describe('Report Routes', () => {
         expect.any(Function)
       );
     });
+
   });
 });
