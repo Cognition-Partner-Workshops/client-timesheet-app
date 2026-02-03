@@ -142,6 +142,23 @@ describe('Database Initialization', () => {
 
       expect(consoleErrorSpy).not.toHaveBeenCalled();
     });
+
+    test('should resolve immediately when database is already closed', async () => {
+      const db = getDatabase();
+      db.close.mockImplementation((callback) => callback(null));
+      
+      await closeDatabase();
+      await closeDatabase();
+      
+      expect(consoleLogSpy).toHaveBeenCalledWith('Database connection closed');
+    });
+
+    test('should resolve immediately when no database connection exists', async () => {
+      jest.resetModules();
+      const { closeDatabase: closeFresh } = require('../../database/init');
+      
+      await expect(closeFresh()).resolves.toBeUndefined();
+    });
   });
 
   describe('Database Schema', () => {
