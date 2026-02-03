@@ -142,6 +142,105 @@ describe('Database Initialization', () => {
 
       expect(consoleErrorSpy).not.toHaveBeenCalled();
     });
+
+    test('should resolve immediately when database is already closed', async () => {
+      jest.resetModules();
+      
+      jest.doMock('sqlite3', () => {
+        const mockDb = {
+          serialize: jest.fn((callback) => callback()),
+          run: jest.fn((query, callback) => {
+            if (typeof callback === 'function') callback(null);
+          }),
+          close: jest.fn((callback) => callback(null))
+        };
+        return {
+          verbose: jest.fn(() => ({
+            Database: jest.fn((path, callback) => {
+              callback(null);
+              return mockDb;
+            })
+          }))
+        };
+      });
+
+      const { getDatabase: getDb, closeDatabase: closeDb } = require('../../database/init');
+      
+      const db = getDb();
+      await closeDb();
+      
+      const result = await closeDb();
+      expect(result).toBeUndefined();
+    });
+
+    test('should resolve immediately when no database connection exists', async () => {
+      jest.resetModules();
+      
+      jest.doMock('sqlite3', () => {
+        return {
+          verbose: jest.fn(() => ({
+            Database: jest.fn((path, callback) => {
+              callback(null);
+              return {
+                serialize: jest.fn((callback) => callback()),
+                run: jest.fn(),
+                close: jest.fn((callback) => callback(null))
+              };
+            })
+          }))
+        };
+      });
+
+      const { closeDatabase: closeDb } = require('../../database/init');
+      
+      const result = await closeDb();
+      expect(result).toBeUndefined();
+    });
+
+    test('should wait for closing to complete when called during close operation', async () => {
+      jest.resetModules();
+      jest.useFakeTimers();
+      
+      let closeCallback = null;
+      jest.doMock('sqlite3', () => {
+        const mockDb = {
+          serialize: jest.fn((callback) => callback()),
+          run: jest.fn((query, callback) => {
+            if (typeof callback === 'function') callback(null);
+          }),
+          close: jest.fn((callback) => {
+            closeCallback = callback;
+          })
+        };
+        return {
+          verbose: jest.fn(() => ({
+            Database: jest.fn((path, callback) => {
+              callback(null);
+              return mockDb;
+            })
+          }))
+        };
+      });
+
+      const { getDatabase: getDb, closeDatabase: closeDb } = require('../../database/init');
+      
+      getDb();
+      
+      const firstClose = closeDb();
+      const secondClose = closeDb();
+      
+      jest.advanceTimersByTime(10);
+      
+      if (closeCallback) {
+        closeCallback(null);
+      }
+      
+      jest.advanceTimersByTime(20);
+      
+      await Promise.all([firstClose, secondClose]);
+      
+      jest.useRealTimers();
+    });
   });
 
   describe('Database Schema', () => {
