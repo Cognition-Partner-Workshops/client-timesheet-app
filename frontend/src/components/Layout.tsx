@@ -26,7 +26,7 @@ import {
   School as SchoolIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../hooks/useAuth';
 
 const drawerWidth = 240;
 
