@@ -1,3 +1,12 @@
+/**
+ * @fileoverview Report generation routes for the Client Timesheet API.
+ * Provides endpoints for generating and exporting time tracking reports.
+ * 
+ * @module routes/reports
+ * @description Handles report generation including JSON reports, CSV exports,
+ * and PDF exports for client time tracking data.
+ */
+
 const express = require('express');
 const { getDatabase } = require('../database/init');
 const { authenticateUser } = require('../middleware/auth');
@@ -8,10 +17,37 @@ const fs = require('fs');
 
 const router = express.Router();
 
-// All routes require authentication
 router.use(authenticateUser);
 
-// Get hourly report for specific client
+/**
+ * @openapi
+ * /api/reports/client/{clientId}:
+ *   get:
+ *     tags:
+ *       - Reports
+ *     summary: Get client report
+ *     description: Returns aggregated time tracking data for a specific client including total hours and all work entries.
+ *     security:
+ *       - emailAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: clientId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Client ID
+ *     responses:
+ *       200:
+ *         description: Report generated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ClientReport'
+ *       400:
+ *         description: Invalid client ID
+ *       404:
+ *         description: Client not found
+ */
 router.get('/client/:clientId', (req, res) => {
   const clientId = parseInt(req.params.clientId);
   
@@ -63,7 +99,35 @@ router.get('/client/:clientId', (req, res) => {
   );
 });
 
-// Export client report as CSV
+/**
+ * @openapi
+ * /api/reports/export/csv/{clientId}:
+ *   get:
+ *     tags:
+ *       - Reports
+ *     summary: Export client report as CSV
+ *     description: Downloads a CSV file containing all work entries for a specific client.
+ *     security:
+ *       - emailAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: clientId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: CSV file download
+ *         content:
+ *           text/csv:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       400:
+ *         description: Invalid client ID
+ *       404:
+ *         description: Client not found
+ */
 router.get('/export/csv/:clientId', (req, res) => {
   const clientId = parseInt(req.params.clientId);
   
@@ -146,7 +210,35 @@ router.get('/export/csv/:clientId', (req, res) => {
   );
 });
 
-// Export client report as PDF
+/**
+ * @openapi
+ * /api/reports/export/pdf/{clientId}:
+ *   get:
+ *     tags:
+ *       - Reports
+ *     summary: Export client report as PDF
+ *     description: Downloads a PDF file containing a formatted report with all work entries for a specific client.
+ *     security:
+ *       - emailAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: clientId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: PDF file download
+ *         content:
+ *           application/pdf:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       400:
+ *         description: Invalid client ID
+ *       404:
+ *         description: Client not found
+ */
 router.get('/export/pdf/:clientId', (req, res) => {
   const clientId = parseInt(req.params.clientId);
   

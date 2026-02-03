@@ -1,3 +1,20 @@
+/**
+ * @fileoverview Client management routes for the Client Timesheet API.
+ * Provides full CRUD operations for managing client records.
+ * 
+ * @module routes/clients
+ * @description Handles all client-related operations including creating, reading,
+ * updating, and deleting clients. All routes require authentication.
+ * 
+ * @example
+ * // List all clients
+ * GET /api/clients
+ * 
+ * // Create a new client
+ * POST /api/clients
+ * { "name": "Acme Corp", "description": "Software project" }
+ */
+
 const express = require('express');
 const { getDatabase } = require('../database/init');
 const { authenticateUser } = require('../middleware/auth');
@@ -8,7 +25,43 @@ const router = express.Router();
 // All routes require authentication
 router.use(authenticateUser);
 
-// Get all clients for authenticated user
+/**
+ * @openapi
+ * /api/clients:
+ *   get:
+ *     tags:
+ *       - Clients
+ *     summary: List all clients
+ *     description: |
+ *       Returns all clients belonging to the authenticated user, ordered alphabetically by name.
+ *       
+ *       **Data Isolation**: Users can only see their own clients.
+ *     security:
+ *       - emailAuth: []
+ *     responses:
+ *       200:
+ *         description: List of clients retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 clients:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Client'
+ *             example:
+ *               clients:
+ *                 - id: 1
+ *                   name: Acme Corporation
+ *                   description: Enterprise software project
+ *                   created_at: '2024-01-15T10:30:00.000Z'
+ *                   updated_at: '2024-01-20T14:45:00.000Z'
+ *       401:
+ *         description: Authentication required
+ *       500:
+ *         description: Internal server error
+ */
 router.get('/', (req, res) => {
   const db = getDatabase();
   
@@ -26,7 +79,43 @@ router.get('/', (req, res) => {
   );
 });
 
-// Get specific client
+/**
+ * @openapi
+ * /api/clients/{id}:
+ *   get:
+ *     tags:
+ *       - Clients
+ *     summary: Get a specific client
+ *     description: Returns detailed information about a single client by ID.
+ *     security:
+ *       - emailAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Client ID
+ *         example: 1
+ *     responses:
+ *       200:
+ *         description: Client retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 client:
+ *                   $ref: '#/components/schemas/Client'
+ *       400:
+ *         description: Invalid client ID
+ *       401:
+ *         description: Authentication required
+ *       404:
+ *         description: Client not found
+ *       500:
+ *         description: Internal server error
+ */
 router.get('/:id', (req, res) => {
   const clientId = parseInt(req.params.id);
   
@@ -54,7 +143,41 @@ router.get('/:id', (req, res) => {
   );
 });
 
-// Create new client
+/**
+ * @openapi
+ * /api/clients:
+ *   post:
+ *     tags:
+ *       - Clients
+ *     summary: Create a new client
+ *     description: Creates a new client for the authenticated user.
+ *     security:
+ *       - emailAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/ClientInput'
+ *     responses:
+ *       201:
+ *         description: Client created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 client:
+ *                   $ref: '#/components/schemas/Client'
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Authentication required
+ *       500:
+ *         description: Internal server error
+ */
 router.post('/', (req, res, next) => {
   try {
     const { error, value } = clientSchema.validate(req.body);
@@ -97,7 +220,46 @@ router.post('/', (req, res, next) => {
   }
 });
 
-// Update client
+/**
+ * @openapi
+ * /api/clients/{id}:
+ *   put:
+ *     tags:
+ *       - Clients
+ *     summary: Update a client
+ *     description: Updates an existing client. Only provided fields will be updated.
+ *     security:
+ *       - emailAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Client ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Client updated successfully
+ *       400:
+ *         description: Invalid client ID or validation error
+ *       401:
+ *         description: Authentication required
+ *       404:
+ *         description: Client not found
+ *       500:
+ *         description: Internal server error
+ */
 router.put('/:id', (req, res, next) => {
   try {
     const clientId = parseInt(req.params.id);
@@ -176,7 +338,37 @@ router.put('/:id', (req, res, next) => {
   }
 });
 
-// Delete client
+/**
+ * @openapi
+ * /api/clients/{id}:
+ *   delete:
+ *     tags:
+ *       - Clients
+ *     summary: Delete a client
+ *     description: |
+ *       Deletes a client and all associated work entries (CASCADE delete).
+ *       **Warning**: This action cannot be undone.
+ *     security:
+ *       - emailAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Client ID
+ *     responses:
+ *       200:
+ *         description: Client deleted successfully
+ *       400:
+ *         description: Invalid client ID
+ *       401:
+ *         description: Authentication required
+ *       404:
+ *         description: Client not found
+ *       500:
+ *         description: Internal server error
+ */
 router.delete('/:id', (req, res) => {
   const clientId = parseInt(req.params.id);
   

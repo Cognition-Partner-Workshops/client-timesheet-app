@@ -1,3 +1,12 @@
+/**
+ * @fileoverview Work entry management routes for the Client Timesheet API.
+ * Provides full CRUD operations for time tracking entries.
+ * 
+ * @module routes/workEntries
+ * @description Handles all work entry operations including creating, reading,
+ * updating, and deleting time entries. Supports filtering by client.
+ */
+
 const express = require('express');
 const { getDatabase } = require('../database/init');
 const { authenticateUser } = require('../middleware/auth');
@@ -5,10 +14,43 @@ const { workEntrySchema, updateWorkEntrySchema } = require('../validation/schema
 
 const router = express.Router();
 
-// All routes require authentication
 router.use(authenticateUser);
 
-// Get all work entries for authenticated user (with optional client filter)
+/**
+ * @openapi
+ * /api/work-entries:
+ *   get:
+ *     tags:
+ *       - Work Entries
+ *     summary: List all work entries
+ *     description: Returns all work entries for the authenticated user, optionally filtered by client.
+ *     security:
+ *       - emailAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: clientId
+ *         schema:
+ *           type: integer
+ *         description: Filter by client ID (optional)
+ *     responses:
+ *       200:
+ *         description: List of work entries
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 workEntries:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/WorkEntry'
+ *       400:
+ *         description: Invalid client ID
+ *       401:
+ *         description: Authentication required
+ *       500:
+ *         description: Internal server error
+ */
 router.get('/', (req, res) => {
   const { clientId } = req.query;
   const db = getDatabase();
@@ -44,7 +86,29 @@ router.get('/', (req, res) => {
   });
 });
 
-// Get specific work entry
+/**
+ * @openapi
+ * /api/work-entries/{id}:
+ *   get:
+ *     tags:
+ *       - Work Entries
+ *     summary: Get a specific work entry
+ *     security:
+ *       - emailAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Work entry retrieved successfully
+ *       400:
+ *         description: Invalid work entry ID
+ *       404:
+ *         description: Work entry not found
+ */
 router.get('/:id', (req, res) => {
   const workEntryId = parseInt(req.params.id);
   
@@ -76,7 +140,30 @@ router.get('/:id', (req, res) => {
   );
 });
 
-// Create new work entry
+/**
+ * @openapi
+ * /api/work-entries:
+ *   post:
+ *     tags:
+ *       - Work Entries
+ *     summary: Create a new work entry
+ *     description: Logs hours worked for a specific client.
+ *     security:
+ *       - emailAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/WorkEntryInput'
+ *     responses:
+ *       201:
+ *         description: Work entry created successfully
+ *       400:
+ *         description: Validation error or client not found
+ *       401:
+ *         description: Authentication required
+ */
 router.post('/', (req, res, next) => {
   try {
     const { error, value } = workEntrySchema.validate(req.body);
@@ -140,7 +227,44 @@ router.post('/', (req, res, next) => {
   }
 });
 
-// Update work entry
+/**
+ * @openapi
+ * /api/work-entries/{id}:
+ *   put:
+ *     tags:
+ *       - Work Entries
+ *     summary: Update a work entry
+ *     security:
+ *       - emailAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               clientId:
+ *                 type: integer
+ *               hours:
+ *                 type: number
+ *               description:
+ *                 type: string
+ *               date:
+ *                 type: string
+ *                 format: date
+ *     responses:
+ *       200:
+ *         description: Work entry updated successfully
+ *       400:
+ *         description: Invalid ID or validation error
+ *       404:
+ *         description: Work entry not found
+ */
 router.put('/:id', (req, res, next) => {
   try {
     const workEntryId = parseInt(req.params.id);
@@ -257,7 +381,29 @@ router.put('/:id', (req, res, next) => {
   }
 });
 
-// Delete work entry
+/**
+ * @openapi
+ * /api/work-entries/{id}:
+ *   delete:
+ *     tags:
+ *       - Work Entries
+ *     summary: Delete a work entry
+ *     security:
+ *       - emailAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Work entry deleted successfully
+ *       400:
+ *         description: Invalid work entry ID
+ *       404:
+ *         description: Work entry not found
+ */
 router.delete('/:id', (req, res) => {
   const workEntryId = parseInt(req.params.id);
   
