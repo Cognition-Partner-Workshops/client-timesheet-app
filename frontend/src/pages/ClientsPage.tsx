@@ -31,6 +31,7 @@ import {
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
+  DeleteSweep as DeleteSweepIcon,
 } from '@mui/icons-material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../api/client';
@@ -90,6 +91,17 @@ const ClientsPage: React.FC = () => {
     onError: (err: unknown) => {
       const error = err as { response?: { data?: { error?: string } } };
       setError(error.response?.data?.error || 'Failed to delete client');
+    },
+  });
+
+  const deleteAllMutation = useMutation({
+    mutationFn: () => apiClient.deleteAllClients(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+    },
+    onError: (err: unknown) => {
+      const error = err as { response?: { data?: { error?: string } } };
+      setError(error.response?.data?.error || 'Failed to delete all clients');
     },
   });
 
@@ -154,6 +166,12 @@ const ClientsPage: React.FC = () => {
     }
   };
 
+  const handleDeleteAll = () => {
+    if (window.confirm('Are you sure you want to delete ALL clients? This action cannot be undone.')) {
+      deleteAllMutation.mutate();
+    }
+  };
+
   if (isLoading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -166,9 +184,22 @@ const ClientsPage: React.FC = () => {
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h4">Clients</Typography>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpen()}>
-          Add Client
-        </Button>
+        <Box display="flex" gap={2}>
+          {clients.length > 0 && (
+            <Button
+              variant="outlined"
+              color="error"
+              startIcon={<DeleteSweepIcon />}
+              onClick={handleDeleteAll}
+              disabled={deleteAllMutation.isPending}
+            >
+              {deleteAllMutation.isPending ? 'Clearing...' : 'Clear All'}
+            </Button>
+          )}
+          <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpen()}>
+            Add Client
+          </Button>
+        </Box>
       </Box>
 
       {error && (
