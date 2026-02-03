@@ -28,10 +28,18 @@ const emailSchema = Joi.object({
   email: Joi.string().email().required()
 });
 
+const tmsSchema = Joi.object({
+  clientId: Joi.number().integer().positive().required(),
+  hours: Joi.number().positive().max(24).precision(2).required(),
+  description: Joi.string().trim().max(1000).optional().allow(''),
+  date: Joi.date().iso().required()
+});
+
 module.exports = {
   clientSchema,
   workEntrySchema,
   updateWorkEntrySchema,
   updateClientSchema,
-  emailSchema
+  emailSchema,
+  tmsSchema
 };
