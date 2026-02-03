@@ -1,3 +1,13 @@
+/**
+ * @fileoverview Dashboard page component displaying overview metrics and quick actions.
+ *
+ * This page serves as the main landing page after login, showing summary statistics
+ * for clients, work entries, and total hours. It also provides quick navigation
+ * to other sections of the application.
+ *
+ * @module pages/DashboardPage
+ */
+
 import React from 'react';
 import {
   Grid,
@@ -18,6 +28,19 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '../api/client';
 
+/**
+ * Dashboard page component with metrics overview and quick actions.
+ *
+ * Displays:
+ * - Total clients count
+ * - Total work entries count
+ * - Total hours worked
+ * - Recent work entries list
+ * - Quick action buttons for common tasks
+ *
+ * @component
+ * @returns {JSX.Element} The dashboard page with metrics and navigation
+ */
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
 

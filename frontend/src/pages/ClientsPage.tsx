@@ -1,3 +1,13 @@
+/**
+ * @fileoverview Clients page component for managing client records.
+ *
+ * This page provides a complete CRUD interface for client management including
+ * a table view of all clients, and a modal dialog for creating and editing
+ * client records.
+ *
+ * @module pages/ClientsPage
+ */
+
 import React, { useState } from 'react';
 import {
   Box,
@@ -29,6 +39,19 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../api/client';
 import { type Client } from '../types/api';
 
+/**
+ * Clients page component with table view and CRUD operations.
+ *
+ * Features:
+ * - Table displaying all clients with name, description, and creation date
+ * - Add new client button opening a modal form
+ * - Edit and delete actions for each client row
+ * - Confirmation dialog for delete operations
+ * - Loading and error states
+ *
+ * @component
+ * @returns {JSX.Element} The clients management page
+ */
 const ClientsPage: React.FC = () => {
   const [open, setOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
