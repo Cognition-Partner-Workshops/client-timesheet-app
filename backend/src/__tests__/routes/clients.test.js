@@ -453,5 +453,75 @@ describe('Client Routes', () => {
 
       expect(response.status).toBe(200);
     });
+
+    test('should update client email', async () => {
+      const updatedClient = { id: 1, name: 'Client', email: 'new@example.com' };
+
+      mockDb.get.mockImplementationOnce((query, params, callback) => {
+        callback(null, { id: 1 });
+      });
+
+      mockDb.run.mockImplementation((query, params, callback) => {
+        callback(null);
+      });
+
+      mockDb.get.mockImplementationOnce((query, params, callback) => {
+        callback(null, updatedClient);
+      });
+
+      const response = await request(app)
+        .put('/api/clients/1')
+        .send({ email: 'new@example.com' });
+
+      expect(response.status).toBe(200);
+      expect(response.body.client.email).toBe('new@example.com');
+    });
+
+    test('should update client mobile_no', async () => {
+      const updatedClient = { id: 1, name: 'Client', mobile_no: '+1234567890' };
+
+      mockDb.get.mockImplementationOnce((query, params, callback) => {
+        callback(null, { id: 1 });
+      });
+
+      mockDb.run.mockImplementation((query, params, callback) => {
+        callback(null);
+      });
+
+      mockDb.get.mockImplementationOnce((query, params, callback) => {
+        callback(null, updatedClient);
+      });
+
+      const response = await request(app)
+        .put('/api/clients/1')
+        .send({ mobile_no: '+1234567890' });
+
+      expect(response.status).toBe(200);
+      expect(response.body.client.mobile_no).toBe('+1234567890');
+    });
+  });
+
+  describe('POST /api/clients - Email and Mobile', () => {
+    test('should create client with email and mobile_no', async () => {
+      const newClient = { name: 'New Client', email: 'client@example.com', mobile_no: '+1234567890' };
+      const createdClient = { id: 1, ...newClient, created_at: '2024-01-01', updated_at: '2024-01-01' };
+
+      mockDb.run.mockImplementation(function(query, params, callback) {
+        this.lastID = 1;
+        callback.call(this, null);
+      });
+
+      mockDb.get.mockImplementation((query, params, callback) => {
+        callback(null, createdClient);
+      });
+
+      const response = await request(app)
+        .post('/api/clients')
+        .send(newClient);
+
+      expect(response.status).toBe(201);
+      expect(response.body.client.email).toBe('client@example.com');
+      expect(response.body.client.mobile_no).toBe('+1234567890');
+    });
   });
 });

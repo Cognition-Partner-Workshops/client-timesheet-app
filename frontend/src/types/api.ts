@@ -7,6 +7,8 @@ export interface Client {
   id: number;
   name: string;
   description: string | null;
+  email: string | null;
+  mobile_no: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -36,11 +38,15 @@ export interface ClientReport {
 export interface CreateClientRequest {
   name: string;
   description?: string;
+  email?: string;
+  mobile_no?: string;
 }
 
 export interface UpdateClientRequest {
   name?: string;
   description?: string;
+  email?: string;
+  mobile_no?: string;
 }
 
 export interface CreateWorkEntryRequest {
