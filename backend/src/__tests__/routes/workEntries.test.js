@@ -1,3 +1,30 @@
+/**
+ * ============================================================================
+ * WORK ENTRY ROUTES - COMPREHENSIVE UNIT TESTS
+ * ============================================================================
+ * 
+ * PURPOSE: These tests verify that time tracking (work entries) works correctly.
+ * Work entries are the individual records of hours worked for each client.
+ * 
+ * WHAT IS BEING TESTED:
+ * 1. Creating new work entries (logging hours)
+ * 2. Viewing all work entries
+ * 3. Viewing a single work entry
+ * 4. Updating work entries (fixing mistakes)
+ * 5. Deleting work entries
+ * 6. Filtering entries by client
+ * 7. Data validation (hours must be 0.01-24, date required, etc.)
+ * 
+ * NON-TECHNICAL SUMMARY:
+ * - Users can log hours worked for any of their clients
+ * - Users can see all their time entries or filter by client
+ * - Users can fix mistakes by updating entries
+ * - Users can delete entries they no longer need
+ * - The system validates that hours are reasonable (not negative, not over 24)
+ * - Users can only see and manage their own work entries (privacy)
+ * ============================================================================
+ */
+
 const request = require('supertest');
 const express = require('express');
 const workEntryRoutes = require('../../routes/workEntries');
