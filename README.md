@@ -292,6 +292,8 @@ See `backend/DEPLOYMENT.md` for detailed production deployment instructions.
 
 MIT
 
+<!-- Dummy change for testing PR workflow -->
+
 ## Support
 
 For issues or questions, please contact your system administrator.
