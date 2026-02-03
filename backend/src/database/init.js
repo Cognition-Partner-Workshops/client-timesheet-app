@@ -66,7 +66,7 @@ async function initializeDatabase() {
         CREATE TABLE IF NOT EXISTS work_entries (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           client_id INTEGER NOT NULL,
-          activity_id INTEGER,
+          activity_id INTEGER DEFAULT NULL,
           user_email TEXT NOT NULL,
           hours DECIMAL(5,2) NOT NULL,
           description TEXT,
