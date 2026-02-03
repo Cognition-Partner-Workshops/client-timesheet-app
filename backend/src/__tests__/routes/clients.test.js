@@ -454,4 +454,34 @@ describe('Client Routes', () => {
       expect(response.status).toBe(200);
     });
   });
+
+  describe('POST /api/clients - Exception Handling', () => {
+    test('should handle unexpected exception in POST handler', async () => {
+      // Mock getDatabase to throw an error
+      getDatabase.mockImplementation(() => {
+        throw new Error('Unexpected error');
+      });
+
+      const response = await request(app)
+        .post('/api/clients')
+        .send({ name: 'Test Client' });
+
+      expect(response.status).toBe(500);
+    });
+  });
+
+  describe('PUT /api/clients/:id - Exception Handling', () => {
+    test('should handle unexpected exception in PUT handler', async () => {
+      // Mock getDatabase to throw an error
+      getDatabase.mockImplementation(() => {
+        throw new Error('Unexpected error');
+      });
+
+      const response = await request(app)
+        .put('/api/clients/1')
+        .send({ name: 'Updated Name' });
+
+      expect(response.status).toBe(500);
+    });
+  });
 });
