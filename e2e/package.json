@@ -1,0 +1,22 @@
+{
+  "name": "client-timesheet-e2e",
+  "version": "1.0.0",
+  "description": "End-to-end tests for Client Timesheet Application using Selenium",
+  "scripts": {
+    "test": "jest --runInBand",
+    "test:watch": "jest --watch --runInBand",
+    "test:verbose": "jest --verbose --runInBand"
+  },
+  "dependencies": {
+    "selenium-webdriver": "^4.27.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  },
+  "keywords": [
+    "e2e",
+    "selenium",
+    "testing"
+  ],
+  "license": "MIT"
+}
