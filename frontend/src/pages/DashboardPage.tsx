@@ -22,8 +22,8 @@ const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
 
   const { data: clientsData } = useQuery({
-    queryKey: ['clients'],
-    queryFn: () => apiClient.getClients(),
+    queryKey: ['allClients'],
+    queryFn: () => apiClient.getAllClients(),
   });
 
   const { data: workEntriesData } = useQuery({
