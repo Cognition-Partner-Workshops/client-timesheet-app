@@ -1,7 +1,10 @@
+const jwt = require('jsonwebtoken');
 const { authenticateUser } = require('../../middleware/auth');
 const { getDatabase } = require('../../database/init');
 
 jest.mock('../../database/init');
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production';
 
 describe('Authentication Middleware', () => {
   let req, res, next, mockDb;
@@ -17,8 +20,7 @@ describe('Authentication Middleware', () => {
     next = jest.fn();
     
     mockDb = {
-      get: jest.fn(),
-      run: jest.fn()
+      get: jest.fn()
     };
     
     getDatabase.mockReturnValue(mockDb);
@@ -28,63 +30,106 @@ describe('Authentication Middleware', () => {
     jest.clearAllMocks();
   });
 
-  describe('Email Header Validation', () => {
-    test('should return 401 if x-user-email header is missing', () => {
+  describe('Authorization Header Validation', () => {
+    test('should return 401 if Authorization header is missing', () => {
       authenticateUser(req, res, next);
 
       expect(res.status).toHaveBeenCalledWith(401);
       expect(res.json).toHaveBeenCalledWith({
-        error: 'User email required in x-user-email header'
+        error: 'Authorization header required'
       });
       expect(next).not.toHaveBeenCalled();
     });
 
-    test('should return 400 if email format is invalid', () => {
-      req.headers['x-user-email'] = 'invalid-email';
+    test('should return 401 if Authorization header format is invalid', () => {
+      req.headers['authorization'] = 'InvalidFormat token123';
 
       authenticateUser(req, res, next);
 
-      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.status).toHaveBeenCalledWith(401);
       expect(res.json).toHaveBeenCalledWith({
-        error: 'Invalid email format'
+        error: 'Invalid authorization format. Use: Bearer <token>'
       });
       expect(next).not.toHaveBeenCalled();
     });
 
-    test('should accept valid email format', () => {
-      req.headers['x-user-email'] = 'test@example.com';
-      
-      mockDb.get.mockImplementation((query, params, callback) => {
-        callback(null, { email: 'test@example.com' });
-      });
+    test('should return 401 if token is missing after Bearer', () => {
+      req.headers['authorization'] = 'Bearer';
 
       authenticateUser(req, res, next);
 
-      expect(mockDb.get).toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith({
+        error: 'Invalid authorization format. Use: Bearer <token>'
+      });
+      expect(next).not.toHaveBeenCalled();
     });
   });
 
-  describe('Existing User Authentication', () => {
-    test('should authenticate existing user and call next()', (done) => {
-      req.headers['x-user-email'] = 'existing@example.com';
-      
+  describe('JWT Token Validation', () => {
+    test('should return 401 for invalid JWT token', () => {
+      req.headers['authorization'] = 'Bearer invalid-token';
+
+      authenticateUser(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith({
+        error: 'Invalid token'
+      });
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    test('should return 401 for expired JWT token', () => {
+      const expiredToken = jwt.sign(
+        { email: 'test@example.com', sessionId: 'session123' },
+        JWT_SECRET,
+        { expiresIn: '-1h' }
+      );
+      req.headers['authorization'] = `Bearer ${expiredToken}`;
+
+      authenticateUser(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith({
+        error: 'Token expired'
+      });
+      expect(next).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Session Validation', () => {
+    test('should return 401 if session not found in database', (done) => {
+      const validToken = jwt.sign(
+        { email: 'test@example.com', sessionId: 'session123' },
+        JWT_SECRET,
+        { expiresIn: '24h' }
+      );
+      req.headers['authorization'] = `Bearer ${validToken}`;
+
       mockDb.get.mockImplementation((query, params, callback) => {
-        callback(null, { email: 'existing@example.com' });
+        callback(null, null); // Session not found
       });
 
       authenticateUser(req, res, next);
 
       setImmediate(() => {
-        expect(req.userEmail).toBe('existing@example.com');
-        expect(next).toHaveBeenCalled();
-        expect(res.status).not.toHaveBeenCalled();
+        expect(res.status).toHaveBeenCalledWith(401);
+        expect(res.json).toHaveBeenCalledWith({
+          error: 'Session expired or invalid'
+        });
+        expect(next).not.toHaveBeenCalled();
         done();
       });
     });
 
-    test('should handle database error when checking user', (done) => {
-      req.headers['x-user-email'] = 'test@example.com';
-      
+    test('should handle database error when checking session', (done) => {
+      const validToken = jwt.sign(
+        { email: 'test@example.com', sessionId: 'session123' },
+        JWT_SECRET,
+        { expiresIn: '24h' }
+      );
+      req.headers['authorization'] = `Bearer ${validToken}`;
+
       mockDb.get.mockImplementation((query, params, callback) => {
         callback(new Error('Database error'), null);
       });
@@ -102,84 +147,93 @@ describe('Authentication Middleware', () => {
     });
   });
 
-  describe('New User Creation', () => {
-    test('should create new user if not exists and call next()', (done) => {
-      req.headers['x-user-email'] = 'newuser@example.com';
-      
-      mockDb.get.mockImplementation((query, params, callback) => {
-        callback(null, null); // User doesn't exist
-      });
-      
-      mockDb.run.mockImplementation((query, params, callback) => {
-        callback(null);
-      });
+  describe('User Validation', () => {
+    test('should return 401 if user not found in database', (done) => {
+      const validToken = jwt.sign(
+        { email: 'test@example.com', sessionId: 'session123' },
+        JWT_SECRET,
+        { expiresIn: '24h' }
+      );
+      req.headers['authorization'] = `Bearer ${validToken}`;
+
+      // First call for session check - returns valid session
+      // Second call for user check - returns null (user not found)
+      mockDb.get
+        .mockImplementationOnce((query, params, callback) => {
+          callback(null, { id: 'session123', user_email: 'test@example.com', token: validToken });
+        })
+        .mockImplementationOnce((query, params, callback) => {
+          callback(null, null); // User not found
+        });
 
       authenticateUser(req, res, next);
 
-      setImmediate(() => {
-        expect(mockDb.run).toHaveBeenCalledWith(
-          'INSERT INTO users (email) VALUES (?)',
-          ['newuser@example.com'],
-          expect.any(Function)
-        );
-        expect(req.userEmail).toBe('newuser@example.com');
-        expect(next).toHaveBeenCalled();
-        done();
-      });
-    });
-
-    test('should handle error when creating new user', (done) => {
-      req.headers['x-user-email'] = 'newuser@example.com';
-      
-      mockDb.get.mockImplementation((query, params, callback) => {
-        callback(null, null);
-      });
-      
-      mockDb.run.mockImplementation((query, params, callback) => {
-        callback(new Error('Insert failed'));
-      });
-
-      authenticateUser(req, res, next);
-
-      setImmediate(() => {
-        expect(res.status).toHaveBeenCalledWith(500);
+      setTimeout(() => {
+        expect(res.status).toHaveBeenCalledWith(401);
         expect(res.json).toHaveBeenCalledWith({
-          error: 'Failed to create user'
+          error: 'User not found'
         });
         expect(next).not.toHaveBeenCalled();
         done();
-      });
+      }, 50);
+    });
+
+    test('should handle database error when checking user', (done) => {
+      const validToken = jwt.sign(
+        { email: 'test@example.com', sessionId: 'session123' },
+        JWT_SECRET,
+        { expiresIn: '24h' }
+      );
+      req.headers['authorization'] = `Bearer ${validToken}`;
+
+      mockDb.get
+        .mockImplementationOnce((query, params, callback) => {
+          callback(null, { id: 'session123', user_email: 'test@example.com', token: validToken });
+        })
+        .mockImplementationOnce((query, params, callback) => {
+          callback(new Error('Database error'), null);
+        });
+
+      authenticateUser(req, res, next);
+
+      setTimeout(() => {
+        expect(res.status).toHaveBeenCalledWith(500);
+        expect(res.json).toHaveBeenCalledWith({
+          error: 'Internal server error'
+        });
+        expect(next).not.toHaveBeenCalled();
+        done();
+      }, 50);
     });
   });
 
-  describe('Email Format Edge Cases', () => {
-    test('should reject email without @', () => {
-      req.headers['x-user-email'] = 'notanemail';
-      authenticateUser(req, res, next);
-      expect(res.status).toHaveBeenCalledWith(400);
-    });
+  describe('Successful Authentication', () => {
+    test('should authenticate valid user and call next()', (done) => {
+      const validToken = jwt.sign(
+        { email: 'test@example.com', sessionId: 'session123' },
+        JWT_SECRET,
+        { expiresIn: '24h' }
+      );
+      req.headers['authorization'] = `Bearer ${validToken}`;
 
-    test('should reject email without domain', () => {
-      req.headers['x-user-email'] = 'test@';
-      authenticateUser(req, res, next);
-      expect(res.status).toHaveBeenCalledWith(400);
-    });
-
-    test('should reject email without TLD', () => {
-      req.headers['x-user-email'] = 'test@domain';
-      authenticateUser(req, res, next);
-      expect(res.status).toHaveBeenCalledWith(400);
-    });
-
-    test('should accept email with subdomain', () => {
-      req.headers['x-user-email'] = 'test@mail.example.com';
-      
-      mockDb.get.mockImplementation((query, params, callback) => {
-        callback(null, { email: 'test@mail.example.com' });
-      });
+      mockDb.get
+        .mockImplementationOnce((query, params, callback) => {
+          callback(null, { id: 'session123', user_email: 'test@example.com', token: validToken });
+        })
+        .mockImplementationOnce((query, params, callback) => {
+          callback(null, { email: 'test@example.com' });
+        });
 
       authenticateUser(req, res, next);
-      expect(mockDb.get).toHaveBeenCalled();
+
+      setTimeout(() => {
+        expect(req.userEmail).toBe('test@example.com');
+        expect(req.sessionId).toBe('session123');
+        expect(req.token).toBe(validToken);
+        expect(next).toHaveBeenCalled();
+        expect(res.status).not.toHaveBeenCalled();
+        done();
+      }, 50);
     });
   });
 });
