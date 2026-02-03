@@ -3,6 +3,12 @@ const express = require('express');
 const { getDatabase } = require('../../database/init');
 const fs = require('fs');
 const path = require('path');
+const {
+  createMockDatabase,
+  createMockPDFDocument,
+  createMockFs,
+  testData
+} = require('../utils/mockFactories');
 
 jest.mock('../../database/init');
 jest.mock('fs');
@@ -12,40 +18,15 @@ jest.mock('csv-writer', () => ({
   }))
 }));
 jest.mock('pdfkit', () => {
-  return jest.fn().mockImplementation(() => {
-    const mockDoc = {
-      fontSize: jest.fn().mockReturnThis(),
-      text: jest.fn().mockReturnThis(),
-      moveDown: jest.fn().mockReturnThis(),
-      moveTo: jest.fn().mockReturnThis(),
-      lineTo: jest.fn().mockReturnThis(),
-      stroke: jest.fn().mockReturnThis(),
-      addPage: jest.fn().mockReturnThis(),
-      pipe: jest.fn().mockImplementation((res) => {
-        // Store the response for later use
-        mockDoc._res = res;
-        return mockDoc;
-      }),
-      end: jest.fn().mockImplementation(() => {
-        // Simulate the PDF stream ending by calling res.end()
-        if (mockDoc._res && mockDoc._res.end) {
-          mockDoc._res.end();
-        }
-      }),
-      y: 100,
-      _res: null
-    };
-    return mockDoc;
-  });
+  const { createMockPDFDocument } = require('../utils/mockFactories');
+  return jest.fn().mockImplementation(() => createMockPDFDocument());
 });
 
 const reportRoutes = require('../../routes/reports');
-jest.mock('../../middleware/auth', () => ({
-  authenticateUser: (req, res, next) => {
-    req.userEmail = 'test@example.com';
-    next();
-  }
-}));
+jest.mock('../../middleware/auth', () => {
+  const { createMockAuthMiddleware } = require('../utils/mockFactories');
+  return createMockAuthMiddleware();
+});
 
 const app = express();
 app.use(express.json());
@@ -55,16 +36,14 @@ describe('Report Routes', () => {
   let mockDb;
 
   beforeEach(() => {
-    mockDb = {
-      all: jest.fn(),
-      get: jest.fn()
-    };
+    mockDb = createMockDatabase();
     getDatabase.mockReturnValue(mockDb);
     
-    // Mock fs methods
-    fs.existsSync = jest.fn().mockReturnValue(true);
-    fs.mkdirSync = jest.fn();
-    fs.unlink = jest.fn((path, callback) => callback(null));
+    // Mock fs methods using factory
+    const mockFs = createMockFs();
+    fs.existsSync = mockFs.existsSync;
+    fs.mkdirSync = mockFs.mkdirSync;
+    fs.unlink = mockFs.unlink;
   });
 
   afterEach(() => {
