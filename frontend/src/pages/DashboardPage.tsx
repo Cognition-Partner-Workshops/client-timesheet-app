@@ -7,19 +7,25 @@ import {
   Box,
   Button,
   Paper,
+  List,
+  ListItem,
+  ListItemText,
+  IconButton,
 } from '@mui/material';
 import {
   Business as BusinessIcon,
   Assignment as AssignmentIcon,
   Assessment as AssessmentIcon,
   Add as AddIcon,
+  Delete as DeleteIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../api/client';
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const { data: clientsData } = useQuery({
     queryKey: ['clients'],
@@ -30,6 +36,20 @@ const DashboardPage: React.FC = () => {
     queryKey: ['workEntries'],
     queryFn: () => apiClient.getWorkEntries(),
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => apiClient.deleteClient(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: ['workEntries'] });
+    },
+  });
+
+  const handleDeleteClient = (id: number, name: string) => {
+    if (window.confirm(`Are you sure you want to delete "${name}"?`)) {
+      deleteMutation.mutate(id);
+    }
+  };
 
   const clients = clientsData?.clients || [];
   const workEntries = workEntriesData?.workEntries || [];
@@ -63,9 +83,16 @@ const DashboardPage: React.FC = () => {
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>
-        Dashboard
-      </Typography>
+      <Box display="flex" alignItems="center" gap={2} mb={2}>
+        <img
+          src="/dashboard.png"
+          alt="Dashboard"
+          style={{ width: 40, height: 40 }}
+        />
+        <Typography variant="h4">
+          Dashboard
+        </Typography>
+      </Box>
 
       <Grid container spacing={3} sx={{ mb: 4 }}>
         {statsCards.map((stat, index) => (
@@ -108,6 +135,46 @@ const DashboardPage: React.FC = () => {
           </Grid>
         ))}
       </Grid>
+
+      <Paper sx={{ p: 3, mb: 3 }}>
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+          <Typography variant="h6">Clients ({clients.length})</Typography>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => navigate('/clients')}
+            size="small"
+          >
+            Add Client
+          </Button>
+        </Box>
+        {clients.length > 0 ? (
+          <List>
+            {clients.map((client: { id: number; name: string; description?: string }) => (
+              <ListItem
+                key={client.id}
+                secondaryAction={
+                  <IconButton
+                    edge="end"
+                    color="error"
+                    onClick={() => handleDeleteClient(client.id, client.name)}
+                  >
+                    <DeleteIcon />
+                  </IconButton>
+                }
+                sx={{ borderBottom: '1px solid #eee' }}
+              >
+                <ListItemText
+                  primary={client.name}
+                  secondary={client.description || 'No description'}
+                />
+              </ListItem>
+            ))}
+          </List>
+        ) : (
+          <Typography color="text.secondary">No clients yet. Add your first client to get started.</Typography>
+        )}
+      </Paper>
 
       <Grid container spacing={3}>
         {/* @ts-expect-error - MUI Grid item prop type issue */}
