@@ -1,3 +1,9 @@
+/**
+ * @fileoverview Main layout component with responsive navigation drawer.
+ * This component provides the application shell including the app bar,
+ * side navigation drawer, and main content area.
+ */
+
 import React, { type ReactNode } from 'react';
 import {
   AppBar,
@@ -26,12 +32,25 @@ import {
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
+/** Width of the navigation drawer in pixels */
 const drawerWidth = 240;
 
+/**
+ * Props for the Layout component.
+ */
 interface LayoutProps {
+  /** Child components to render in the main content area */
   children: ReactNode;
 }
 
+/**
+ * Main layout component that wraps authenticated pages.
+ * Provides a responsive navigation drawer that collapses on mobile devices,
+ * an app bar with user info and logout button, and a main content area.
+ * 
+ * @param props - Component props
+ * @returns Layout component with navigation and content area
+ */
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();

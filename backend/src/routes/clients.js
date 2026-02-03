@@ -1,14 +1,29 @@
+/**
+ * @fileoverview Client management routes for CRUD operations on clients.
+ * All routes in this module require authentication via the x-user-email header.
+ * Clients are scoped to the authenticated user - users can only access their own clients.
+ * @module routes/clients
+ */
+
 const express = require('express');
 const { getDatabase } = require('../database/init');
 const { authenticateUser } = require('../middleware/auth');
 const { clientSchema, updateClientSchema } = require('../validation/schemas');
 
+/**
+ * Express router for client management endpoints.
+ * @type {import('express').Router}
+ */
 const router = express.Router();
 
-// All routes require authentication
 router.use(authenticateUser);
 
-// Get all clients for authenticated user
+/**
+ * @route GET /api/clients
+ * @description Retrieves all clients belonging to the authenticated user, ordered by name.
+ * @returns {Object} 200 - Array of client objects
+ * @returns {Object} 500 - Server error
+ */
 router.get('/', (req, res) => {
   const db = getDatabase();
   
@@ -26,7 +41,15 @@ router.get('/', (req, res) => {
   );
 });
 
-// Get specific client
+/**
+ * @route GET /api/clients/:id
+ * @description Retrieves a specific client by ID. Only returns the client if it belongs to the authenticated user.
+ * @param {string} req.params.id - Client ID
+ * @returns {Object} 200 - Client object
+ * @returns {Object} 400 - Invalid client ID
+ * @returns {Object} 404 - Client not found
+ * @returns {Object} 500 - Server error
+ */
 router.get('/:id', (req, res) => {
   const clientId = parseInt(req.params.id);
   
@@ -54,7 +77,16 @@ router.get('/:id', (req, res) => {
   );
 });
 
-// Create new client
+/**
+ * @route POST /api/clients
+ * @description Creates a new client for the authenticated user.
+ * @param {Object} req.body - Request body
+ * @param {string} req.body.name - Client name (required, 1-255 characters)
+ * @param {string} [req.body.description] - Optional client description (max 1000 characters)
+ * @returns {Object} 201 - Created client object with success message
+ * @returns {Object} 400 - Validation error
+ * @returns {Object} 500 - Server error
+ */
 router.post('/', (req, res, next) => {
   try {
     const { error, value } = clientSchema.validate(req.body);
@@ -97,7 +129,18 @@ router.post('/', (req, res, next) => {
   }
 });
 
-// Update client
+/**
+ * @route PUT /api/clients/:id
+ * @description Updates an existing client. Only the owner can update their clients.
+ * @param {string} req.params.id - Client ID
+ * @param {Object} req.body - Request body (at least one field required)
+ * @param {string} [req.body.name] - Updated client name (1-255 characters)
+ * @param {string} [req.body.description] - Updated description (max 1000 characters)
+ * @returns {Object} 200 - Updated client object with success message
+ * @returns {Object} 400 - Invalid client ID or validation error
+ * @returns {Object} 404 - Client not found
+ * @returns {Object} 500 - Server error
+ */
 router.put('/:id', (req, res, next) => {
   try {
     const clientId = parseInt(req.params.id);
@@ -176,7 +219,16 @@ router.put('/:id', (req, res, next) => {
   }
 });
 
-// Delete client
+/**
+ * @route DELETE /api/clients/:id
+ * @description Deletes a client and all associated work entries (cascade delete).
+ * Only the owner can delete their clients.
+ * @param {string} req.params.id - Client ID
+ * @returns {Object} 200 - Success message
+ * @returns {Object} 400 - Invalid client ID
+ * @returns {Object} 404 - Client not found
+ * @returns {Object} 500 - Server error
+ */
 router.delete('/:id', (req, res) => {
   const clientId = parseInt(req.params.id);
   
