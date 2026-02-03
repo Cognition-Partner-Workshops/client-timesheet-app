@@ -19,6 +19,10 @@ import {
   Alert,
   CircularProgress,
   Chip,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -226,16 +230,22 @@ const ClientsPage: React.FC = () => {
         </DialogTitle>
         <form onSubmit={handleSubmit}>
           <DialogContent>
-            <TextField
-              autoFocus
-              margin="dense"
-              label="Client Name"
-              fullWidth
-              required
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              disabled={createMutation.isPending || updateMutation.isPending}
-            />
+                        <FormControl fullWidth margin="dense" required>
+                          <InputLabel id="client-name-label">Client Name</InputLabel>
+                          <Select
+                            labelId="client-name-label"
+                            id="client-name-select"
+                            value={formData.name}
+                            label="Client Name"
+                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                            disabled={createMutation.isPending || updateMutation.isPending}
+                          >
+                            <MenuItem value="Cognizant">Cognizant</MenuItem>
+                            <MenuItem value="TCS">TCS</MenuItem>
+                            <MenuItem value="Wipro">Wipro</MenuItem>
+                            <MenuItem value="XXXY">XXXY</MenuItem>
+                          </Select>
+                        </FormControl>
             <TextField
               margin="dense"
               label="Description"
