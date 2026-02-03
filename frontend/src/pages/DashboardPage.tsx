@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Grid,
   Card,
@@ -7,12 +7,15 @@ import {
   Box,
   Button,
   Paper,
+  IconButton,
 } from '@mui/material';
 import {
   Business as BusinessIcon,
   Assignment as AssignmentIcon,
   Assessment as AssessmentIcon,
   Add as AddIcon,
+  ChevronLeft as ChevronLeftIcon,
+  ChevronRight as ChevronRightIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -20,6 +23,9 @@ import apiClient from '../api/client';
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isHovering, setIsHovering] = useState(false);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const { data: clientsData } = useQuery({
     queryKey: ['clients'],
@@ -61,53 +67,158 @@ const DashboardPage: React.FC = () => {
     },
   ];
 
+  useEffect(() => {
+    if (isHovering) {
+      intervalRef.current = setInterval(() => {
+        setCurrentIndex((prev) => (prev + 1) % statsCards.length);
+      }, 2000);
+    } else {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    }
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [isHovering, statsCards.length]);
+
+  const handlePrevious = () => {
+    setCurrentIndex((prev) => (prev - 1 + statsCards.length) % statsCards.length);
+  };
+
+  const handleNext = () => {
+    setCurrentIndex((prev) => (prev + 1) % statsCards.length);
+  };
+
+  const currentStat = statsCards[currentIndex];
+
   return (
     <Box>
       <Typography variant="h4" gutterBottom>
         Dashboard
       </Typography>
 
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        {statsCards.map((stat, index) => (
-          // @ts-expect-error - MUI Grid item prop type issue
-          <Grid item xs={12} sm={6} md={4} key={index}>
+      <Box
+        sx={{ mb: 4, position: 'relative' }}
+        onMouseEnter={() => setIsHovering(true)}
+        onMouseLeave={() => setIsHovering(false)}
+      >
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 2,
+          }}
+        >
+          <IconButton
+            onClick={handlePrevious}
+            sx={{
+              backgroundColor: 'rgba(0, 0, 0, 0.04)',
+              '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.08)' },
+            }}
+          >
+            <ChevronLeftIcon />
+          </IconButton>
+
+          <Box
+            sx={{
+              width: '100%',
+              maxWidth: 400,
+              overflow: 'hidden',
+            }}
+          >
             <Card
               sx={{
                 cursor: 'pointer',
-                transition: 'transform 0.2s',
-                '&:hover': {
-                  transform: 'translateY(-4px)',
-                },
+                transition: 'all 0.3s ease-in-out',
+                transform: isHovering ? 'scale(1.02)' : 'scale(1)',
+                boxShadow: isHovering ? 6 : 1,
               }}
-              onClick={stat.action}
+              onClick={currentStat.action}
             >
-              <CardContent>
+              <CardContent sx={{ py: 4 }}>
                 <Box display="flex" alignItems="center" justifyContent="space-between" gap={3}>
                   <Box>
                     <Typography color="textSecondary" gutterBottom variant="h6">
-                      {stat.title}
+                      {currentStat.title}
                     </Typography>
-                    <Typography variant="h4" component="div">
-                      {stat.value}
+                    <Typography variant="h3" component="div">
+                      {currentStat.value}
                     </Typography>
                   </Box>
                   <Box
                     sx={{
-                      backgroundColor: stat.color,
-                      borderRadius: 1,
-                      p: 1,
+                      backgroundColor: currentStat.color,
+                      borderRadius: 2,
+                      p: 2,
                       color: 'white',
                       flexShrink: 0,
                     }}
                   >
-                    {stat.icon}
+                    {React.cloneElement(currentStat.icon, { sx: { fontSize: 40 } })}
                   </Box>
                 </Box>
               </CardContent>
             </Card>
-          </Grid>
-        ))}
-      </Grid>
+          </Box>
+
+          <IconButton
+            onClick={handleNext}
+            sx={{
+              backgroundColor: 'rgba(0, 0, 0, 0.04)',
+              '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.08)' },
+            }}
+          >
+            <ChevronRightIcon />
+          </IconButton>
+        </Box>
+
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'center',
+            gap: 1,
+            mt: 2,
+          }}
+        >
+          {statsCards.map((_, index) => (
+            <Box
+              key={index}
+              onClick={() => setCurrentIndex(index)}
+              sx={{
+                width: 10,
+                height: 10,
+                borderRadius: '50%',
+                backgroundColor: index === currentIndex ? 'primary.main' : 'grey.300',
+                cursor: 'pointer',
+                transition: 'background-color 0.3s',
+                '&:hover': {
+                  backgroundColor: index === currentIndex ? 'primary.main' : 'grey.400',
+                },
+              }}
+            />
+          ))}
+        </Box>
+
+        {isHovering && (
+          <Typography
+            variant="caption"
+            sx={{
+              display: 'block',
+              textAlign: 'center',
+              mt: 1,
+              color: 'text.secondary',
+            }}
+          >
+            Auto-rotating... Click to navigate
+          </Typography>
+        )}
+      </Box>
 
       <Grid container spacing={3}>
         {/* @ts-expect-error - MUI Grid item prop type issue */}
