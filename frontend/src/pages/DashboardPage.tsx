@@ -175,6 +175,12 @@ const DashboardPage: React.FC = () => {
               >
                 View Reports
               </Button>
+              <Button
+                variant="outlined"
+                fullWidth
+              >
+                Sample
+              </Button>
             </Box>
           </Paper>
         </Grid>
