@@ -1,0 +1,8 @@
+node_modules/
+dist/
+src/reports/*.json
+src/reports/*.html
+src/reports/html-report/
+src/reports/screenshots/
+.env
+*.log
