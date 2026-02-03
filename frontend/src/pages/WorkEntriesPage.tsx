@@ -311,6 +311,7 @@ const WorkEntriesPage: React.FC = () => {
                 fullWidth
                 margin="dense"
                 required
+                InputLabelProps={{ shrink: true }}
                 inputProps={{ min: 0.01, max: 24, step: 0.01 }}
                 value={formData.hours}
                 onChange={(e) => setFormData({ ...formData, hours: e.target.value })}
@@ -335,6 +336,7 @@ const WorkEntriesPage: React.FC = () => {
                 label="Description"
                 fullWidth
                 margin="dense"
+                InputLabelProps={{ shrink: true }}
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 disabled={createMutation.isPending || updateMutation.isPending}
