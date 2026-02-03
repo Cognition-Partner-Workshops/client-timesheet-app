@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   Grid,
   Card,
@@ -17,6 +17,18 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '../api/client';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  Legend,
+} from 'recharts';
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
@@ -31,11 +43,47 @@ const DashboardPage: React.FC = () => {
     queryFn: () => apiClient.getWorkEntries(),
   });
 
-  const clients = clientsData?.clients || [];
-  const workEntries = workEntriesData?.workEntries || [];
+  const clients = useMemo(() => clientsData?.clients || [], [clientsData?.clients]);
+  const workEntries = useMemo(() => workEntriesData?.workEntries || [], [workEntriesData?.workEntries]);
 
-  const totalHours = workEntries.reduce((sum: number, entry: { hours: number }) => sum + entry.hours, 0);
-  const recentEntries = workEntries.slice(0, 5);
+  const totalHours = useMemo(() => 
+    workEntries.reduce((sum: number, entry: { hours: number }) => sum + entry.hours, 0),
+    [workEntries]
+  );
+  const recentEntries = useMemo(() => workEntries.slice(0, 5), [workEntries]);
+
+  const hoursPerClientData = useMemo(() => {
+    const clientHoursMap: Record<string, number> = {};
+    workEntries.forEach((entry: { client_name: string; hours: number }) => {
+      const clientName = entry.client_name || 'Unknown';
+      clientHoursMap[clientName] = (clientHoursMap[clientName] || 0) + entry.hours;
+    });
+    return Object.entries(clientHoursMap).map(([name, hours]) => ({
+      name: name.length > 15 ? name.substring(0, 15) + '...' : name,
+      hours: Number(hours.toFixed(2)),
+    }));
+  }, [workEntries]);
+
+  const weeklyProgressData = useMemo(() => {
+    const today = new Date();
+    const last7Days: { date: string; hours: number; entries: number }[] = [];
+    
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      const dayEntries = workEntries.filter((entry: { date: string }) => entry.date === dateStr);
+      const dayHours = dayEntries.reduce((sum: number, entry: { hours: number }) => sum + entry.hours, 0);
+      
+      last7Days.push({
+        date: date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
+        hours: Number(dayHours.toFixed(2)),
+        entries: dayEntries.length,
+      });
+    }
+    
+    return last7Days;
+  }, [workEntries]);
 
   const statsCards = [
     {
@@ -107,6 +155,73 @@ const DashboardPage: React.FC = () => {
             </Card>
           </Grid>
         ))}
+      </Grid>
+
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        {/* @ts-expect-error - MUI Grid item prop type issue */}
+        <Grid item xs={12} md={6}>
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="h6" mb={2}>
+              Weekly Work Progress
+            </Typography>
+            <Box sx={{ width: '100%', height: 300 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={weeklyProgressData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+                  <YAxis yAxisId="left" tick={{ fontSize: 12 }} />
+                  <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 12 }} />
+                  <Tooltip />
+                  <Legend />
+                  <Line
+                    yAxisId="left"
+                    type="monotone"
+                    dataKey="hours"
+                    stroke="#1976d2"
+                    strokeWidth={2}
+                    name="Hours Worked"
+                    dot={{ fill: '#1976d2' }}
+                  />
+                  <Line
+                    yAxisId="right"
+                    type="monotone"
+                    dataKey="entries"
+                    stroke="#388e3c"
+                    strokeWidth={2}
+                    name="Work Entries"
+                    dot={{ fill: '#388e3c' }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </Box>
+          </Paper>
+        </Grid>
+
+        {/* @ts-expect-error - MUI Grid item prop type issue */}
+        <Grid item xs={12} md={6}>
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="h6" mb={2}>
+              Hours by Client
+            </Typography>
+            <Box sx={{ width: '100%', height: 300 }}>
+              {hoursPerClientData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={hoursPerClientData} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis type="number" tick={{ fontSize: 12 }} />
+                    <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 12 }} />
+                    <Tooltip />
+                    <Bar dataKey="hours" fill="#f57c00" name="Hours" radius={[0, 4, 4, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <Box display="flex" alignItems="center" justifyContent="center" height="100%">
+                  <Typography color="text.secondary">No client data yet. Add work entries to see hours by client.</Typography>
+                </Box>
+              )}
+            </Box>
+          </Paper>
+        </Grid>
       </Grid>
 
       <Grid container spacing={3}>
