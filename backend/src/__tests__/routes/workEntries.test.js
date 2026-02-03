@@ -585,4 +585,270 @@ describe('Work Entry Routes', () => {
       expect(response.body.message).toBe('Work entry updated successfully');
     });
   });
+
+  describe('Negative Scenarios - Input Validation', () => {
+    test('should reject zero hours', async () => {
+      const response = await request(app)
+        .post('/api/work-entries')
+        .send({
+          clientId: 1,
+          hours: 0,
+          date: '2024-01-15'
+        });
+
+      expect(response.status).toBe(400);
+    });
+
+    test('should reject exactly 24.01 hours', async () => {
+      const response = await request(app)
+        .post('/api/work-entries')
+        .send({
+          clientId: 1,
+          hours: 24.01,
+          date: '2024-01-15'
+        });
+
+      expect(response.status).toBe(400);
+    });
+
+    test('should accept exactly 24 hours', async () => {
+      mockDb.get.mockImplementation((query, params, callback) => {
+        if (query.includes('clients')) {
+          callback(null, { id: 1 });
+        } else {
+          callback(null, { id: 1, hours: 24, client_name: 'Test' });
+        }
+      });
+      mockDb.run.mockImplementation(function(query, params, callback) {
+        this.lastID = 1;
+        callback.call(this, null);
+      });
+
+      const response = await request(app)
+        .post('/api/work-entries')
+        .send({
+          clientId: 1,
+          hours: 24,
+          date: '2024-01-15'
+        });
+
+      expect(response.status).toBe(201);
+    });
+
+    test('should accept minimum positive hours (0.01)', async () => {
+      mockDb.get.mockImplementation((query, params, callback) => {
+        if (query.includes('clients')) {
+          callback(null, { id: 1 });
+        } else {
+          callback(null, { id: 1, hours: 0.01, client_name: 'Test' });
+        }
+      });
+      mockDb.run.mockImplementation(function(query, params, callback) {
+        this.lastID = 1;
+        callback.call(this, null);
+      });
+
+      const response = await request(app)
+        .post('/api/work-entries')
+        .send({
+          clientId: 1,
+          hours: 0.01,
+          date: '2024-01-15'
+        });
+
+      expect(response.status).toBe(201);
+    });
+
+    test('should reject null hours', async () => {
+      const response = await request(app)
+        .post('/api/work-entries')
+        .send({
+          clientId: 1,
+          hours: null,
+          date: '2024-01-15'
+        });
+
+      expect(response.status).toBe(400);
+    });
+
+    test('should reject string hours', async () => {
+      const response = await request(app)
+        .post('/api/work-entries')
+        .send({
+          clientId: 1,
+          hours: 'five',
+          date: '2024-01-15'
+        });
+
+      expect(response.status).toBe(400);
+    });
+
+    test('should reject invalid date format (MM/DD/YYYY)', async () => {
+      const response = await request(app)
+        .post('/api/work-entries')
+        .send({
+          clientId: 1,
+          hours: 5,
+          date: '01/15/2024'
+        });
+
+      expect(response.status).toBe(400);
+    });
+
+    test('should reject invalid date format (DD-MM-YYYY)', async () => {
+      const response = await request(app)
+        .post('/api/work-entries')
+        .send({
+          clientId: 1,
+          hours: 5,
+          date: '15-01-2024'
+        });
+
+      expect(response.status).toBe(400);
+    });
+
+    test('should reject invalid date string', async () => {
+      const response = await request(app)
+        .post('/api/work-entries')
+        .send({
+          clientId: 1,
+          hours: 5,
+          date: 'not-a-date'
+        });
+
+      expect(response.status).toBe(400);
+    });
+
+    test('should reject null date', async () => {
+      const response = await request(app)
+        .post('/api/work-entries')
+        .send({
+          clientId: 1,
+          hours: 5,
+          date: null
+        });
+
+      expect(response.status).toBe(400);
+    });
+
+    test('should reject empty string date', async () => {
+      const response = await request(app)
+        .post('/api/work-entries')
+        .send({
+          clientId: 1,
+          hours: 5,
+          date: ''
+        });
+
+      expect(response.status).toBe(400);
+    });
+
+    test('should reject invalid month in date', async () => {
+      const response = await request(app)
+        .post('/api/work-entries')
+        .send({
+          clientId: 1,
+          hours: 5,
+          date: '2024-13-01'
+        });
+
+      expect(response.status).toBe(400);
+    });
+
+    test('should reject invalid day in date', async () => {
+      const response = await request(app)
+        .post('/api/work-entries')
+        .send({
+          clientId: 1,
+          hours: 5,
+          date: '2024-01-32'
+        });
+
+      expect(response.status).toBe(400);
+    });
+
+    test('should reject string client ID', async () => {
+      const response = await request(app)
+        .post('/api/work-entries')
+        .send({
+          clientId: 'one',
+          hours: 5,
+          date: '2024-01-15'
+        });
+
+      expect(response.status).toBe(400);
+    });
+
+    test('should reject non-existent client ID', async () => {
+      mockDb.get.mockImplementation((query, params, callback) => {
+        callback(null, null);
+      });
+
+      const response = await request(app)
+        .post('/api/work-entries')
+        .send({
+          clientId: 99999,
+          hours: 5,
+          date: '2024-01-15'
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({ error: 'Client not found or does not belong to user' });
+    });
+
+    test('should reject non-numeric work entry ID', async () => {
+      const response = await request(app).get('/api/work-entries/abc');
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({ error: 'Invalid work entry ID' });
+    });
+
+    test('should reject update with zero hours', async () => {
+      const response = await request(app)
+        .put('/api/work-entries/1')
+        .send({ hours: 0 });
+
+      expect(response.status).toBe(400);
+    });
+
+    test('should reject update with hours exceeding 24', async () => {
+      const response = await request(app)
+        .put('/api/work-entries/1')
+        .send({ hours: 25 });
+
+      expect(response.status).toBe(400);
+    });
+
+    test('should reject update with invalid date', async () => {
+      const response = await request(app)
+        .put('/api/work-entries/1')
+        .send({ date: 'invalid-date' });
+
+      expect(response.status).toBe(400);
+    });
+
+    test('should handle deletion of non-existent work entry', async () => {
+      mockDb.get.mockImplementation((query, params, callback) => {
+        callback(null, null);
+      });
+
+      const response = await request(app).delete('/api/work-entries/999');
+
+      expect(response.status).toBe(404);
+      expect(response.body).toEqual({ error: 'Work entry not found' });
+    });
+
+    test('should handle update of non-existent work entry', async () => {
+      mockDb.get.mockImplementation((query, params, callback) => {
+        callback(null, null);
+      });
+
+      const response = await request(app)
+        .put('/api/work-entries/999')
+        .send({ hours: 10 });
+
+      expect(response.status).toBe(404);
+      expect(response.body).toEqual({ error: 'Work entry not found' });
+    });
+  });
 });

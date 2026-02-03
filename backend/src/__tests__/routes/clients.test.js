@@ -454,4 +454,140 @@ describe('Client Routes', () => {
       expect(response.status).toBe(200);
     });
   });
+
+  describe('Negative Scenarios - Input Validation', () => {
+    test('should reject whitespace-only client name', async () => {
+      const response = await request(app)
+        .post('/api/clients')
+        .send({ name: '   ' });
+
+      expect(response.status).toBe(400);
+    });
+
+    test('should reject client name at boundary (256 chars)', async () => {
+      const response = await request(app)
+        .post('/api/clients')
+        .send({ name: 'a'.repeat(256) });
+
+      expect(response.status).toBe(400);
+    });
+
+    test('should accept client name at max boundary (255 chars)', async () => {
+      mockDb.run.mockImplementation(function(query, params, callback) {
+        this.lastID = 1;
+        callback.call(this, null);
+      });
+      mockDb.get.mockImplementation((query, params, callback) => {
+        callback(null, { id: 1, name: 'a'.repeat(255) });
+      });
+
+      const response = await request(app)
+        .post('/api/clients')
+        .send({ name: 'a'.repeat(255) });
+
+      expect(response.status).toBe(201);
+    });
+
+    test('should reject null client name', async () => {
+      const response = await request(app)
+        .post('/api/clients')
+        .send({ name: null });
+
+      expect(response.status).toBe(400);
+    });
+
+    test('should reject numeric client name', async () => {
+      const response = await request(app)
+        .post('/api/clients')
+        .send({ name: 12345 });
+
+      expect(response.status).toBe(400);
+    });
+
+    test('should reject array as client name', async () => {
+      const response = await request(app)
+        .post('/api/clients')
+        .send({ name: ['Client A'] });
+
+      expect(response.status).toBe(400);
+    });
+
+    test('should reject description at boundary (1001 chars)', async () => {
+      const response = await request(app)
+        .post('/api/clients')
+        .send({ name: 'Test', description: 'a'.repeat(1001) });
+
+      expect(response.status).toBe(400);
+    });
+
+    test('should accept description at max boundary (1000 chars)', async () => {
+      mockDb.run.mockImplementation(function(query, params, callback) {
+        this.lastID = 1;
+        callback.call(this, null);
+      });
+      mockDb.get.mockImplementation((query, params, callback) => {
+        callback(null, { id: 1, name: 'Test', description: 'a'.repeat(1000) });
+      });
+
+      const response = await request(app)
+        .post('/api/clients')
+        .send({ name: 'Test', description: 'a'.repeat(1000) });
+
+      expect(response.status).toBe(201);
+    });
+
+    test('should reject non-numeric client ID', async () => {
+      const response = await request(app).get('/api/clients/abc');
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({ error: 'Invalid client ID' });
+    });
+
+    test('should reject special characters in client ID', async () => {
+      const response = await request(app).get('/api/clients/test;DROP');
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({ error: 'Invalid client ID' });
+    });
+
+    test('should reject update with only whitespace name', async () => {
+      const response = await request(app)
+        .put('/api/clients/1')
+        .send({ name: '   ' });
+
+      expect(response.status).toBe(400);
+    });
+
+    test('should reject update with name exceeding max length', async () => {
+      const response = await request(app)
+        .put('/api/clients/1')
+        .send({ name: 'a'.repeat(256) });
+
+      expect(response.status).toBe(400);
+    });
+
+    test('should handle deletion of non-existent client', async () => {
+      mockDb.get.mockImplementation((query, params, callback) => {
+        callback(null, null);
+      });
+
+      const response = await request(app).delete('/api/clients/999');
+
+      expect(response.status).toBe(404);
+      expect(response.body).toEqual({ error: 'Client not found' });
+    });
+
+    test('should handle update of non-existent client', async () => {
+      mockDb.get.mockImplementation((query, params, callback) => {
+        callback(null, null);
+      });
+
+      const response = await request(app)
+        .put('/api/clients/999')
+        .send({ name: 'Updated Name' });
+
+      expect(response.status).toBe(404);
+      expect(response.body).toEqual({ error: 'Client not found' });
+    });
+  });
 });
