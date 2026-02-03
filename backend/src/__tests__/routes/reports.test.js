@@ -12,18 +12,27 @@ jest.mock('csv-writer', () => ({
   }))
 }));
 jest.mock('pdfkit', () => {
-  return jest.fn().mockImplementation(() => ({
-    fontSize: jest.fn().mockReturnThis(),
-    text: jest.fn().mockReturnThis(),
-    moveDown: jest.fn().mockReturnThis(),
-    moveTo: jest.fn().mockReturnThis(),
-    lineTo: jest.fn().mockReturnThis(),
-    stroke: jest.fn().mockReturnThis(),
-    addPage: jest.fn().mockReturnThis(),
-    pipe: jest.fn(),
-    end: jest.fn(),
-    y: 100
-  }));
+  const EventEmitter = require('events');
+  return jest.fn().mockImplementation(() => {
+    const doc = new EventEmitter();
+    doc.fontSize = jest.fn().mockReturnValue(doc);
+    doc.text = jest.fn().mockReturnValue(doc);
+    doc.moveDown = jest.fn().mockReturnValue(doc);
+    doc.moveTo = jest.fn().mockReturnValue(doc);
+    doc.lineTo = jest.fn().mockReturnValue(doc);
+    doc.stroke = jest.fn().mockReturnValue(doc);
+    doc.addPage = jest.fn().mockReturnValue(doc);
+    doc.pipe = jest.fn((res) => {
+      // Simulate piping to response
+      setTimeout(() => {
+        res.end();
+      }, 10);
+      return doc;
+    });
+    doc.end = jest.fn();
+    doc.y = 100;
+    return doc;
+  });
 });
 
 const reportRoutes = require('../../routes/reports');
@@ -436,6 +445,144 @@ describe('Report Routes', () => {
         expect.arrayContaining([1, 'test@example.com']),
         expect.any(Function)
       );
+    });
+
+    test('should generate PDF successfully with work entries', async () => {
+      const mockClient = { id: 1, name: 'Test Client' };
+      const mockWorkEntries = [
+        { date: '2024-01-01', hours: 5, description: 'Work 1', created_at: '2024-01-01' },
+        { date: '2024-01-02', hours: 3, description: 'Work 2', created_at: '2024-01-02' }
+      ];
+
+      mockDb.get.mockImplementation((query, params, callback) => {
+        callback(null, mockClient);
+      });
+
+      mockDb.all.mockImplementation((query, params, callback) => {
+        callback(null, mockWorkEntries);
+      });
+
+      const response = await request(app).get('/api/reports/export/pdf/1');
+
+      expect(response.status).toBe(200);
+      expect(response.headers['content-type']).toBe('application/pdf');
+    });
+
+    test('should generate PDF with empty work entries', async () => {
+      const mockClient = { id: 1, name: 'Empty Client' };
+
+      mockDb.get.mockImplementation((query, params, callback) => {
+        callback(null, mockClient);
+      });
+
+      mockDb.all.mockImplementation((query, params, callback) => {
+        callback(null, []);
+      });
+
+      const response = await request(app).get('/api/reports/export/pdf/1');
+
+      expect(response.status).toBe(200);
+    });
+
+    test('should generate PDF with entry without description', async () => {
+      const mockClient = { id: 1, name: 'Test Client' };
+      const mockWorkEntries = [
+        { date: '2024-01-01', hours: 5, description: null, created_at: '2024-01-01' }
+      ];
+
+      mockDb.get.mockImplementation((query, params, callback) => {
+        callback(null, mockClient);
+      });
+
+      mockDb.all.mockImplementation((query, params, callback) => {
+        callback(null, mockWorkEntries);
+      });
+
+      const response = await request(app).get('/api/reports/export/pdf/1');
+
+      expect(response.status).toBe(200);
+    });
+
+    test('should generate PDF with 5 entries to trigger separator line', async () => {
+      const mockClient = { id: 1, name: 'Test Client' };
+      const mockWorkEntries = [
+        { date: '2024-01-01', hours: 1, description: 'Work 1', created_at: '2024-01-01' },
+        { date: '2024-01-02', hours: 2, description: 'Work 2', created_at: '2024-01-02' },
+        { date: '2024-01-03', hours: 3, description: 'Work 3', created_at: '2024-01-03' },
+        { date: '2024-01-04', hours: 4, description: 'Work 4', created_at: '2024-01-04' },
+        { date: '2024-01-05', hours: 5, description: 'Work 5', created_at: '2024-01-05' }
+      ];
+
+      mockDb.get.mockImplementation((query, params, callback) => {
+        callback(null, mockClient);
+      });
+
+      mockDb.all.mockImplementation((query, params, callback) => {
+        callback(null, mockWorkEntries);
+      });
+
+      const response = await request(app).get('/api/reports/export/pdf/1');
+
+      expect(response.status).toBe(200);
+    });
+
+    test('should handle client name with special characters in PDF', async () => {
+      const mockClient = { id: 1, name: 'Test Client @#$%' };
+
+      mockDb.get.mockImplementation((query, params, callback) => {
+        callback(null, mockClient);
+      });
+
+      mockDb.all.mockImplementation((query, params, callback) => {
+        callback(null, []);
+      });
+
+      const response = await request(app).get('/api/reports/export/pdf/1');
+
+      expect(response.status).toBe(200);
+      expect(response.headers['content-disposition']).toMatch(/Test_Client_+report/);
+    });
+  });
+
+  describe('PDF Page Break', () => {
+    test('should handle PDF generation when y exceeds 700', async () => {
+      const mockClient = { id: 1, name: 'Test Client' };
+      const mockWorkEntries = [
+        { date: '2024-01-01', hours: 5, description: 'Work 1', created_at: '2024-01-01' }
+      ];
+
+      mockDb.get.mockImplementation((query, params, callback) => {
+        callback(null, mockClient);
+      });
+
+      mockDb.all.mockImplementation((query, params, callback) => {
+        callback(null, mockWorkEntries);
+      });
+
+      // Override the PDFKit mock to have y > 700
+      const PDFDocument = require('pdfkit');
+      const EventEmitter = require('events');
+      PDFDocument.mockImplementation(() => {
+        const doc = new EventEmitter();
+        doc.fontSize = jest.fn().mockReturnValue(doc);
+        doc.text = jest.fn().mockReturnValue(doc);
+        doc.moveDown = jest.fn().mockReturnValue(doc);
+        doc.moveTo = jest.fn().mockReturnValue(doc);
+        doc.lineTo = jest.fn().mockReturnValue(doc);
+        doc.stroke = jest.fn().mockReturnValue(doc);
+        doc.addPage = jest.fn().mockReturnValue(doc);
+        doc.pipe = jest.fn((res) => {
+          setTimeout(() => res.end(), 10);
+          return doc;
+        });
+        doc.end = jest.fn();
+        doc.y = 750; // Exceeds 700
+        return doc;
+      });
+
+      const response = await request(app).get('/api/reports/export/pdf/1');
+
+      expect(response.status).toBe(200);
     });
   });
 });
