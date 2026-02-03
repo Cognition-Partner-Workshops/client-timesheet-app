@@ -384,6 +384,24 @@ describe('Work Entry Routes', () => {
   });
 
   describe('POST /api/work-entries - Error Handling', () => {
+    test('should handle synchronous error in POST route', async () => {
+      // Mock getDatabase to throw a synchronous error
+      getDatabase.mockImplementation(() => {
+        throw new Error('Synchronous database error');
+      });
+
+      const response = await request(app)
+        .post('/api/work-entries')
+        .send({
+          clientId: 1,
+          hours: 5,
+          date: '2024-01-15'
+        });
+
+      expect(response.status).toBe(500);
+      expect(response.body).toEqual({ error: 'Internal server error' });
+    });
+
     test('should handle database error when verifying client', async () => {
       mockDb.get.mockImplementation((query, params, callback) => {
         callback(new Error('Database error'), null);
@@ -431,6 +449,20 @@ describe('Work Entry Routes', () => {
   });
 
   describe('PUT /api/work-entries/:id - Error Handling', () => {
+    test('should handle synchronous error in PUT route', async () => {
+      // Mock getDatabase to throw a synchronous error
+      getDatabase.mockImplementation(() => {
+        throw new Error('Synchronous database error');
+      });
+
+      const response = await request(app)
+        .put('/api/work-entries/1')
+        .send({ hours: 8 });
+
+      expect(response.status).toBe(500);
+      expect(response.body).toEqual({ error: 'Internal server error' });
+    });
+
     test('should handle database error when checking work entry existence', async () => {
       mockDb.get.mockImplementation((query, params, callback) => {
         callback(new Error('Database error'), null);

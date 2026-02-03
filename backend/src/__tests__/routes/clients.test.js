@@ -357,7 +357,37 @@ describe('Client Routes', () => {
     });
   });
 
+  describe('POST /api/clients - Synchronous Error Handling', () => {
+    test('should handle synchronous error in POST route', async () => {
+      // Mock getDatabase to throw a synchronous error
+      getDatabase.mockImplementation(() => {
+        throw new Error('Synchronous database error');
+      });
+
+      const response = await request(app)
+        .post('/api/clients')
+        .send({ name: 'Test Client' });
+
+      expect(response.status).toBe(500);
+      expect(response.body).toEqual({ error: 'Internal server error' });
+    });
+  });
+
   describe('PUT /api/clients/:id - Error Handling', () => {
+    test('should handle synchronous error in PUT route', async () => {
+      // Mock getDatabase to throw a synchronous error
+      getDatabase.mockImplementation(() => {
+        throw new Error('Synchronous database error');
+      });
+
+      const response = await request(app)
+        .put('/api/clients/1')
+        .send({ name: 'Updated Name' });
+
+      expect(response.status).toBe(500);
+      expect(response.body).toEqual({ error: 'Internal server error' });
+    });
+
     test('should handle database error when checking client existence', async () => {
       mockDb.get.mockImplementation((query, params, callback) => {
         callback(new Error('Database error'), null);
