@@ -135,4 +135,85 @@ describe('Error Handler Middleware', () => {
       expect(console.error).toHaveBeenCalledWith('Error:', error);
     });
   });
+
+  describe('Null Object Checks', () => {
+    test('should throw when error object is null', () => {
+      expect(() => {
+        errorHandler(null, req, res, next);
+      }).toThrow();
+    });
+
+    test('should throw when error object is undefined', () => {
+      expect(() => {
+        errorHandler(undefined, req, res, next);
+      }).toThrow();
+    });
+
+    test('should handle error with null message', () => {
+      const errorWithNullMessage = {
+        message: null
+      };
+
+      errorHandler(errorWithNullMessage, req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({
+        error: 'Internal server error'
+      });
+    });
+
+    test('should handle error with null status', () => {
+      const errorWithNullStatus = {
+        status: null,
+        message: 'Test error'
+      };
+
+      errorHandler(errorWithNullStatus, req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({
+        error: 'Test error'
+      });
+    });
+
+    test('should handle Joi error with null details', () => {
+      const joiErrorWithNullDetails = {
+        isJoi: true,
+        details: null
+      };
+
+      expect(() => {
+        errorHandler(joiErrorWithNullDetails, req, res, next);
+      }).toThrow();
+    });
+
+    test('should handle Joi error with empty details array', () => {
+      const joiErrorWithEmptyDetails = {
+        isJoi: true,
+        details: []
+      };
+
+      errorHandler(joiErrorWithEmptyDetails, req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error: 'Validation error',
+        details: []
+      });
+    });
+
+    test('should handle SQLite error with null code', () => {
+      const sqliteErrorWithNullCode = {
+        code: null,
+        message: 'Database error'
+      };
+
+      errorHandler(sqliteErrorWithNullCode, req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({
+        error: 'Database error'
+      });
+    });
+  });
 });

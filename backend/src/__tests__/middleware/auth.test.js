@@ -182,4 +182,76 @@ describe('Authentication Middleware', () => {
       expect(mockDb.get).toHaveBeenCalled();
     });
   });
+
+  describe('Null Object Checks', () => {
+    test('should handle null headers object', () => {
+      req.headers = null;
+
+      expect(() => {
+        authenticateUser(req, res, next);
+      }).toThrow();
+    });
+
+    test('should handle undefined headers object', () => {
+      req.headers = undefined;
+
+      expect(() => {
+        authenticateUser(req, res, next);
+      }).toThrow();
+    });
+
+    test('should handle empty headers object', () => {
+      req.headers = {};
+
+      authenticateUser(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith({
+        error: 'User email required in x-user-email header'
+      });
+    });
+
+    test('should handle null x-user-email header', () => {
+      req.headers['x-user-email'] = null;
+
+      authenticateUser(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith({
+        error: 'User email required in x-user-email header'
+      });
+    });
+
+    test('should handle undefined x-user-email header', () => {
+      req.headers['x-user-email'] = undefined;
+
+      authenticateUser(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith({
+        error: 'User email required in x-user-email header'
+      });
+    });
+
+    test('should handle database returning null for user check', (done) => {
+      req.headers['x-user-email'] = 'test@example.com';
+      
+      mockDb.get.mockImplementation((query, params, callback) => {
+        callback(null, null);
+      });
+      
+      mockDb.run.mockImplementation((query, params, callback) => {
+        callback(null);
+      });
+
+      authenticateUser(req, res, next);
+
+      setImmediate(() => {
+        expect(mockDb.run).toHaveBeenCalled();
+        expect(req.userEmail).toBe('test@example.com');
+        expect(next).toHaveBeenCalled();
+        done();
+      });
+    });
+  });
 });

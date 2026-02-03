@@ -454,4 +454,83 @@ describe('Client Routes', () => {
       expect(response.status).toBe(200);
     });
   });
+
+  describe('Null Object Checks', () => {
+    test('should handle null body in POST request', async () => {
+      const response = await request(app)
+        .post('/api/clients')
+        .send(null);
+
+      expect(response.status).toBe(400);
+    });
+
+    test('should handle undefined body in POST request', async () => {
+      const response = await request(app)
+        .post('/api/clients')
+        .send(undefined);
+
+      expect(response.status).toBe(400);
+    });
+
+    test('should handle null body in PUT request', async () => {
+      const response = await request(app)
+        .put('/api/clients/1')
+        .send(null);
+
+      expect(response.status).toBe(400);
+    });
+
+    test('should handle undefined body in PUT request', async () => {
+      const response = await request(app)
+        .put('/api/clients/1')
+        .send(undefined);
+
+      expect(response.status).toBe(400);
+    });
+
+    test('should handle null name in POST body', async () => {
+      const response = await request(app)
+        .post('/api/clients')
+        .send({ name: null, description: 'Test' });
+
+      expect(response.status).toBe(400);
+    });
+
+    test('should handle null name in PUT body', async () => {
+      mockDb.get.mockImplementationOnce((query, params, callback) => {
+        callback(null, { id: 1 });
+      });
+
+      const response = await request(app)
+        .put('/api/clients/1')
+        .send({ name: null });
+
+      expect(response.status).toBe(400);
+    });
+
+    test('should handle database returning null rows array', async () => {
+      mockDb.all.mockImplementation((query, params, callback) => {
+        callback(null, null);
+      });
+
+      const response = await request(app).get('/api/clients');
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({ clients: null });
+    });
+
+    test('should handle null client ID parameter', async () => {
+      const response = await request(app).get('/api/clients/null');
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({ error: 'Invalid client ID' });
+    });
+
+    test('should handle undefined client ID parameter', async () => {
+      const response = await request(app).get('/api/clients/undefined');
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({ error: 'Invalid client ID' });
+    });
+  });
 });
