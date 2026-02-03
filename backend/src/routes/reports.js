@@ -1,3 +1,10 @@
+/**
+ * @fileoverview Report generation routes for client time tracking data.
+ * Provides endpoints for generating JSON reports and exporting to CSV/PDF formats.
+ * All routes require authentication and enforce data isolation per user.
+ * @module routes/reports
+ */
+
 const express = require('express');
 const { getDatabase } = require('../database/init');
 const { authenticateUser } = require('../middleware/auth');
@@ -6,12 +13,38 @@ const PDFDocument = require('pdfkit');
 const path = require('path');
 const fs = require('fs');
 
+/**
+ * Express router for report generation endpoints.
+ * @type {import('express').Router}
+ */
 const router = express.Router();
 
 // All routes require authentication
 router.use(authenticateUser);
 
-// Get hourly report for specific client
+/**
+ * @route GET /api/reports/client/:clientId
+ * @description Generates a JSON report for a specific client containing all work entries,
+ * total hours, and entry count. Verifies client ownership before generating report.
+ * 
+ * @param {string} req.params.clientId - Client ID (must be a valid integer).
+ * @param {string} req.headers.x-user-email - User's email for authentication.
+ * 
+ * @returns {Object} 200 - Report data including client info, work entries, total hours, and entry count.
+ * @returns {Object} 400 - Invalid client ID format.
+ * @returns {Object} 401 - Unauthorized.
+ * @returns {Object} 404 - Client not found or doesn't belong to user.
+ * @returns {Object} 500 - Internal server error.
+ * 
+ * @example
+ * // Response
+ * {
+ *   "client": { "id": 1, "name": "Acme Corp" },
+ *   "workEntries": [{ "id": 1, "hours": 8, "description": "Development", "date": "2024-01-15", ... }],
+ *   "totalHours": 40,
+ *   "entryCount": 5
+ * }
+ */
 router.get('/client/:clientId', (req, res) => {
   const clientId = parseInt(req.params.clientId);
   
@@ -63,7 +96,27 @@ router.get('/client/:clientId', (req, res) => {
   );
 });
 
-// Export client report as CSV
+/**
+ * @route GET /api/reports/export/csv/:clientId
+ * @description Exports a client's time report as a CSV file. Creates a temporary file,
+ * streams it to the client, and cleans up after download. Verifies client ownership.
+ * 
+ * CSV columns: Date, Hours, Description, Created At
+ * 
+ * @param {string} req.params.clientId - Client ID (must be a valid integer).
+ * @param {string} req.headers.x-user-email - User's email for authentication.
+ * 
+ * @returns {File} 200 - CSV file download with Content-Disposition header.
+ * @returns {Object} 400 - Invalid client ID format.
+ * @returns {Object} 401 - Unauthorized.
+ * @returns {Object} 404 - Client not found or doesn't belong to user.
+ * @returns {Object} 500 - Internal server error or CSV generation failure.
+ * 
+ * @example
+ * // Response headers
+ * Content-Type: text/csv
+ * Content-Disposition: attachment; filename="Acme_Corp_report_2024-01-15T10-30-00-000Z.csv"
+ */
 router.get('/export/csv/:clientId', (req, res) => {
   const clientId = parseInt(req.params.clientId);
   
@@ -146,7 +199,32 @@ router.get('/export/csv/:clientId', (req, res) => {
   );
 });
 
-// Export client report as PDF
+/**
+ * @route GET /api/reports/export/pdf/:clientId
+ * @description Exports a client's time report as a PDF document. Streams the PDF
+ * directly to the client response. Includes client name, total hours, entry count,
+ * generation timestamp, and a formatted table of all work entries.
+ * 
+ * PDF content:
+ * - Header with client name
+ * - Summary: total hours, entry count, generation date
+ * - Table: Date, Hours, Description for each entry
+ * - Automatic page breaks for long reports
+ * 
+ * @param {string} req.params.clientId - Client ID (must be a valid integer).
+ * @param {string} req.headers.x-user-email - User's email for authentication.
+ * 
+ * @returns {File} 200 - PDF file download with Content-Disposition header.
+ * @returns {Object} 400 - Invalid client ID format.
+ * @returns {Object} 401 - Unauthorized.
+ * @returns {Object} 404 - Client not found or doesn't belong to user.
+ * @returns {Object} 500 - Internal server error.
+ * 
+ * @example
+ * // Response headers
+ * Content-Type: application/pdf
+ * Content-Disposition: attachment; filename="Acme_Corp_report_2024-01-15T10-30-00-000Z.pdf"
+ */
 router.get('/export/pdf/:clientId', (req, res) => {
   const clientId = parseInt(req.params.clientId);
   

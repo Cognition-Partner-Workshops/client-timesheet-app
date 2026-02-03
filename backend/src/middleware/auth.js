@@ -1,6 +1,43 @@
+/**
+ * @fileoverview Authentication middleware for email-based user verification.
+ * Provides simple authentication using x-user-email header with auto user creation.
+ * Designed for trusted internal network environments without password requirements.
+ * @module middleware/auth
+ */
+
 const { getDatabase } = require('../database/init');
 
-// Simple email-based authentication middleware
+/**
+ * Express middleware that authenticates users based on email header.
+ * Validates the x-user-email header, checks email format, and auto-creates
+ * new users if they don't exist in the database.
+ * 
+ * Authentication flow:
+ * 1. Extract email from x-user-email header
+ * 2. Validate email format using regex
+ * 3. Check if user exists in database
+ * 4. Create user if not exists
+ * 5. Set req.userEmail for downstream handlers
+ * 
+ * @param {import('express').Request} req - Express request object.
+ * @param {import('express').Response} res - Express response object.
+ * @param {import('express').NextFunction} next - Express next middleware function.
+ * @returns {void}
+ * 
+ * @example
+ * // Use as route middleware
+ * router.use(authenticateUser);
+ * 
+ * @example
+ * // Use on specific route
+ * router.get('/protected', authenticateUser, (req, res) => {
+ *   console.log(req.userEmail); // User's email is available
+ * });
+ * 
+ * @throws {401} If x-user-email header is missing.
+ * @throws {400} If email format is invalid.
+ * @throws {500} If database operation fails.
+ */
 function authenticateUser(req, res, next) {
   const userEmail = req.headers['x-user-email'];
   
