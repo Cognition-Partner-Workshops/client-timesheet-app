@@ -437,5 +437,32 @@ describe('Report Routes', () => {
         expect.any(Function)
       );
     });
+
+    test('should sanitize client name in filename', async () => {
+      const mockClient = { id: 1, name: 'Test Client!@#$%' };
+      const mockWorkEntries = [];
+
+      mockDb.get.mockImplementation((query, params, callback) => {
+        callback(null, mockClient);
+      });
+
+      mockDb.all.mockImplementation((query, params, callback) => {
+        callback(null, mockWorkEntries);
+      });
+
+      const csvWriter = require('csv-writer');
+      csvWriter.createObjectCsvWriter.mockReturnValue({
+        writeRecords: jest.fn().mockRejectedValue(new Error('Write failed'))
+      });
+
+      await request(app).get('/api/reports/export/csv/1');
+
+      // Verify csvWriter was called with a sanitized path
+      expect(csvWriter.createObjectCsvWriter).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: expect.stringContaining('Test_Client')
+        })
+      );
+    });
   });
 });
