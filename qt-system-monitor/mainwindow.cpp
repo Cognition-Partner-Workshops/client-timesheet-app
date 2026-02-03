@@ -4,6 +4,10 @@
 #include <QDir>
 #include <QHeaderView>
 #include <QFont>
+#include <QRegularExpression>
+#include <fstream>
+#include <sstream>
+#include <string>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -206,28 +210,27 @@ MainWindow::MemoryInfo MainWindow::getMemoryInfo()
 {
     MemoryInfo info = {0, 0, 0, 0, 0, 0, 0, 0, 0};
     
-    QFile file("/proc/meminfo");
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+    std::ifstream file("/proc/meminfo");
+    if (!file.is_open()) {
         return info;
     }
     
-    QTextStream in(&file);
-    while (!in.atEnd()) {
-        QString line = in.readLine();
-        QStringList parts = line.split(QRegExp("\\s+"), Qt::SkipEmptyParts);
+    std::string line;
+    while (std::getline(file, line)) {
+        std::istringstream iss(line);
+        std::string key;
+        long long value;
+        std::string unit;
         
-        if (parts.size() >= 2) {
-            QString key = parts[0].remove(':');
-            long long value = parts[1].toLongLong() * 1024;
-            
-            if (key == "MemTotal") info.total = value;
-            else if (key == "MemFree") info.free = value;
-            else if (key == "MemAvailable") info.available = value;
-            else if (key == "Buffers") info.buffers = value;
-            else if (key == "Cached") info.cached = value;
-            else if (key == "SwapTotal") info.swapTotal = value;
-            else if (key == "SwapFree") info.swapFree = value;
-        }
+        iss >> key >> value >> unit;
+        
+        if (key == "MemTotal:") info.total = value * 1024;
+        else if (key == "MemFree:") info.free = value * 1024;
+        else if (key == "MemAvailable:") info.available = value * 1024;
+        else if (key == "Buffers:") info.buffers = value * 1024;
+        else if (key == "Cached:") info.cached = value * 1024;
+        else if (key == "SwapTotal:") info.swapTotal = value * 1024;
+        else if (key == "SwapFree:") info.swapFree = value * 1024;
     }
     
     file.close();
@@ -267,7 +270,7 @@ QList<QStringList> MainWindow::getProcessList()
             if (line.startsWith("Name:")) {
                 name = line.mid(5).trimmed();
             } else if (line.startsWith("Uid:")) {
-                QStringList uidParts = line.mid(4).trimmed().split(QRegExp("\\s+"));
+                QStringList uidParts = line.mid(4).trimmed().split(QRegularExpression("\\s+"));
                 if (!uidParts.isEmpty()) {
                     int uid = uidParts[0].toInt();
                     QFile passwdFile("/etc/passwd");
@@ -285,7 +288,7 @@ QList<QStringList> MainWindow::getProcessList()
                     }
                 }
             } else if (line.startsWith("VmRSS:")) {
-                long long rss = line.mid(6).trimmed().split(QRegExp("\\s+"))[0].toLongLong() * 1024;
+                long long rss = line.mid(6).trimmed().split(QRegularExpression("\\s+"))[0].toLongLong() * 1024;
                 MemoryInfo memInfo = getMemoryInfo();
                 if (memInfo.total > 0) {
                     memPercent = (rss * 100.0) / memInfo.total;
