@@ -1,3 +1,24 @@
+/**
+ * @fileoverview Client management routes for the Time Tracking API.
+ * 
+ * This module provides RESTful endpoints for managing clients:
+ * - GET /api/clients - List all clients for the authenticated user
+ * - GET /api/clients/:id - Get a specific client by ID
+ * - POST /api/clients - Create a new client
+ * - PUT /api/clients/:id - Update an existing client
+ * - DELETE /api/clients - Delete all clients for the user
+ * - DELETE /api/clients/:id - Delete a specific client
+ * 
+ * All routes require authentication via the x-user-email header.
+ * Clients are scoped to the authenticated user (multi-tenant isolation).
+ * 
+ * @module routes/clients
+ * @requires express
+ * @requires ../database/init
+ * @requires ../middleware/auth
+ * @requires ../validation/schemas
+ */
+
 const express = require('express');
 const { getDatabase } = require('../database/init');
 const { authenticateUser } = require('../middleware/auth');
@@ -5,10 +26,25 @@ const { clientSchema, updateClientSchema } = require('../validation/schemas');
 
 const router = express.Router();
 
-// All routes require authentication
+// Apply authentication middleware to all routes in this router
 router.use(authenticateUser);
 
-// Get all clients for authenticated user
+/**
+ * Get all clients for the authenticated user.
+ * 
+ * @route GET /api/clients
+ * @group Clients - Client management operations
+ * @security x-user-email
+ * @returns {Object} 200 - Array of client objects
+ * @returns {Object} 500 - Internal server error
+ * 
+ * @example Response
+ * {
+ *   "clients": [
+ *     { "id": 1, "name": "Acme Corp", "description": "Main client", ... }
+ *   ]
+ * }
+ */
 router.get('/', (req, res) => {
   const db = getDatabase();
   
