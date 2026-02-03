@@ -2,6 +2,7 @@ const express = require('express');
 const { getDatabase } = require('../database/init');
 const { emailSchema } = require('../validation/schemas');
 const { authenticateUser } = require('../middleware/auth');
+const { businessLogger } = require('../utils/logger');
 
 const router = express.Router();
 
@@ -24,7 +25,9 @@ router.post('/login', async (req, res, next) => {
       }
 
       if (row) {
-        // User exists
+        // User exists - log successful login
+        businessLogger.logLoginSuccess(row.email, req.correlationId);
+        
         return res.json({
           message: 'Login successful',
           user: {
@@ -37,9 +40,13 @@ router.post('/login', async (req, res, next) => {
         db.run('INSERT INTO users (email) VALUES (?)', [email], function(err) {
           if (err) {
             console.error('Error creating user:', err);
+            businessLogger.logLoginFailure(email, 'user_creation_failed', req.correlationId);
             return res.status(500).json({ error: 'Failed to create user' });
           }
 
+          // Log successful user creation and login
+          businessLogger.logLoginSuccess(email, req.correlationId);
+          
           res.status(201).json({
             message: 'User created and logged in successfully',
             user: {

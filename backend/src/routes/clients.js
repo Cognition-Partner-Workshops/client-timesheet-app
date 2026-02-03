@@ -2,6 +2,7 @@ const express = require('express');
 const { getDatabase } = require('../database/init');
 const { authenticateUser } = require('../middleware/auth');
 const { clientSchema, updateClientSchema } = require('../validation/schemas');
+const { businessLogger, logger } = require('../utils/logger');
 
 const router = express.Router();
 
@@ -84,6 +85,9 @@ router.post('/', (req, res, next) => {
               return res.status(500).json({ error: 'Client created but failed to retrieve' });
             }
 
+            // Log business event
+            businessLogger.logClientCreated(row.id, row.name, req.userEmail, req.correlationId);
+            
             res.status(201).json({ 
               message: 'Client created successfully',
               client: row 
@@ -172,6 +176,9 @@ router.put('/:id', (req, res, next) => {
                 return res.status(500).json({ error: 'Client updated but failed to retrieve' });
               }
 
+              // Log business event
+              businessLogger.logClientUpdated(clientId, value, req.userEmail, req.correlationId);
+              
               res.json({
                 message: 'Client updated successfully',
                 client: row
@@ -240,6 +247,9 @@ router.delete('/:id', (req, res) => {
             console.error('Database error:', err);
             return res.status(500).json({ error: 'Failed to delete client' });
           }
+          
+          // Log business event
+          businessLogger.logClientDeleted(clientId, req.userEmail, req.correlationId);
           
           res.json({ message: 'Client deleted successfully' });
         }

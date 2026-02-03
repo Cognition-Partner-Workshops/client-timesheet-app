@@ -2,6 +2,7 @@ const express = require('express');
 const { getDatabase } = require('../database/init');
 const { authenticateUser } = require('../middleware/auth');
 const { workEntrySchema, updateWorkEntrySchema } = require('../validation/schemas');
+const { businessLogger } = require('../utils/logger');
 
 const router = express.Router();
 
@@ -125,6 +126,9 @@ router.post('/', (req, res, next) => {
                   return res.status(500).json({ error: 'Work entry created but failed to retrieve' });
                 }
 
+                // Log business event
+                businessLogger.logWorkEntryCreated(row.id, row.client_id, row.hours, req.userEmail, req.correlationId);
+                
                 res.status(201).json({
                   message: 'Work entry created successfully',
                   workEntry: row
@@ -242,6 +246,9 @@ router.put('/:id', (req, res, next) => {
                   return res.status(500).json({ error: 'Work entry updated but failed to retrieve' });
                 }
 
+                // Log business event
+                businessLogger.logWorkEntryUpdated(workEntryId, value, req.userEmail, req.correlationId);
+                
                 res.json({
                   message: 'Work entry updated successfully',
                   workEntry: row
@@ -290,6 +297,9 @@ router.delete('/:id', (req, res) => {
             console.error('Database error:', err);
             return res.status(500).json({ error: 'Failed to delete work entry' });
           }
+          
+          // Log business event
+          businessLogger.logWorkEntryDeleted(workEntryId, req.userEmail, req.correlationId);
           
           res.json({ message: 'Work entry deleted successfully' });
         }
