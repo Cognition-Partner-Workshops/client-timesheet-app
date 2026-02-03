@@ -194,6 +194,32 @@ All authenticated endpoints require `Authorization: Bearer <token>` header.
 - Input validation with Joi schemas
 - SQL injection protection with parameterized queries
 
+## Code Documentation
+
+The codebase is fully documented with JSDoc (backend) and TSDoc (frontend) comments to improve readability and maintainability.
+
+### Backend Documentation
+
+All backend files include comprehensive JSDoc documentation:
+
+**Route Files** (`backend/src/routes/`): Each route handler is documented with `@route`, `@param`, `@returns`, and `@example` tags describing the endpoint, parameters, response codes, and usage examples.
+
+**Middleware** (`backend/src/middleware/`): Authentication and error handling middleware include detailed documentation of their behavior, parameters, and usage patterns.
+
+**Database** (`backend/src/database/`): Database initialization and management functions are documented with descriptions of the schema, connection management, and lifecycle methods.
+
+### Frontend Documentation
+
+All frontend TypeScript files include TSDoc documentation:
+
+**API Client** (`frontend/src/api/client.ts`): Each API method is documented with parameter descriptions and return types.
+
+**Types** (`frontend/src/types/api.ts`): All interfaces include property-level documentation explaining each field's purpose and format.
+
+**Contexts** (`frontend/src/contexts/`): Authentication context and provider are documented with usage examples.
+
+**Hooks** (`frontend/src/hooks/`): Custom hooks include documentation with examples showing proper usage patterns.
+
 ## Development
 
 ### Backend Development
