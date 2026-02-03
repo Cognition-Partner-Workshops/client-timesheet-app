@@ -20,6 +20,7 @@ import {
   Dashboard as DashboardIcon,
   Business as BusinessIcon,
   Assignment as AssignmentIcon,
+  CalendarMonth as CalendarIcon,
   Assessment as AssessmentIcon,
   Logout as LogoutIcon,
 } from '@mui/icons-material';
@@ -42,12 +43,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     setMobileOpen(!mobileOpen);
   };
 
-  const menuItems = [
-    { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
-    { text: 'Clients', icon: <BusinessIcon />, path: '/clients' },
-    { text: 'Work Entries', icon: <AssignmentIcon />, path: '/work-entries' },
-    { text: 'Reports', icon: <AssessmentIcon />, path: '/reports' },
-  ];
+    const menuItems = [
+      { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
+      { text: 'Clients', icon: <BusinessIcon />, path: '/clients' },
+      { text: 'Work Entries', icon: <AssignmentIcon />, path: '/work-entries' },
+      { text: 'Calendar', icon: <CalendarIcon />, path: '/calendar' },
+      { text: 'Reports', icon: <AssessmentIcon />, path: '/reports' },
+    ];
 
   const drawer = (
     <div>
