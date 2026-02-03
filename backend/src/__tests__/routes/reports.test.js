@@ -145,21 +145,21 @@ describe('Report Routes', () => {
       expect(response.body).toEqual({ error: 'Internal server error' });
     });
 
-    test('should filter work entries by user email', async () => {
+    test('should return work entries for client (shared across all users)', async () => {
       mockDb.get.mockImplementation((query, params, callback) => {
         callback(null, { id: 1, name: 'Test Client' });
       });
 
       mockDb.all.mockImplementation((query, params, callback) => {
-        expect(params).toEqual([1, 'test@example.com']);
+        expect(params).toEqual([1]);
         callback(null, []);
       });
 
       await request(app).get('/api/reports/client/1');
 
       expect(mockDb.all).toHaveBeenCalledWith(
-        expect.stringContaining('WHERE client_id = ? AND user_email = ?'),
-        [1, 'test@example.com'],
+        expect.stringContaining('WHERE client_id = ?'),
+        [1],
         expect.any(Function)
       );
     });
@@ -242,23 +242,22 @@ describe('Report Routes', () => {
     });
   });
 
-  describe('Data Isolation', () => {
-    test('should only return data for authenticated user', async () => {
+  describe('Shared Data Access', () => {
+    test('should return data for any authenticated user (shared data model)', async () => {
       mockDb.get.mockImplementation((query, params, callback) => {
-        expect(params).toContain('test@example.com');
         callback(null, { id: 1, name: 'Test Client' });
       });
 
       mockDb.all.mockImplementation((query, params, callback) => {
-        expect(params).toContain('test@example.com');
         callback(null, []);
       });
 
       await request(app).get('/api/reports/client/1');
 
+      // Verify that user_email is NOT used for filtering (shared data model)
       expect(mockDb.get).toHaveBeenCalledWith(
         expect.any(String),
-        expect.arrayContaining(['test@example.com']),
+        [1],
         expect.any(Function)
       );
     });
@@ -327,7 +326,7 @@ describe('Report Routes', () => {
       expect(response.body).toEqual({ error: 'Failed to generate CSV report' });
     });
 
-    test('should verify CSV export calls correct database queries', async () => {
+    test('should verify CSV export calls correct database queries (shared data model)', async () => {
       const mockClient = { id: 1, name: 'Test Client' };
 
       mockDb.get.mockImplementation((query, params, callback) => {
@@ -347,7 +346,7 @@ describe('Report Routes', () => {
 
       expect(mockDb.get).toHaveBeenCalledWith(
         expect.stringContaining('SELECT id, name FROM clients'),
-        expect.arrayContaining([1, 'test@example.com']),
+        [1],
         expect.any(Function)
       );
     });
@@ -420,7 +419,7 @@ describe('Report Routes', () => {
       expect(response.body).toEqual({ error: 'Internal server error' });
     });
 
-    test('should verify PDF export calls correct database queries', async () => {
+    test('should verify PDF export calls correct database queries (shared data model)', async () => {
       mockDb.get.mockImplementation((query, params, callback) => {
         callback(null, { id: 1, name: 'Test Client' });
       });
@@ -433,7 +432,7 @@ describe('Report Routes', () => {
 
       expect(mockDb.get).toHaveBeenCalledWith(
         expect.stringContaining('SELECT id, name FROM clients'),
-        expect.arrayContaining([1, 'test@example.com']),
+        [1],
         expect.any(Function)
       );
     });
