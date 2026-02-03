@@ -1,37 +1,7 @@
-import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import React, { useState, useEffect, type ReactNode } from 'react';
 import { type User } from '../types/api';
 import apiClient from '../api/client';
-
-interface AuthContextType {
-  user: User | null;
-  login: (email: string) => Promise<void>;
-  logout: () => void;
-  isLoading: boolean;
-  isAuthenticated: boolean;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-/**
- * Custom hook to access the authentication context.
- * This hook must be used within an AuthProvider component.
- * 
- * The eslint-disable below is required because this file exports both a hook (useAuth)
- * and a component (AuthProvider). The react-refresh/only-export-components rule warns
- * that fast refresh (hot module replacement) only works when a file exports components
- * exclusively. This is a common React pattern for context + hook co-location, and the
- * trade-off of slightly degraded HMR is acceptable for the code organization benefits.
- * 
- * Fix for issue #3, PR #143
- */
-// eslint-disable-next-line react-refresh/only-export-components
-export const useAuth = (): AuthContextType => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
+import { AuthContext, type AuthContextType } from './AuthContextValue';
 
 interface AuthProviderProps {
   children: ReactNode;
