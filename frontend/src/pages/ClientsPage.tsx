@@ -35,6 +35,7 @@ const ClientsPage: React.FC = () => {
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [formData, setFormData] = useState({ name: '', description: '', department: '', email: '' });
   const [error, setError] = useState('');
+  const [touched, setTouched] = useState({ name: false, email: false });
 
   const queryClient = useQueryClient();
 
@@ -115,6 +116,31 @@ const ClientsPage: React.FC = () => {
     setEditingClient(null);
     setFormData({ name: '', description: '', department: '', email: '' });
     setError('');
+    setTouched({ name: false, email: false });
+  };
+
+  const handleBlur = (field: 'name' | 'email') => {
+    setTouched((prev) => ({ ...prev, [field]: true }));
+  };
+
+  const isValidEmail = (email: string): boolean => {
+    if (!email) return true;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const getNameError = (): string => {
+    if (touched.name && !formData.name.trim()) {
+      return 'Client name is required';
+    }
+    return '';
+  };
+
+  const getEmailError = (): string => {
+    if (touched.email && formData.email && !isValidEmail(formData.email)) {
+      return 'Please enter a valid email address';
+    }
+    return '';
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -294,6 +320,9 @@ const ClientsPage: React.FC = () => {
               required
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onBlur={() => handleBlur('name')}
+              error={!!getNameError()}
+              helperText={getNameError()}
               disabled={createMutation.isPending || updateMutation.isPending}
             />
             <TextField
@@ -311,6 +340,9 @@ const ClientsPage: React.FC = () => {
               type="email"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              onBlur={() => handleBlur('email')}
+              error={!!getEmailError()}
+              helperText={getEmailError()}
               disabled={createMutation.isPending || updateMutation.isPending}
             />
             <TextField
