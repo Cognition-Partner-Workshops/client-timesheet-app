@@ -1,6 +1,29 @@
+/**
+ * @fileoverview Authentication middleware for the Time Tracker application.
+ * Provides email-based authentication without passwords for simplicity.
+ * @module middleware/auth
+ */
+
 const { getDatabase } = require('../database/init');
 
-// Simple email-based authentication middleware
+/**
+ * Express middleware that authenticates users based on the x-user-email header.
+ * Creates a new user in the database if one doesn't exist with the provided email.
+ * Sets req.userEmail for use in subsequent route handlers.
+ * 
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @returns {void}
+ * 
+ * @example
+ * // Usage in routes:
+ * router.use(authenticateUser);
+ * // or
+ * router.get('/protected', authenticateUser, (req, res) => {
+ *   console.log(req.userEmail); // The authenticated user's email
+ * });
+ */
 function authenticateUser(req, res, next) {
   const userEmail = req.headers['x-user-email'];
   

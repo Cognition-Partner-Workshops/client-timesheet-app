@@ -1,3 +1,10 @@
+/**
+ * @fileoverview Client management routes for the Time Tracker application.
+ * Provides CRUD operations for managing client records associated with authenticated users.
+ * All routes require authentication via the x-user-email header.
+ * @module routes/clients
+ */
+
 const express = require('express');
 const { getDatabase } = require('../database/init');
 const { authenticateUser } = require('../middleware/auth');
@@ -5,10 +12,18 @@ const { clientSchema, updateClientSchema } = require('../validation/schemas');
 
 const router = express.Router();
 
-// All routes require authentication
+/** Apply authentication middleware to all routes in this module */
 router.use(authenticateUser);
 
-// Get all clients for authenticated user
+/**
+ * GET /api/clients
+ * Retrieves all clients belonging to the authenticated user.
+ * @route GET /api/clients
+ * @returns {Object} 200 - Success response with clients array
+ * @returns {Object} 500 - Internal server error
+ * @example
+ * // Response: { clients: [{ id, name, description, department, email, created_at, updated_at }] }
+ */
 router.get('/', (req, res) => {
   const db = getDatabase();
   
@@ -26,7 +41,16 @@ router.get('/', (req, res) => {
   );
 });
 
-// Get specific client
+/**
+ * GET /api/clients/:id
+ * Retrieves a specific client by ID for the authenticated user.
+ * @route GET /api/clients/:id
+ * @param {number} id - The client ID (URL parameter)
+ * @returns {Object} 200 - Success response with client object
+ * @returns {Object} 400 - Invalid client ID format
+ * @returns {Object} 404 - Client not found
+ * @returns {Object} 500 - Internal server error
+ */
 router.get('/:id', (req, res) => {
   const clientId = parseInt(req.params.id);
   
@@ -54,7 +78,19 @@ router.get('/:id', (req, res) => {
   );
 });
 
-// Create new client
+/**
+ * POST /api/clients
+ * Creates a new client for the authenticated user.
+ * @route POST /api/clients
+ * @param {Object} body - Request body
+ * @param {string} body.name - Client name (required)
+ * @param {string} [body.description] - Client description (optional)
+ * @param {string} [body.department] - Client department (optional)
+ * @param {string} [body.email] - Client email (optional)
+ * @returns {Object} 201 - Success response with created client
+ * @returns {Object} 400 - Validation error
+ * @returns {Object} 500 - Internal server error
+ */
 router.post('/', (req, res, next) => {
   try {
     const { error, value } = clientSchema.validate(req.body);
@@ -97,7 +133,22 @@ router.post('/', (req, res, next) => {
   }
 });
 
-// Update client
+/**
+ * PUT /api/clients/:id
+ * Updates an existing client for the authenticated user.
+ * Only provided fields will be updated; omitted fields remain unchanged.
+ * @route PUT /api/clients/:id
+ * @param {number} id - The client ID (URL parameter)
+ * @param {Object} body - Request body with fields to update
+ * @param {string} [body.name] - Updated client name
+ * @param {string} [body.description] - Updated client description
+ * @param {string} [body.department] - Updated client department
+ * @param {string} [body.email] - Updated client email
+ * @returns {Object} 200 - Success response with updated client
+ * @returns {Object} 400 - Invalid client ID or validation error
+ * @returns {Object} 404 - Client not found
+ * @returns {Object} 500 - Internal server error
+ */
 router.put('/:id', (req, res, next) => {
   try {
     const clientId = parseInt(req.params.id);
@@ -186,7 +237,16 @@ router.put('/:id', (req, res, next) => {
   }
 });
 
-// Delete all clients for authenticated user
+/**
+ * DELETE /api/clients
+ * Deletes all clients belonging to the authenticated user.
+ * Associated work entries are also deleted due to CASCADE constraint.
+ * @route DELETE /api/clients
+ * @returns {Object} 200 - Success response with deleted count
+ * @returns {Object} 500 - Internal server error
+ * @example
+ * // Response: { message: 'All clients deleted successfully', deletedCount: 5 }
+ */
 router.delete('/', (req, res) => {
   const db = getDatabase();
   
@@ -207,7 +267,17 @@ router.delete('/', (req, res) => {
   );
 });
 
-// Delete client
+/**
+ * DELETE /api/clients/:id
+ * Deletes a specific client by ID for the authenticated user.
+ * Associated work entries are also deleted due to CASCADE constraint.
+ * @route DELETE /api/clients/:id
+ * @param {number} id - The client ID (URL parameter)
+ * @returns {Object} 200 - Success response
+ * @returns {Object} 400 - Invalid client ID format
+ * @returns {Object} 404 - Client not found
+ * @returns {Object} 500 - Internal server error
+ */
 router.delete('/:id', (req, res) => {
   const clientId = parseInt(req.params.id);
   

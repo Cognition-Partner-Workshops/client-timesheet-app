@@ -1,10 +1,27 @@
+/**
+ * @fileoverview Database initialization and management for the Time Tracker application.
+ * Provides SQLite database connection management with in-memory storage.
+ * @module database/init
+ */
+
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
+/** @type {sqlite3.Database|null} The singleton database instance */
 let db = null;
+/** @type {boolean} Flag indicating if database is currently closing */
 let isClosing = false;
+/** @type {boolean} Flag indicating if database has been closed */
 let isClosed = false;
 
+/**
+ * Gets or creates the SQLite database connection.
+ * Uses a singleton pattern to ensure only one connection exists.
+ * The database is stored in-memory for this application.
+ * 
+ * @returns {sqlite3.Database} The SQLite database instance
+ * @throws {Error} If database connection fails
+ */
 function getDatabase() {
   if (!db) {
     // Reset state when creating a new database connection
@@ -22,6 +39,18 @@ function getDatabase() {
   return db;
 }
 
+/**
+ * Initializes the database schema by creating all required tables and indexes.
+ * Creates the following tables:
+ * - users: Stores user email addresses
+ * - clients: Stores client information linked to users
+ * - work_entries: Stores time tracking entries linked to clients and users
+ * 
+ * Also creates indexes for optimized query performance.
+ * 
+ * @async
+ * @returns {Promise<void>} Resolves when all tables and indexes are created
+ */
 async function initializeDatabase() {
   const database = getDatabase();
   
@@ -78,6 +107,13 @@ async function initializeDatabase() {
   });
 }
 
+/**
+ * Closes the database connection gracefully.
+ * Handles concurrent close requests and prevents double-closing.
+ * Resets the singleton instance to allow for reconnection if needed.
+ * 
+ * @returns {Promise<void>} Resolves when the database is closed
+ */
 function closeDatabase() {
   return new Promise((resolve, reject) => {
     if (isClosed) {
