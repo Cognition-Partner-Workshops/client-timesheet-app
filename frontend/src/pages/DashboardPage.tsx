@@ -1,3 +1,9 @@
+/**
+ * @fileoverview Dashboard page component displaying overview metrics and quick actions.
+ * Shows summary statistics for clients, work entries, and total hours worked.
+ * @module pages/DashboardPage
+ */
+
 import React from 'react';
 import {
   Grid,
@@ -18,6 +24,13 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '../api/client';
 
+/**
+ * Dashboard page component that displays an overview of the user's time tracking data.
+ * Features include summary statistics cards, recent work entries list, and quick action buttons.
+ * Uses React Query for data fetching with automatic caching and refetching.
+ * 
+ * @returns Dashboard page with metrics, recent entries, and navigation options
+ */
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
 

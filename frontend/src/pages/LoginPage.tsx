@@ -1,3 +1,9 @@
+/**
+ * @fileoverview Login page component for user authentication.
+ * Provides a simple email-based login form with validation and error handling.
+ * @module pages/LoginPage
+ */
+
 import React, { useState } from 'react';
 import {
   Container,
@@ -12,6 +18,13 @@ import {
 import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 
+/**
+ * Login page component that renders the authentication form.
+ * Allows users to log in with just their email address (no password required).
+ * Automatically redirects to dashboard on successful authentication.
+ * 
+ * @returns Login page with email form and error handling
+ */
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
