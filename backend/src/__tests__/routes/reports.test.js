@@ -12,18 +12,27 @@ jest.mock('csv-writer', () => ({
   }))
 }));
 jest.mock('pdfkit', () => {
-  return jest.fn().mockImplementation(() => ({
-    fontSize: jest.fn().mockReturnThis(),
-    text: jest.fn().mockReturnThis(),
-    moveDown: jest.fn().mockReturnThis(),
-    moveTo: jest.fn().mockReturnThis(),
-    lineTo: jest.fn().mockReturnThis(),
-    stroke: jest.fn().mockReturnThis(),
-    addPage: jest.fn().mockReturnThis(),
-    pipe: jest.fn(),
-    end: jest.fn(),
-    y: 100
-  }));
+  return jest.fn().mockImplementation(() => {
+    let pipedStream = null;
+    return {
+      fontSize: jest.fn().mockReturnThis(),
+      text: jest.fn().mockReturnThis(),
+      moveDown: jest.fn().mockReturnThis(),
+      moveTo: jest.fn().mockReturnThis(),
+      lineTo: jest.fn().mockReturnThis(),
+      stroke: jest.fn().mockReturnThis(),
+      addPage: jest.fn().mockReturnThis(),
+      pipe: jest.fn((stream) => {
+        pipedStream = stream;
+      }),
+      end: jest.fn(function() {
+        if (pipedStream) {
+          pipedStream.end();
+        }
+      }),
+      y: 100
+    };
+  });
 });
 
 const reportRoutes = require('../../routes/reports');
@@ -435,6 +444,195 @@ describe('Report Routes', () => {
         expect.stringContaining('SELECT id, name FROM clients'),
         expect.arrayContaining([1, 'test@example.com']),
         expect.any(Function)
+      );
+    });
+
+    test('should generate PDF with work entries successfully', async () => {
+      const mockClient = { id: 1, name: 'Test Client' };
+      const mockWorkEntries = [
+        { date: '2024-01-01', hours: 5, description: 'Work 1', created_at: '2024-01-01' },
+        { date: '2024-01-02', hours: 3.5, description: 'Work 2', created_at: '2024-01-02' }
+      ];
+
+      mockDb.get.mockImplementation((query, params, callback) => {
+        callback(null, mockClient);
+      });
+
+      mockDb.all.mockImplementation((query, params, callback) => {
+        callback(null, mockWorkEntries);
+      });
+
+      const response = await request(app).get('/api/reports/export/pdf/1');
+
+      expect(response.status).toBe(200);
+      expect(response.headers['content-type']).toBe('application/pdf');
+      expect(response.headers['content-disposition']).toContain('attachment');
+      expect(response.headers['content-disposition']).toContain('Test_Client_report_');
+    });
+
+    test('should generate PDF with empty work entries', async () => {
+      const mockClient = { id: 1, name: 'Empty Client' };
+
+      mockDb.get.mockImplementation((query, params, callback) => {
+        callback(null, mockClient);
+      });
+
+      mockDb.all.mockImplementation((query, params, callback) => {
+        callback(null, []);
+      });
+
+      const response = await request(app).get('/api/reports/export/pdf/1');
+
+      expect(response.status).toBe(200);
+      expect(response.headers['content-type']).toBe('application/pdf');
+    });
+
+    test('should handle work entries with null description in PDF', async () => {
+      const mockClient = { id: 1, name: 'Test Client' };
+      const mockWorkEntries = [
+        { date: '2024-01-01', hours: 5, description: null, created_at: '2024-01-01' }
+      ];
+
+      mockDb.get.mockImplementation((query, params, callback) => {
+        callback(null, mockClient);
+      });
+
+      mockDb.all.mockImplementation((query, params, callback) => {
+        callback(null, mockWorkEntries);
+      });
+
+      const response = await request(app).get('/api/reports/export/pdf/1');
+
+      expect(response.status).toBe(200);
+      expect(response.headers['content-type']).toBe('application/pdf');
+    });
+
+    test('should handle many work entries requiring page break in PDF', async () => {
+      const mockClient = { id: 1, name: 'Test Client' };
+      const mockWorkEntries = [];
+      for (let i = 0; i < 50; i++) {
+        mockWorkEntries.push({
+          date: `2024-01-${String(i + 1).padStart(2, '0')}`,
+          hours: 2,
+          description: `Work entry ${i + 1}`,
+          created_at: `2024-01-${String(i + 1).padStart(2, '0')}`
+        });
+      }
+
+      const PDFDocument = require('pdfkit');
+      let yValue = 100;
+      let pipedStream = null;
+      PDFDocument.mockImplementation(() => ({
+        fontSize: jest.fn().mockReturnThis(),
+        text: jest.fn().mockReturnThis(),
+        moveDown: jest.fn(function() {
+          yValue += 50;
+          return this;
+        }),
+        moveTo: jest.fn().mockReturnThis(),
+        lineTo: jest.fn().mockReturnThis(),
+        stroke: jest.fn().mockReturnThis(),
+        addPage: jest.fn().mockReturnThis(),
+        pipe: jest.fn((stream) => {
+          pipedStream = stream;
+        }),
+        end: jest.fn(function() {
+          if (pipedStream) {
+            pipedStream.end();
+          }
+        }),
+        get y() { return yValue; }
+      }));
+
+      mockDb.get.mockImplementation((query, params, callback) => {
+        callback(null, mockClient);
+      });
+
+      mockDb.all.mockImplementation((query, params, callback) => {
+        callback(null, mockWorkEntries);
+      });
+
+      const response = await request(app).get('/api/reports/export/pdf/1');
+
+      expect(response.status).toBe(200);
+    });
+
+    test('should sanitize client name with special characters in PDF filename', async () => {
+      const mockClient = { id: 1, name: 'Test/Client:Name*Special' };
+      const mockWorkEntries = [
+        { date: '2024-01-01', hours: 5, description: 'Work 1', created_at: '2024-01-01' }
+      ];
+
+      mockDb.get.mockImplementation((query, params, callback) => {
+        callback(null, mockClient);
+      });
+
+      mockDb.all.mockImplementation((query, params, callback) => {
+        callback(null, mockWorkEntries);
+      });
+
+      const response = await request(app).get('/api/reports/export/pdf/1');
+
+      expect(response.status).toBe(200);
+      expect(response.headers['content-disposition']).toContain('Test_Client_Name_Special_report_');
+    });
+  });
+
+  describe('CSV Export Full Success Path', () => {
+    test('should sanitize client name with special characters in CSV filename', async () => {
+      const mockClient = { id: 1, name: 'Test/Client:Name*Special' };
+      const mockWorkEntries = [];
+
+      mockDb.get.mockImplementation((query, params, callback) => {
+        callback(null, mockClient);
+      });
+
+      mockDb.all.mockImplementation((query, params, callback) => {
+        callback(null, mockWorkEntries);
+      });
+
+      const csvWriter = require('csv-writer');
+      csvWriter.createObjectCsvWriter.mockReturnValue({
+        writeRecords: jest.fn().mockRejectedValue(new Error('Write failed'))
+      });
+
+      await request(app).get('/api/reports/export/csv/1');
+
+      expect(csvWriter.createObjectCsvWriter).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: expect.stringContaining('Test_Client_Name_Special_report_')
+        })
+      );
+    });
+
+    test('should verify CSV writer is called with correct headers', async () => {
+      const mockClient = { id: 1, name: 'Test Client' };
+      const mockWorkEntries = [];
+
+      mockDb.get.mockImplementation((query, params, callback) => {
+        callback(null, mockClient);
+      });
+
+      mockDb.all.mockImplementation((query, params, callback) => {
+        callback(null, mockWorkEntries);
+      });
+
+      const csvWriter = require('csv-writer');
+      csvWriter.createObjectCsvWriter.mockReturnValue({
+        writeRecords: jest.fn().mockRejectedValue(new Error('Write failed'))
+      });
+
+      await request(app).get('/api/reports/export/csv/1');
+
+      expect(csvWriter.createObjectCsvWriter).toHaveBeenCalledWith(
+        expect.objectContaining({
+          header: expect.arrayContaining([
+            expect.objectContaining({ id: 'date', title: 'Date' }),
+            expect.objectContaining({ id: 'hours', title: 'Hours' }),
+            expect.objectContaining({ id: 'description', title: 'Description' }),
+            expect.objectContaining({ id: 'created_at', title: 'Created At' })
+          ])
+        })
       );
     });
   });
