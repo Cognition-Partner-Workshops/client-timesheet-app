@@ -21,6 +21,7 @@ import {
   Business as BusinessIcon,
   Assignment as AssignmentIcon,
   Assessment as AssessmentIcon,
+  TrendingUp as TrendingUpIcon,
   Logout as LogoutIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -42,12 +43,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     setMobileOpen(!mobileOpen);
   };
 
-  const menuItems = [
-    { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
-    { text: 'Clients', icon: <BusinessIcon />, path: '/clients' },
-    { text: 'Work Entries', icon: <AssignmentIcon />, path: '/work-entries' },
-    { text: 'Reports', icon: <AssessmentIcon />, path: '/reports' },
-  ];
+    const menuItems = [
+      { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
+      { text: 'Clients', icon: <BusinessIcon />, path: '/clients' },
+      { text: 'Work Entries', icon: <AssignmentIcon />, path: '/work-entries' },
+      { text: 'Reports', icon: <AssessmentIcon />, path: '/reports' },
+      { text: 'Analytics', icon: <TrendingUpIcon />, path: '/analytics' },
+    ];
 
   const drawer = (
     <div>

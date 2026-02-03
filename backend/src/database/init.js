@@ -31,6 +31,7 @@ async function initializeDatabase() {
       database.run(`
         CREATE TABLE IF NOT EXISTS users (
           email TEXT PRIMARY KEY,
+          location TEXT,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
       `);

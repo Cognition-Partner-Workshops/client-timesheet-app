@@ -30,9 +30,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     checkAuth();
   }, []);
 
-  const login = async (email: string) => {
+  const login = async (email: string, location?: string) => {
     try {
-      const response = await apiClient.login(email);
+      const response = await apiClient.login(email, location);
       setUser(response.user);
       localStorage.setItem('userEmail', email);
     } catch (error) {
@@ -56,3 +56,5 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
+
+export { useAuth } from '../hooks/useAuth';

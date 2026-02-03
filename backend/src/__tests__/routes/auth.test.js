@@ -67,9 +67,34 @@ describe('Auth Routes', () => {
       expect(response.status).toBe(201);
       expect(response.body.message).toBe('User created and logged in successfully');
       expect(response.body.user.email).toBe('newuser@example.com');
+      expect(response.body.user.location).toBe(null);
       expect(mockDb.run).toHaveBeenCalledWith(
-        'INSERT INTO users (email) VALUES (?)',
-        ['newuser@example.com'],
+        'INSERT INTO users (email, location) VALUES (?, ?)',
+        ['newuser@example.com', null],
+        expect.any(Function)
+      );
+    });
+
+    test('should create new user with location on first login', async () => {
+      mockDb.get.mockImplementation((query, params, callback) => {
+        callback(null, null); // User doesn't exist
+      });
+
+      mockDb.run.mockImplementation(function(query, params, callback) {
+        callback.call(this, null);
+      });
+
+      const response = await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'newuser@example.com', location: 'New York, USA' });
+
+      expect(response.status).toBe(201);
+      expect(response.body.message).toBe('User created and logged in successfully');
+      expect(response.body.user.email).toBe('newuser@example.com');
+      expect(response.body.user.location).toBe('New York, USA');
+      expect(mockDb.run).toHaveBeenCalledWith(
+        'INSERT INTO users (email, location) VALUES (?, ?)',
+        ['newuser@example.com', 'New York, USA'],
         expect.any(Function)
       );
     });

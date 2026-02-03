@@ -1,5 +1,6 @@
 export interface User {
   email: string;
+  location: string | null;
   createdAt: string;
 }
 
@@ -65,6 +66,7 @@ export interface UpdateWorkEntryRequest {
 
 export interface LoginRequest {
   email: string;
+  location?: string;
 }
 
 export interface LoginResponse {
