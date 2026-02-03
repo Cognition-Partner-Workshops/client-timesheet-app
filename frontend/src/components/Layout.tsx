@@ -51,21 +51,33 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const drawer = (
     <div>
-      <Toolbar>
-        <Typography variant="h6" noWrap component="div">
+      <Toolbar sx={{ background: 'linear-gradient(135deg, #0033A0 0%, #002080 100%)' }}>
+        <Typography variant="h6" noWrap component="div" sx={{ color: 'white', fontWeight: 700 }}>
           Time Tracker
         </Typography>
       </Toolbar>
       <List>
         {menuItems.map((item) => (
           <ListItem key={item.text} disablePadding>
-            <ListItemButton
-              selected={location.pathname === item.path}
-              onClick={() => navigate(item.path)}
-            >
-              <ListItemIcon>{item.icon}</ListItemIcon>
-              <ListItemText primary={item.text} />
-            </ListItemButton>
+              <ListItemButton
+                selected={location.pathname === item.path}
+                onClick={() => navigate(item.path)}
+                sx={{
+                  '&.Mui-selected': {
+                    backgroundColor: 'rgba(0, 51, 160, 0.08)',
+                    borderRight: '3px solid #0033A0',
+                    '&:hover': {
+                      backgroundColor: 'rgba(0, 51, 160, 0.12)',
+                    },
+                  },
+                  '&:hover': {
+                    backgroundColor: 'rgba(0, 51, 160, 0.04)',
+                  },
+                }}
+              >
+                <ListItemIcon sx={{ color: location.pathname === item.path ? '#0033A0' : 'inherit' }}>{item.icon}</ListItemIcon>
+                <ListItemText primary={item.text} sx={{ '& .MuiTypography-root': { fontWeight: location.pathname === item.path ? 600 : 400, color: location.pathname === item.path ? '#0033A0' : 'inherit' } }} />
+              </ListItemButton>
           </ListItem>
         ))}
       </List>
@@ -80,6 +92,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         sx={{
           width: { sm: `calc(100% - ${drawerWidth}px)` },
           ml: { sm: `${drawerWidth}px` },
+          background: 'linear-gradient(135deg, #0033A0 0%, #002080 100%)',
         }}
       >
         <Toolbar>
