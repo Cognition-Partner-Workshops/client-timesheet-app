@@ -401,6 +401,7 @@ describe('Report Routes', () => {
 
       expect(fs.mkdirSync).not.toHaveBeenCalled();
     });
+
   });
 
 
@@ -436,6 +437,125 @@ describe('Report Routes', () => {
         expect.arrayContaining([1, 'test@example.com']),
         expect.any(Function)
       );
+    });
+
+  });
+
+  describe('Null Object Checks', () => {
+    test('should handle null client ID parameter', async () => {
+      const response = await request(app).get('/api/reports/client/null');
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({ error: 'Invalid client ID' });
+    });
+
+    test('should handle undefined client ID parameter', async () => {
+      const response = await request(app).get('/api/reports/client/undefined');
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({ error: 'Invalid client ID' });
+    });
+
+    test('should handle null client from database', async () => {
+      mockDb.get.mockImplementation((query, params, callback) => {
+        callback(null, null);
+      });
+
+      const response = await request(app).get('/api/reports/client/1');
+
+      expect(response.status).toBe(404);
+      expect(response.body).toEqual({ error: 'Client not found' });
+    });
+
+    test('should handle null work entries array from database', async () => {
+      mockDb.get.mockImplementation((query, params, callback) => {
+        callback(null, { id: 1, name: 'Test Client' });
+      });
+
+      mockDb.all.mockImplementation((query, params, callback) => {
+        callback(null, null);
+      });
+
+      const response = await request(app).get('/api/reports/client/1');
+
+      expect(response.status).toBe(500);
+    });
+
+    test('should handle null client ID for CSV export', async () => {
+      const response = await request(app).get('/api/reports/export/csv/null');
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({ error: 'Invalid client ID' });
+    });
+
+    test('should handle undefined client ID for CSV export', async () => {
+      const response = await request(app).get('/api/reports/export/csv/undefined');
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({ error: 'Invalid client ID' });
+    });
+
+    test('should handle null client ID for PDF export', async () => {
+      const response = await request(app).get('/api/reports/export/pdf/null');
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({ error: 'Invalid client ID' });
+    });
+
+    test('should handle undefined client ID for PDF export', async () => {
+      const response = await request(app).get('/api/reports/export/pdf/undefined');
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({ error: 'Invalid client ID' });
+    });
+
+    test('should handle client with null name', async () => {
+      mockDb.get.mockImplementation((query, params, callback) => {
+        callback(null, { id: 1, name: null });
+      });
+
+      mockDb.all.mockImplementation((query, params, callback) => {
+        callback(null, []);
+      });
+
+      const response = await request(app).get('/api/reports/client/1');
+
+      expect(response.status).toBe(200);
+      expect(response.body.client.name).toBeNull();
+    });
+
+    test('should handle work entry with null hours', async () => {
+      mockDb.get.mockImplementation((query, params, callback) => {
+        callback(null, { id: 1, name: 'Test Client' });
+      });
+
+      mockDb.all.mockImplementation((query, params, callback) => {
+        callback(null, [
+          { id: 1, hours: null, description: 'Work 1', date: '2024-01-01' }
+        ]);
+      });
+
+      const response = await request(app).get('/api/reports/client/1');
+
+      expect(response.status).toBe(200);
+      expect(response.body.totalHours).toBeNull();
+    });
+
+    test('should handle work entry with null description', async () => {
+      mockDb.get.mockImplementation((query, params, callback) => {
+        callback(null, { id: 1, name: 'Test Client' });
+      });
+
+      mockDb.all.mockImplementation((query, params, callback) => {
+        callback(null, [
+          { id: 1, hours: 5, description: null, date: '2024-01-01' }
+        ]);
+      });
+
+      const response = await request(app).get('/api/reports/client/1');
+
+      expect(response.status).toBe(200);
+      expect(response.body.workEntries[0].description).toBeNull();
     });
   });
 });

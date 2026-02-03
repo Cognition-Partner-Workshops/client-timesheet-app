@@ -199,4 +199,67 @@ describe('Auth Routes', () => {
       expect(response.body).toEqual({ error: 'Internal server error' });
     });
   });
+
+  describe('Null Object Checks', () => {
+    test('should handle null body in login request', async () => {
+      const response = await request(app)
+        .post('/api/auth/login')
+        .send(null);
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('Validation error');
+    });
+
+    test('should handle undefined body in login request', async () => {
+      const response = await request(app)
+        .post('/api/auth/login')
+        .send(undefined);
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('Validation error');
+    });
+
+    test('should handle null email in login body', async () => {
+      const response = await request(app)
+        .post('/api/auth/login')
+        .send({ email: null });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('Validation error');
+    });
+
+    test('should handle undefined email in login body', async () => {
+      const response = await request(app)
+        .post('/api/auth/login')
+        .send({ email: undefined });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('Validation error');
+    });
+
+    test('should handle database returning null user in login', async () => {
+      mockDb.get.mockImplementation((query, params, callback) => {
+        callback(null, null);
+      });
+
+      mockDb.run.mockImplementation(function(query, params, callback) {
+        callback.call(this, null);
+      });
+
+      const response = await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'newuser@example.com' });
+
+      expect(response.status).toBe(201);
+      expect(response.body.message).toBe('User created and logged in successfully');
+    });
+
+    test('should handle null x-user-email header in /me endpoint', async () => {
+      const response = await request(app)
+        .get('/api/auth/me')
+        .set('x-user-email', '');
+
+      expect(response.status).toBe(401);
+    });
+  });
 });

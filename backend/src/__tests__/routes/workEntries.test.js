@@ -585,4 +585,145 @@ describe('Work Entry Routes', () => {
       expect(response.body.message).toBe('Work entry updated successfully');
     });
   });
+
+  describe('Null Object Checks', () => {
+    test('should handle null body in POST request', async () => {
+      const response = await request(app)
+        .post('/api/work-entries')
+        .send(null);
+
+      expect(response.status).toBe(400);
+    });
+
+    test('should handle undefined body in POST request', async () => {
+      const response = await request(app)
+        .post('/api/work-entries')
+        .send(undefined);
+
+      expect(response.status).toBe(400);
+    });
+
+    test('should handle null body in PUT request', async () => {
+      const response = await request(app)
+        .put('/api/work-entries/1')
+        .send(null);
+
+      expect(response.status).toBe(400);
+    });
+
+    test('should handle undefined body in PUT request', async () => {
+      const response = await request(app)
+        .put('/api/work-entries/1')
+        .send(undefined);
+
+      expect(response.status).toBe(400);
+    });
+
+    test('should handle null clientId in POST body', async () => {
+      const response = await request(app)
+        .post('/api/work-entries')
+        .send({ clientId: null, hours: 5, date: '2024-01-15' });
+
+      expect(response.status).toBe(400);
+    });
+
+    test('should handle null hours in POST body', async () => {
+      const response = await request(app)
+        .post('/api/work-entries')
+        .send({ clientId: 1, hours: null, date: '2024-01-15' });
+
+      expect(response.status).toBe(400);
+    });
+
+    test('should handle null date in POST body', async () => {
+      const response = await request(app)
+        .post('/api/work-entries')
+        .send({ clientId: 1, hours: 5, date: null });
+
+      expect(response.status).toBe(400);
+    });
+
+    test('should handle null clientId in PUT body', async () => {
+      mockDb.get.mockImplementationOnce((query, params, callback) => {
+        callback(null, { id: 1 });
+      });
+
+      const response = await request(app)
+        .put('/api/work-entries/1')
+        .send({ clientId: null });
+
+      expect(response.status).toBe(400);
+    });
+
+    test('should handle null hours in PUT body', async () => {
+      mockDb.get.mockImplementationOnce((query, params, callback) => {
+        callback(null, { id: 1 });
+      });
+
+      const response = await request(app)
+        .put('/api/work-entries/1')
+        .send({ hours: null });
+
+      expect(response.status).toBe(400);
+    });
+
+    test('should handle database returning null rows array', async () => {
+      mockDb.all.mockImplementation((query, params, callback) => {
+        callback(null, null);
+      });
+
+      const response = await request(app).get('/api/work-entries');
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({ workEntries: null });
+    });
+
+    test('should handle null work entry ID parameter', async () => {
+      const response = await request(app).get('/api/work-entries/null');
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({ error: 'Invalid work entry ID' });
+    });
+
+    test('should handle undefined work entry ID parameter', async () => {
+      const response = await request(app).get('/api/work-entries/undefined');
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({ error: 'Invalid work entry ID' });
+    });
+  });
+
+  describe('Catch Block Error Handling', () => {
+    test('should handle unexpected error in POST route catch block', async () => {
+      const workEntrySchema = require('../../validation/schemas').workEntrySchema;
+      const originalValidate = workEntrySchema.validate;
+      workEntrySchema.validate = jest.fn(() => {
+        throw new Error('Unexpected validation error');
+      });
+
+      const response = await request(app)
+        .post('/api/work-entries')
+        .send({ clientId: 1, hours: 5, date: '2024-01-15' });
+
+      expect(response.status).toBe(500);
+
+      workEntrySchema.validate = originalValidate;
+    });
+
+    test('should handle unexpected error in PUT route catch block', async () => {
+      const updateWorkEntrySchema = require('../../validation/schemas').updateWorkEntrySchema;
+      const originalValidate = updateWorkEntrySchema.validate;
+      updateWorkEntrySchema.validate = jest.fn(() => {
+        throw new Error('Unexpected validation error');
+      });
+
+      const response = await request(app)
+        .put('/api/work-entries/1')
+        .send({ hours: 8 });
+
+      expect(response.status).toBe(500);
+
+      updateWorkEntrySchema.validate = originalValidate;
+    });
+  });
 });

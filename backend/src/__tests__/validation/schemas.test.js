@@ -325,4 +325,176 @@ describe('Validation Schemas', () => {
       expect(error).toBeUndefined();
     });
   });
+
+  describe('Null Object Checks', () => {
+    describe('clientSchema null checks', () => {
+      test('should reject null input', () => {
+        const { error } = clientSchema.validate(null);
+        expect(error).toBeDefined();
+      });
+
+      test('should not reject undefined input (Joi treats undefined as not provided)', () => {
+        const { error } = clientSchema.validate(undefined);
+        expect(error).toBeUndefined();
+      });
+
+      test('should reject null name', () => {
+        const client = {
+          name: null,
+          description: 'Test description'
+        };
+
+        const { error } = clientSchema.validate(client);
+        expect(error).toBeDefined();
+      });
+
+      test('should reject null description', () => {
+        const client = {
+          name: 'Test Client',
+          description: null
+        };
+
+        const { error } = clientSchema.validate(client);
+        expect(error).toBeDefined();
+      });
+    });
+
+    describe('workEntrySchema null checks', () => {
+      test('should reject null input', () => {
+        const { error } = workEntrySchema.validate(null);
+        expect(error).toBeDefined();
+      });
+
+      test('should not reject undefined input (Joi treats undefined as not provided)', () => {
+        const { error } = workEntrySchema.validate(undefined);
+        expect(error).toBeUndefined();
+      });
+
+      test('should reject null clientId', () => {
+        const entry = {
+          clientId: null,
+          hours: 5,
+          date: '2024-01-15'
+        };
+
+        const { error } = workEntrySchema.validate(entry);
+        expect(error).toBeDefined();
+      });
+
+      test('should reject null hours', () => {
+        const entry = {
+          clientId: 1,
+          hours: null,
+          date: '2024-01-15'
+        };
+
+        const { error } = workEntrySchema.validate(entry);
+        expect(error).toBeDefined();
+      });
+
+      test('should reject null date', () => {
+        const entry = {
+          clientId: 1,
+          hours: 5,
+          date: null
+        };
+
+        const { error } = workEntrySchema.validate(entry);
+        expect(error).toBeDefined();
+      });
+
+      test('should reject null description', () => {
+        const entry = {
+          clientId: 1,
+          hours: 5,
+          description: null,
+          date: '2024-01-15'
+        };
+
+        const { error } = workEntrySchema.validate(entry);
+        expect(error).toBeDefined();
+      });
+    });
+
+    describe('updateWorkEntrySchema null checks', () => {
+      test('should reject null input', () => {
+        const { error } = updateWorkEntrySchema.validate(null);
+        expect(error).toBeDefined();
+      });
+
+      test('should not reject undefined input (Joi treats undefined as not provided)', () => {
+        const { error } = updateWorkEntrySchema.validate(undefined);
+        expect(error).toBeUndefined();
+      });
+
+      test('should reject null clientId in update', () => {
+        const update = {
+          clientId: null
+        };
+
+        const { error } = updateWorkEntrySchema.validate(update);
+        expect(error).toBeDefined();
+      });
+
+      test('should reject null hours in update', () => {
+        const update = {
+          hours: null
+        };
+
+        const { error } = updateWorkEntrySchema.validate(update);
+        expect(error).toBeDefined();
+      });
+
+      test('should reject null date in update', () => {
+        const update = {
+          date: null
+        };
+
+        const { error } = updateWorkEntrySchema.validate(update);
+        expect(error).toBeDefined();
+      });
+    });
+
+    describe('updateClientSchema null checks', () => {
+      test('should reject null input', () => {
+        const { error } = updateClientSchema.validate(null);
+        expect(error).toBeDefined();
+      });
+
+      test('should not reject undefined input (Joi treats undefined as not provided)', () => {
+        const { error } = updateClientSchema.validate(undefined);
+        expect(error).toBeUndefined();
+      });
+
+      test('should reject null name in update', () => {
+        const update = {
+          name: null
+        };
+
+        const { error } = updateClientSchema.validate(update);
+        expect(error).toBeDefined();
+      });
+    });
+
+    describe('emailSchema null checks', () => {
+      test('should reject null input', () => {
+        const { error } = emailSchema.validate(null);
+        expect(error).toBeDefined();
+      });
+
+      test('should not reject undefined input (Joi treats undefined as not provided)', () => {
+        const { error } = emailSchema.validate(undefined);
+        expect(error).toBeUndefined();
+      });
+
+      test('should reject null email', () => {
+        const data = {
+          email: null
+        };
+
+        const { error } = emailSchema.validate(data);
+        expect(error).toBeDefined();
+      });
+    });
+  });
 });
