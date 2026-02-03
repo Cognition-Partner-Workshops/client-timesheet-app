@@ -134,6 +134,86 @@ describe('Auth Routes', () => {
       expect(response.status).toBe(500);
       expect(response.body).toEqual({ error: 'Internal server error' });
     });
+
+    test('should reject email with spaces', async () => {
+      const response = await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'test @example.com' });
+
+      expect(response.status).toBe(400);
+    });
+
+    test('should reject email with multiple @ symbols', async () => {
+      const response = await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'test@@example.com' });
+
+      expect(response.status).toBe(400);
+    });
+
+    test('should reject empty string email', async () => {
+      const response = await request(app)
+        .post('/api/auth/login')
+        .send({ email: '' });
+
+      expect(response.status).toBe(400);
+    });
+
+    test('should reject email with only whitespace', async () => {
+      const response = await request(app)
+        .post('/api/auth/login')
+        .send({ email: '   ' });
+
+      expect(response.status).toBe(400);
+    });
+
+    test('should reject null email', async () => {
+      const response = await request(app)
+        .post('/api/auth/login')
+        .send({ email: null });
+
+      expect(response.status).toBe(400);
+    });
+
+    test('should reject numeric email', async () => {
+      const response = await request(app)
+        .post('/api/auth/login')
+        .send({ email: 12345 });
+
+      expect(response.status).toBe(400);
+    });
+
+    test('should reject array as email', async () => {
+      const response = await request(app)
+        .post('/api/auth/login')
+        .send({ email: ['test@example.com'] });
+
+      expect(response.status).toBe(400);
+    });
+
+    test('should reject object as email', async () => {
+      const response = await request(app)
+        .post('/api/auth/login')
+        .send({ email: { value: 'test@example.com' } });
+
+      expect(response.status).toBe(400);
+    });
+
+    test('should handle request with wrong field name', async () => {
+      const response = await request(app)
+        .post('/api/auth/login')
+        .send({ userEmail: 'test@example.com' });
+
+      expect(response.status).toBe(400);
+    });
+
+    test('should reject request with extra fields', async () => {
+      const response = await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'test@example.com', password: 'secret', extra: 'field' });
+
+      expect(response.status).toBe(400);
+    });
   });
 
   describe('GET /api/auth/me', () => {
