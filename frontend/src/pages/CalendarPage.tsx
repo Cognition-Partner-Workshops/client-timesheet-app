@@ -107,14 +107,24 @@ const CalendarPage: React.FC = () => {
     return clientsData?.clients || [];
   }, [clientsData?.clients]);
 
+  const parseEntryDate = (date: string | number): Date => {
+    if (typeof date === 'number') {
+      return new Date(date);
+    }
+    return parseISO(date);
+  };
+
   const highlightedDays = useMemo(() => {
-    return workEntries.map((entry) => parseISO(entry.date));
+    return workEntries
+      .filter((entry) => entry.date != null)
+      .map((entry) => parseEntryDate(entry.date));
   }, [workEntries]);
 
   const entriesForSelectedDate = useMemo(() => {
-    return workEntries.filter((entry) =>
-      isSameDay(parseISO(entry.date), selectedDate)
-    );
+    return workEntries.filter((entry) => {
+      if (entry.date == null) return false;
+      return isSameDay(parseEntryDate(entry.date), selectedDate);
+    });
   }, [workEntries, selectedDate]);
 
   const totalHoursForSelectedDate = useMemo(() => {
