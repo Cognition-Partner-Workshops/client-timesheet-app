@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import LoginPage from './LoginPage';
-import { AuthContext, type AuthContextType } from '../contexts/AuthContextDef';
+import { AuthContext, type AuthContextType } from '../contexts/AuthContextValue';
 
 const mockNavigate = vi.fn();
 

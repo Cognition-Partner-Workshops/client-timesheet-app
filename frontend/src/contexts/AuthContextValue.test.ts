@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { AuthContext, type AuthContextType } from './AuthContextDef';
+import { AuthContext, type AuthContextType } from './AuthContextValue';
 
-describe('AuthContextDef', () => {
+describe('AuthContextValue', () => {
   describe('AuthContext', () => {
     it('should be defined', () => {
       expect(AuthContext).toBeDefined();

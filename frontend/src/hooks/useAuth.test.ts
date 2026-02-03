@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import React from 'react';
 import { useAuth } from './useAuth';
-import { AuthContext, type AuthContextType } from '../contexts/AuthContextDef';
+import { AuthContext, type AuthContextType } from '../contexts/AuthContextValue';
 
 describe('useAuth', () => {
   const mockAuthContext: AuthContextType = {
