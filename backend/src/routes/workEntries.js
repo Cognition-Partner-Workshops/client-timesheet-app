@@ -1,14 +1,60 @@
+/**
+ * @fileoverview Work entry management routes for time tracking operations.
+ * 
+ * Provides RESTful endpoints for managing work entry records including:
+ * - Listing all work entries with optional client filtering
+ * - Retrieving individual work entry details
+ * - Creating new work entries
+ * - Updating existing work entries
+ * - Deleting work entries
+ * 
+ * All routes require authentication via the x-user-email header.
+ * Work entries are linked to both clients and users for data isolation.
+ * 
+ * @module routes/workEntries
+ */
+
 const express = require('express');
 const { getDatabase } = require('../database/init');
 const { authenticateUser } = require('../middleware/auth');
 const { workEntrySchema, updateWorkEntrySchema } = require('../validation/schemas');
 
+/**
+ * Express router for work entry management endpoints.
+ * @type {import('express').Router}
+ */
 const router = express.Router();
 
-// All routes require authentication
+/**
+ * Apply authentication middleware to all work entry routes.
+ * Ensures only authenticated users can access work entry data.
+ */
 router.use(authenticateUser);
 
-// Get all work entries for authenticated user (with optional client filter)
+/**
+ * @route GET /api/work-entries
+ * @description Retrieves all work entries for the authenticated user.
+ * Supports optional filtering by client ID. Results include client name
+ * and are sorted by date (descending) and creation time (descending).
+ * 
+ * @param {string} [req.query.clientId] - Optional client ID to filter entries
+ * 
+ * @returns {Object} 200 - Array of work entry objects with client names
+ * @returns {Object} 400 - Invalid client ID format
+ * @returns {Object} 401 - Unauthorized (missing authentication)
+ * @returns {Object} 500 - Internal server error
+ * 
+ * @example
+ * // Request (all entries)
+ * GET /api/work-entries
+ * Headers: { "x-user-email": "user@example.com" }
+ * 
+ * // Request (filtered by client)
+ * GET /api/work-entries?clientId=1
+ * 
+ * // Response
+ * { "workEntries": [{ "id": 1, "client_id": 1, "hours": 8, "client_name": "Acme Corp", ... }] }
+ */
 router.get('/', (req, res) => {
   const { clientId } = req.query;
   const db = getDatabase();
@@ -44,7 +90,28 @@ router.get('/', (req, res) => {
   });
 });
 
-// Get specific work entry
+/**
+ * @route GET /api/work-entries/:id
+ * @description Retrieves a specific work entry by ID.
+ * Only returns the entry if it belongs to the authenticated user.
+ * Includes the associated client name in the response.
+ * 
+ * @param {string} req.params.id - The work entry ID (must be a valid integer)
+ * 
+ * @returns {Object} 200 - Work entry object with client name
+ * @returns {Object} 400 - Invalid work entry ID format
+ * @returns {Object} 401 - Unauthorized (missing authentication)
+ * @returns {Object} 404 - Work entry not found or doesn't belong to user
+ * @returns {Object} 500 - Internal server error
+ * 
+ * @example
+ * // Request
+ * GET /api/work-entries/1
+ * Headers: { "x-user-email": "user@example.com" }
+ * 
+ * // Response
+ * { "workEntry": { "id": 1, "client_id": 1, "hours": 8, "client_name": "Acme Corp", ... } }
+ */
 router.get('/:id', (req, res) => {
   const workEntryId = parseInt(req.params.id);
   
@@ -76,7 +143,31 @@ router.get('/:id', (req, res) => {
   );
 });
 
-// Create new work entry
+/**
+ * @route POST /api/work-entries
+ * @description Creates a new work entry for time tracking.
+ * Validates that the specified client exists and belongs to the user.
+ * 
+ * @param {Object} req.body - Request body
+ * @param {number} req.body.clientId - ID of the client to associate with (required)
+ * @param {number} req.body.hours - Hours worked (required, 0.01-24, up to 2 decimal places)
+ * @param {string} [req.body.description] - Description of work performed (optional, max 1000 chars)
+ * @param {string} req.body.date - Date of work in ISO format (required, e.g., "2024-01-15")
+ * 
+ * @returns {Object} 201 - Work entry created successfully with entry object
+ * @returns {Object} 400 - Validation error or client not found
+ * @returns {Object} 401 - Unauthorized (missing authentication)
+ * @returns {Object} 500 - Internal server error
+ * 
+ * @example
+ * // Request
+ * POST /api/work-entries
+ * Headers: { "x-user-email": "user@example.com" }
+ * Body: { "clientId": 1, "hours": 8, "description": "Development work", "date": "2024-01-15" }
+ * 
+ * // Response
+ * { "message": "Work entry created successfully", "workEntry": { "id": 1, "hours": 8, ... } }
+ */
 router.post('/', (req, res, next) => {
   try {
     const { error, value } = workEntrySchema.validate(req.body);
@@ -140,7 +231,35 @@ router.post('/', (req, res, next) => {
   }
 });
 
-// Update work entry
+/**
+ * @route PUT /api/work-entries/:id
+ * @description Updates an existing work entry.
+ * Only allows updating entries that belong to the authenticated user.
+ * Supports partial updates (only provided fields are updated).
+ * If changing the client, validates that the new client belongs to the user.
+ * 
+ * @param {string} req.params.id - The work entry ID (must be a valid integer)
+ * @param {Object} req.body - Request body (at least one field required)
+ * @param {number} [req.body.clientId] - Updated client ID
+ * @param {number} [req.body.hours] - Updated hours (0.01-24, up to 2 decimal places)
+ * @param {string} [req.body.description] - Updated description (max 1000 characters)
+ * @param {string} [req.body.date] - Updated date in ISO format
+ * 
+ * @returns {Object} 200 - Work entry updated successfully with updated entry object
+ * @returns {Object} 400 - Invalid ID, validation error, or client not found
+ * @returns {Object} 401 - Unauthorized (missing authentication)
+ * @returns {Object} 404 - Work entry not found or doesn't belong to user
+ * @returns {Object} 500 - Internal server error
+ * 
+ * @example
+ * // Request
+ * PUT /api/work-entries/1
+ * Headers: { "x-user-email": "user@example.com" }
+ * Body: { "hours": 6, "description": "Updated description" }
+ * 
+ * // Response
+ * { "message": "Work entry updated successfully", "workEntry": { "id": 1, "hours": 6, ... } }
+ */
 router.put('/:id', (req, res, next) => {
   try {
     const workEntryId = parseInt(req.params.id);
@@ -156,7 +275,6 @@ router.put('/:id', (req, res, next) => {
 
     const db = getDatabase();
 
-    // Check if work entry exists and belongs to user
     db.get(
       'SELECT id FROM work_entries WHERE id = ? AND user_email = ?',
       [workEntryId, req.userEmail],
@@ -257,7 +375,27 @@ router.put('/:id', (req, res, next) => {
   }
 });
 
-// Delete work entry
+/**
+ * @route DELETE /api/work-entries/:id
+ * @description Deletes a work entry.
+ * Only allows deleting entries that belong to the authenticated user.
+ * 
+ * @param {string} req.params.id - The work entry ID (must be a valid integer)
+ * 
+ * @returns {Object} 200 - Work entry deleted successfully
+ * @returns {Object} 400 - Invalid work entry ID format
+ * @returns {Object} 401 - Unauthorized (missing authentication)
+ * @returns {Object} 404 - Work entry not found or doesn't belong to user
+ * @returns {Object} 500 - Internal server error
+ * 
+ * @example
+ * // Request
+ * DELETE /api/work-entries/1
+ * Headers: { "x-user-email": "user@example.com" }
+ * 
+ * // Response
+ * { "message": "Work entry deleted successfully" }
+ */
 router.delete('/:id', (req, res) => {
   const workEntryId = parseInt(req.params.id);
   
@@ -267,7 +405,6 @@ router.delete('/:id', (req, res) => {
   
   const db = getDatabase();
   
-  // Check if work entry exists and belongs to user
   db.get(
     'SELECT id FROM work_entries WHERE id = ? AND user_email = ?',
     [workEntryId, req.userEmail],
@@ -281,7 +418,6 @@ router.delete('/:id', (req, res) => {
         return res.status(404).json({ error: 'Work entry not found' });
       }
       
-      // Delete work entry
       db.run(
         'DELETE FROM work_entries WHERE id = ? AND user_email = ?',
         [workEntryId, req.userEmail],
