@@ -210,13 +210,33 @@ npm run dev  # Starts Vite dev server with HMR
 
 ### Running Tests
 
-**Backend:**
+**Backend Unit Tests:**
 ```bash
 cd backend
 npm test                    # Run all tests
 npm run test:coverage       # Run tests with coverage report
 npm run test:watch          # Run tests in watch mode
 ```
+
+**End-to-End Tests (Selenium):**
+```bash
+cd e2e
+npm install                 # Install E2E test dependencies
+npm test                    # Run all E2E tests
+npm run test:verbose        # Run E2E tests with verbose output
+```
+
+**E2E Test Prerequisites:**
+- Both backend and frontend servers must be running
+- Backend: `cd backend && npm run dev` (runs on port 3001)
+- Frontend: `cd frontend && npm run dev` (runs on port 5173)
+- Chrome browser installed (Selenium Manager handles ChromeDriver automatically)
+
+**E2E Test Coverage:**
+The E2E test suite validates the following user workflows:
+- Login page display and form validation
+- User authentication and dashboard redirect
+- Navigation between Dashboard, Clients, Work Entries, and Reports pages
 
 ### Test Coverage
 
