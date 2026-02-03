@@ -1,3 +1,13 @@
+/**
+ * @fileoverview Work entry management routes for the Time Tracker API.
+ * 
+ * This module provides CRUD endpoints for managing work entries (time logs).
+ * Each work entry belongs to a client and records hours worked on a specific date.
+ * All routes require authentication via the x-user-email header.
+ * 
+ * @module routes/workEntries
+ */
+
 const express = require('express');
 const { getDatabase } = require('../database/init');
 const { authenticateUser } = require('../middleware/auth');
@@ -5,10 +15,21 @@ const { workEntrySchema, updateWorkEntrySchema } = require('../validation/schema
 
 const router = express.Router();
 
-// All routes require authentication
 router.use(authenticateUser);
 
-// Get all work entries for authenticated user (with optional client filter)
+/**
+ * GET /api/work-entries
+ * 
+ * Retrieves all work entries for the authenticated user.
+ * Optionally filters by client ID. Results include client name and
+ * are sorted by date (newest first).
+ * 
+ * @route GET /api/work-entries
+ * @param {number} [req.query.clientId] - Optional client ID to filter entries
+ * @returns {Object} 200 - Array of work entry objects with client names
+ * @returns {Object} 400 - Invalid client ID format
+ * @returns {Object} 500 - Database error
+ */
 router.get('/', (req, res) => {
   const { clientId } = req.query;
   const db = getDatabase();
@@ -44,7 +65,19 @@ router.get('/', (req, res) => {
   });
 });
 
-// Get specific work entry
+/**
+ * GET /api/work-entries/:id
+ * 
+ * Retrieves a specific work entry by ID. Only returns the entry if it
+ * belongs to the authenticated user.
+ * 
+ * @route GET /api/work-entries/:id
+ * @param {number} req.params.id - Work entry ID
+ * @returns {Object} 200 - Work entry object with client name
+ * @returns {Object} 400 - Invalid work entry ID format
+ * @returns {Object} 404 - Work entry not found
+ * @returns {Object} 500 - Database error
+ */
 router.get('/:id', (req, res) => {
   const workEntryId = parseInt(req.params.id);
   
@@ -76,7 +109,22 @@ router.get('/:id', (req, res) => {
   );
 });
 
-// Create new work entry
+/**
+ * POST /api/work-entries
+ * 
+ * Creates a new work entry for time tracking. Validates that the specified
+ * client exists and belongs to the authenticated user.
+ * 
+ * @route POST /api/work-entries
+ * @param {Object} req.body - Work entry data
+ * @param {number} req.body.clientId - ID of the client (required)
+ * @param {number} req.body.hours - Hours worked, 0.01 to 24 (required)
+ * @param {string} [req.body.description] - Description of work performed
+ * @param {string} req.body.date - Date of work in YYYY-MM-DD format (required)
+ * @returns {Object} 201 - Created work entry object
+ * @returns {Object} 400 - Validation error or client not found
+ * @returns {Object} 500 - Database error
+ */
 router.post('/', (req, res, next) => {
   try {
     const { error, value } = workEntrySchema.validate(req.body);
@@ -140,7 +188,24 @@ router.post('/', (req, res, next) => {
   }
 });
 
-// Update work entry
+/**
+ * PUT /api/work-entries/:id
+ * 
+ * Updates an existing work entry. Only updates fields that are provided.
+ * If changing the client, validates that the new client belongs to the user.
+ * 
+ * @route PUT /api/work-entries/:id
+ * @param {number} req.params.id - Work entry ID
+ * @param {Object} req.body - Partial work entry data
+ * @param {number} [req.body.clientId] - New client ID
+ * @param {number} [req.body.hours] - New hours value
+ * @param {string} [req.body.description] - New description
+ * @param {string} [req.body.date] - New date
+ * @returns {Object} 200 - Updated work entry object
+ * @returns {Object} 400 - Invalid ID, validation error, or client not found
+ * @returns {Object} 404 - Work entry not found
+ * @returns {Object} 500 - Database error
+ */
 router.put('/:id', (req, res, next) => {
   try {
     const workEntryId = parseInt(req.params.id);
@@ -257,7 +322,19 @@ router.put('/:id', (req, res, next) => {
   }
 });
 
-// Delete work entry
+/**
+ * DELETE /api/work-entries/:id
+ * 
+ * Deletes a work entry. Only allows deleting entries owned by the
+ * authenticated user.
+ * 
+ * @route DELETE /api/work-entries/:id
+ * @param {number} req.params.id - Work entry ID
+ * @returns {Object} 200 - Deletion confirmation message
+ * @returns {Object} 400 - Invalid work entry ID format
+ * @returns {Object} 404 - Work entry not found
+ * @returns {Object} 500 - Database error
+ */
 router.delete('/:id', (req, res) => {
   const workEntryId = parseInt(req.params.id);
   
