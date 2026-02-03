@@ -1,3 +1,10 @@
+/**
+ * @fileoverview Login page component for the Client Timesheet Application.
+ * Provides email-based authentication interface for users to access the application.
+ * 
+ * @module pages/LoginPage
+ */
+
 import React, { useState } from 'react';
 import {
   Container,
@@ -12,6 +19,13 @@ import {
 import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 
+/**
+ * Login page component providing email-based authentication.
+ * Users enter their email address to log in or create a new account.
+ * Redirects to dashboard on successful authentication.
+ * 
+ * @returns Login form component
+ */
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');

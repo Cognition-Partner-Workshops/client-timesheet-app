@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Reports page for the Client Timesheet Application.
+ * Provides client-specific time reports with aggregated statistics and
+ * export functionality for CSV and PDF formats.
+ * 
+ * @module pages/ReportsPage
+ */
+
 import React, { useState } from 'react';
 import {
   Box,
@@ -31,6 +39,14 @@ import { useQuery } from '@tanstack/react-query';
 import apiClient from '../api/client';
 import { type ClientReport } from '../types/api';
 
+/**
+ * Reports page component for viewing and exporting client time reports.
+ * Displays aggregated statistics (total hours, entry count, average hours)
+ * and a detailed table of work entries for the selected client.
+ * Supports exporting reports in CSV and PDF formats.
+ * 
+ * @returns Reports page component with client selector and report display
+ */
 const ReportsPage: React.FC = () => {
   const [selectedClientId, setSelectedClientId] = useState<number>(0);
   const [error, setError] = useState('');

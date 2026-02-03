@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Main layout component for the Client Timesheet Application.
+ * Provides responsive navigation with a sidebar drawer and top app bar.
+ * Handles mobile/desktop layout switching and navigation state.
+ * 
+ * @module components/Layout
+ */
+
 import React, { type ReactNode } from 'react';
 import {
   AppBar,
@@ -26,12 +34,31 @@ import {
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
+/** Width of the navigation drawer in pixels */
 const drawerWidth = 240;
 
+/**
+ * Props for the Layout component.
+ */
 interface LayoutProps {
+  /** Child components to render in the main content area */
   children: ReactNode;
 }
 
+/**
+ * Main layout component providing navigation structure for authenticated pages.
+ * Features a responsive sidebar drawer that collapses on mobile devices,
+ * a top app bar with user info and logout button, and a main content area.
+ * 
+ * @param props - Component props
+ * @param props.children - Child components to render in the main content area
+ * @returns Layout component with navigation and content areas
+ * 
+ * @example
+ * <Layout>
+ *   <DashboardPage />
+ * </Layout>
+ */
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();

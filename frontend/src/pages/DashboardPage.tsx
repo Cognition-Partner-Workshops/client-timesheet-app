@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Dashboard page component for the Client Timesheet Application.
+ * Displays summary statistics including total clients, work entries, and hours logged.
+ * Provides quick navigation to other sections of the application.
+ * 
+ * @module pages/DashboardPage
+ */
+
 import React from 'react';
 import {
   Grid,
@@ -18,6 +26,14 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '../api/client';
 
+/**
+ * Dashboard page component displaying summary statistics and quick actions.
+ * Shows total number of clients, work entries, and hours logged in card format.
+ * Includes recent work entries list and quick action buttons for navigation.
+ * Uses React Query for data fetching with automatic caching.
+ * 
+ * @returns Dashboard component with statistics cards, recent entries, and quick actions
+ */
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
 
