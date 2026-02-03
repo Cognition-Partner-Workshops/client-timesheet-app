@@ -4,7 +4,8 @@ import apiClient from '../api/client';
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
   isAuthenticated: boolean;
@@ -47,13 +48,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     checkAuth();
   }, []);
 
-  const login = async (email: string) => {
+  const login = async (email: string, password: string) => {
     try {
-      const response = await apiClient.login(email);
+      const response = await apiClient.login(email, password);
       setUser(response.user);
       localStorage.setItem('userEmail', email);
     } catch (error) {
       console.error('Login failed:', error);
+      throw error;
+    }
+  };
+
+  const register = async (email: string, password: string) => {
+    try {
+      const response = await apiClient.register(email, password);
+      setUser(response.user);
+      localStorage.setItem('userEmail', email);
+    } catch (error) {
+      console.error('Registration failed:', error);
       throw error;
     }
   };
@@ -66,6 +78,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const value: AuthContextType = {
     user,
     login,
+    register,
     logout,
     isLoading,
     isAuthenticated: !!user,

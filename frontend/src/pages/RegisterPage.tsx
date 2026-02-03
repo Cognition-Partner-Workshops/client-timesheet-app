@@ -12,25 +12,37 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
-const LoginPage: React.FC = () => {
+const RegisterPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const { register } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      await login(email, password);
+      await register(email, password);
       navigate('/dashboard');
     } catch (err: unknown) {
       const error = err as { response?: { data?: { error?: string } } };
-      setError(error.response?.data?.error || 'Login failed. Please try again.');
+      setError(error.response?.data?.error || 'Registration failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -52,7 +64,7 @@ const LoginPage: React.FC = () => {
           Time Tracker
         </Typography>
         <Typography variant="body2" align="center" color="text.secondary" sx={{ mb: 2 }}>
-          Enter your credentials to log in
+          Create a new account
         </Typography>
         
         {error && (
@@ -83,9 +95,23 @@ const LoginPage: React.FC = () => {
             label="Password"
             name="password"
             type="password"
-            autoComplete="current-password"
+            autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            disabled={isLoading}
+            helperText="Password must be at least 6 characters"
+          />
+          <TextField
+            margin="normal"
+            required
+            fullWidth
+            id="confirmPassword"
+            label="Confirm Password"
+            name="confirmPassword"
+            type="password"
+            autoComplete="new-password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
             disabled={isLoading}
           />
           <Button
@@ -93,19 +119,19 @@ const LoginPage: React.FC = () => {
             fullWidth
             variant="contained"
             sx={{ mt: 2, mb: 1 }}
-            disabled={isLoading || !email || !password}
+            disabled={isLoading || !email || !password || !confirmPassword}
           >
-            {isLoading ? <CircularProgress size={24} /> : 'Log In'}
+            {isLoading ? <CircularProgress size={24} /> : 'Register'}
           </Button>
           <Typography variant="body2" align="center" sx={{ mt: 2 }}>
-            Don't have an account?{' '}
+            Already have an account?{' '}
             <Button
               variant="text"
               size="small"
-              onClick={() => navigate('/register')}
+              onClick={() => navigate('/login')}
               disabled={isLoading}
             >
-              Register
+              Log In
             </Button>
           </Typography>
         </Box>
@@ -115,4 +141,4 @@ const LoginPage: React.FC = () => {
   );
 };
 
-export default LoginPage;
+export default RegisterPage;
