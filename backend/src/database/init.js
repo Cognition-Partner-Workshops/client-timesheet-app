@@ -60,7 +60,8 @@ async function initializeDatabase() {
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (client_id) REFERENCES clients (id) ON DELETE CASCADE,
-          FOREIGN KEY (user_email) REFERENCES users (email) ON DELETE CASCADE
+          FOREIGN KEY (user_email) REFERENCES users (email) ON DELETE CASCADE,
+          UNIQUE (client_id, user_email, date)
         )
       `);
 

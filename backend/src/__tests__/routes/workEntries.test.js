@@ -131,10 +131,17 @@ describe('Work Entry Routes', () => {
         date: '2024-01-15'
       };
 
+      let getCallCount = 0;
       mockDb.get.mockImplementation((query, params, callback) => {
-        if (query.includes('clients')) {
-          callback(null, { id: 1 }); // Client exists
+        getCallCount++;
+        if (getCallCount === 1) {
+          // First call: check if client exists
+          callback(null, { id: 1 });
+        } else if (getCallCount === 2) {
+          // Second call: check for duplicate entry - no duplicate
+          callback(null, null);
         } else {
+          // Third call: retrieve created entry
           callback(null, { id: 1, ...newEntry, client_name: 'Client A' });
         }
       });
@@ -202,8 +209,16 @@ describe('Work Entry Routes', () => {
     });
 
     test('should handle database error on insert', async () => {
+      let getCallCount = 0;
       mockDb.get.mockImplementation((query, params, callback) => {
-        callback(null, { id: 1 });
+        getCallCount++;
+        if (getCallCount === 1) {
+          // First call: check if client exists
+          callback(null, { id: 1 });
+        } else {
+          // Second call: check for duplicate entry - no duplicate
+          callback(null, null);
+        }
       });
 
       mockDb.run.mockImplementation((query, params, callback) => {
@@ -406,8 +421,13 @@ describe('Work Entry Routes', () => {
       mockDb.get.mockImplementation((query, params, callback) => {
         getCallCount++;
         if (getCallCount === 1) {
+          // First call: check if client exists
           callback(null, { id: 1 });
+        } else if (getCallCount === 2) {
+          // Second call: check for duplicate entry - no duplicate
+          callback(null, null);
         } else {
+          // Third call: retrieve created entry - fails
           callback(new Error('Retrieval failed'), null);
         }
       });
@@ -583,6 +603,124 @@ describe('Work Entry Routes', () => {
 
       expect(response.status).toBe(200);
       expect(response.body.message).toBe('Work entry updated successfully');
+    });
+  });
+
+  describe('POST /api/work-entries - Duplicate Entry Prevention', () => {
+    test('should return 409 when creating duplicate entry for same client and date', async () => {
+      let getCallCount = 0;
+      mockDb.get.mockImplementation((query, params, callback) => {
+        getCallCount++;
+        if (getCallCount === 1) {
+          // First call: check if client exists
+          callback(null, { id: 1 });
+        } else {
+          // Second call: check for existing entry - return existing entry
+          callback(null, { id: 5 });
+        }
+      });
+
+      const response = await request(app)
+        .post('/api/work-entries')
+        .send({
+          clientId: 1,
+          hours: 5,
+          date: '2024-01-15'
+        });
+
+      expect(response.status).toBe(409);
+      expect(response.body.error).toBe('A work entry already exists for this client on this date. Please update the existing entry instead.');
+    });
+
+    test('should allow creating entry for same client on different date', async () => {
+      let getCallCount = 0;
+      mockDb.get.mockImplementation((query, params, callback) => {
+        getCallCount++;
+        if (getCallCount === 1) {
+          // First call: check if client exists
+          callback(null, { id: 1 });
+        } else if (getCallCount === 2) {
+          // Second call: check for existing entry - no duplicate found
+          callback(null, null);
+        } else {
+          // Third call: retrieve created entry
+          callback(null, { id: 1, client_id: 1, hours: 5, date: '2024-01-16', client_name: 'Client A' });
+        }
+      });
+
+      mockDb.run.mockImplementation(function(query, params, callback) {
+        this.lastID = 1;
+        callback.call(this, null);
+      });
+
+      const response = await request(app)
+        .post('/api/work-entries')
+        .send({
+          clientId: 1,
+          hours: 5,
+          date: '2024-01-16'
+        });
+
+      expect(response.status).toBe(201);
+      expect(response.body.message).toBe('Work entry created successfully');
+    });
+
+    test('should allow creating entry for different client on same date', async () => {
+      let getCallCount = 0;
+      mockDb.get.mockImplementation((query, params, callback) => {
+        getCallCount++;
+        if (getCallCount === 1) {
+          // First call: check if client exists
+          callback(null, { id: 2 });
+        } else if (getCallCount === 2) {
+          // Second call: check for existing entry - no duplicate found
+          callback(null, null);
+        } else {
+          // Third call: retrieve created entry
+          callback(null, { id: 1, client_id: 2, hours: 5, date: '2024-01-15', client_name: 'Client B' });
+        }
+      });
+
+      mockDb.run.mockImplementation(function(query, params, callback) {
+        this.lastID = 1;
+        callback.call(this, null);
+      });
+
+      const response = await request(app)
+        .post('/api/work-entries')
+        .send({
+          clientId: 2,
+          hours: 5,
+          date: '2024-01-15'
+        });
+
+      expect(response.status).toBe(201);
+      expect(response.body.message).toBe('Work entry created successfully');
+    });
+
+    test('should handle database error when checking for duplicate entry', async () => {
+      let getCallCount = 0;
+      mockDb.get.mockImplementation((query, params, callback) => {
+        getCallCount++;
+        if (getCallCount === 1) {
+          // First call: check if client exists
+          callback(null, { id: 1 });
+        } else {
+          // Second call: check for existing entry - database error
+          callback(new Error('Database error'), null);
+        }
+      });
+
+      const response = await request(app)
+        .post('/api/work-entries')
+        .send({
+          clientId: 1,
+          hours: 5,
+          date: '2024-01-15'
+        });
+
+      expect(response.status).toBe(500);
+      expect(response.body).toEqual({ error: 'Internal server error' });
     });
   });
 });

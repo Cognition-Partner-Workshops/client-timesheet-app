@@ -101,34 +101,52 @@ router.post('/', (req, res, next) => {
           return res.status(400).json({ error: 'Client not found or does not belong to user' });
         }
 
-        // Create work entry
-        db.run(
-          'INSERT INTO work_entries (client_id, user_email, hours, description, date) VALUES (?, ?, ?, ?, ?)',
-          [clientId, req.userEmail, hours, description || null, date],
-          function(err) {
+        // Check for duplicate entry (same client, user, and date)
+        db.get(
+          'SELECT id FROM work_entries WHERE client_id = ? AND user_email = ? AND date = ?',
+          [clientId, req.userEmail, date],
+          (err, existingEntry) => {
             if (err) {
               console.error('Database error:', err);
-              return res.status(500).json({ error: 'Failed to create work entry' });
+              return res.status(500).json({ error: 'Internal server error' });
             }
 
-            // Return the created work entry with client name
-            db.get(
-              `SELECT we.id, we.client_id, we.hours, we.description, we.date, 
-                      we.created_at, we.updated_at, c.name as client_name
-               FROM work_entries we
-               JOIN clients c ON we.client_id = c.id
-               WHERE we.id = ?`,
-              [this.lastID],
-              (err, row) => {
+            if (existingEntry) {
+              return res.status(409).json({ 
+                error: 'A work entry already exists for this client on this date. Please update the existing entry instead.' 
+              });
+            }
+
+            // Create work entry
+            db.run(
+              'INSERT INTO work_entries (client_id, user_email, hours, description, date) VALUES (?, ?, ?, ?, ?)',
+              [clientId, req.userEmail, hours, description || null, date],
+              function(err) {
                 if (err) {
                   console.error('Database error:', err);
-                  return res.status(500).json({ error: 'Work entry created but failed to retrieve' });
+                  return res.status(500).json({ error: 'Failed to create work entry' });
                 }
 
-                res.status(201).json({
-                  message: 'Work entry created successfully',
-                  workEntry: row
-                });
+                // Return the created work entry with client name
+                db.get(
+                  `SELECT we.id, we.client_id, we.hours, we.description, we.date, 
+                          we.created_at, we.updated_at, c.name as client_name
+                   FROM work_entries we
+                   JOIN clients c ON we.client_id = c.id
+                   WHERE we.id = ?`,
+                  [this.lastID],
+                  (err, row) => {
+                    if (err) {
+                      console.error('Database error:', err);
+                      return res.status(500).json({ error: 'Work entry created but failed to retrieve' });
+                    }
+
+                    res.status(201).json({
+                      message: 'Work entry created successfully',
+                      workEntry: row
+                    });
+                  }
+                );
               }
             );
           }
