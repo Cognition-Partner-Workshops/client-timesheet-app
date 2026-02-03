@@ -1,0 +1,120 @@
+name: NPM Security Audit and Fix
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  npm-audit-fix:
+    name: NPM Audit and Fix Vulnerabilities
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, 'chore: fix npm audit vulnerabilities')"
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref || github.ref_name }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run npm audit on backend
+        id: backend-audit
+        working-directory: ./backend
+        continue-on-error: true
+        run: |
+          echo "Running npm audit on backend..."
+          npm audit --audit-level=high > audit-output.txt 2>&1 || true
+          if grep -q "found 0 vulnerabilities" audit-output.txt; then
+            echo "has_vulnerabilities=false" >> $GITHUB_OUTPUT
+            echo "No vulnerabilities found in backend"
+          else
+            echo "has_vulnerabilities=true" >> $GITHUB_OUTPUT
+            echo "Vulnerabilities found in backend:"
+            cat audit-output.txt
+          fi
+
+      - name: Run npm audit fix on backend
+        if: steps.backend-audit.outputs.has_vulnerabilities == 'true'
+        working-directory: ./backend
+        run: |
+          echo "Running npm audit fix on backend..."
+          npm audit fix || true
+          echo "Backend npm audit fix completed"
+
+      - name: Run npm audit on frontend
+        id: frontend-audit
+        working-directory: ./frontend
+        continue-on-error: true
+        run: |
+          echo "Running npm audit on frontend..."
+          npm audit --audit-level=high > audit-output.txt 2>&1 || true
+          if grep -q "found 0 vulnerabilities" audit-output.txt; then
+            echo "has_vulnerabilities=false" >> $GITHUB_OUTPUT
+            echo "No vulnerabilities found in frontend"
+          else
+            echo "has_vulnerabilities=true" >> $GITHUB_OUTPUT
+            echo "Vulnerabilities found in frontend:"
+            cat audit-output.txt
+          fi
+
+      - name: Run npm audit fix on frontend
+        if: steps.frontend-audit.outputs.has_vulnerabilities == 'true'
+        working-directory: ./frontend
+        run: |
+          echo "Running npm audit fix on frontend..."
+          npm audit fix || true
+          echo "Frontend npm audit fix completed"
+
+      - name: Check for changes
+        id: check-changes
+        run: |
+          if git diff --quiet; then
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+            echo "No changes to commit"
+          else
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+            echo "Changes detected:"
+            git diff --stat
+          fi
+
+      - name: Commit and push changes
+        if: steps.check-changes.outputs.has_changes == 'true'
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: fix npm audit vulnerabilities [skip ci]"
+          file_pattern: "backend/package.json backend/package-lock.json frontend/package.json frontend/package-lock.json"
+          commit_user_name: "github-actions[bot]"
+          commit_user_email: "github-actions[bot]@users.noreply.github.com"
+
+      - name: Summary
+        run: |
+          echo "## NPM Audit Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ steps.backend-audit.outputs.has_vulnerabilities }}" == "true" ]; then
+            echo "- Backend: Vulnerabilities found and fixed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- Backend: No vulnerabilities found" >> $GITHUB_STEP_SUMMARY
+          fi
+          if [ "${{ steps.frontend-audit.outputs.has_vulnerabilities }}" == "true" ]; then
+            echo "- Frontend: Vulnerabilities found and fixed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- Frontend: No vulnerabilities found" >> $GITHUB_STEP_SUMMARY
+          fi
+          if [ "${{ steps.check-changes.outputs.has_changes }}" == "true" ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Changes were committed and pushed to fix vulnerabilities." >> $GITHUB_STEP_SUMMARY
+          fi
