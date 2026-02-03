@@ -1,0 +1,210 @@
+name: CodeQL SAST Analysis
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+jobs:
+  analyze:
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ['javascript-typescript']
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          config-file: ./.github/codeql/codeql-config.yml
+          queries: +security-extended,security-and-quality
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Frontend Dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Install Backend Dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Build Frontend
+        working-directory: ./frontend
+        run: npm run build || true
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ matrix.language }}"
+          output: codeql-results
+          upload: true
+
+      - name: Upload CodeQL results as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: codeql-results
+          path: codeql-results
+          retention-days: 30
+
+  custom-security-checks:
+    name: Custom Security Checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check for SQL Injection vulnerabilities
+        run: |
+          echo "=== Checking for potential SQL Injection patterns ==="
+          
+          # Check for string concatenation in SQL queries
+          if grep -rn "db\.\(run\|get\|all\|exec\).*\+" backend/src/ 2>/dev/null | grep -v "test"; then
+            echo "[WARN] Potential SQL injection via string concatenation found"
+          else
+            echo "[PASS] No obvious SQL injection via concatenation"
+          fi
+          
+          # Check for template literals in SQL without parameterization
+          if grep -rn 'db\.\(run\|get\|all\|exec\).*`.*\${' backend/src/ 2>/dev/null | grep -v "test"; then
+            echo "[WARN] Potential SQL injection via template literals found"
+          else
+            echo "[PASS] No obvious SQL injection via template literals"
+          fi
+          
+          echo "SQL injection check completed"
+
+      - name: Check for XSS vulnerabilities
+        run: |
+          echo "=== Checking for potential XSS patterns ==="
+          
+          # Check for dangerouslySetInnerHTML in React
+          if grep -rn "dangerouslySetInnerHTML" frontend/src/ 2>/dev/null; then
+            echo "[WARN] dangerouslySetInnerHTML found - verify input sanitization"
+          else
+            echo "[PASS] No dangerouslySetInnerHTML usage found"
+          fi
+          
+          # Check for innerHTML usage
+          if grep -rn "\.innerHTML\s*=" frontend/src/ backend/src/ 2>/dev/null; then
+            echo "[WARN] innerHTML assignment found - potential XSS risk"
+          else
+            echo "[PASS] No innerHTML assignments found"
+          fi
+          
+          # Check for document.write
+          if grep -rn "document\.write" frontend/src/ 2>/dev/null; then
+            echo "[WARN] document.write found - potential XSS risk"
+          else
+            echo "[PASS] No document.write usage found"
+          fi
+          
+          echo "XSS check completed"
+
+      - name: Check for Authentication Bypass vulnerabilities
+        run: |
+          echo "=== Checking for potential Authentication Bypass patterns ==="
+          
+          # Check for routes without authentication middleware
+          if grep -rn "router\.\(get\|post\|put\|delete\)" backend/src/routes/ 2>/dev/null | grep -v "authenticateUser" | grep -v "test" | grep -v "auth.js"; then
+            echo "[INFO] Routes found - verify authentication is applied"
+          fi
+          
+          # Check for JWT verification issues
+          if grep -rn "jwt\.verify.*algorithms" backend/src/ 2>/dev/null; then
+            echo "[PASS] JWT algorithm specification found"
+          else
+            echo "[WARN] JWT verification may not specify algorithms - verify implementation"
+          fi
+          
+          # Check for hardcoded secrets
+          if grep -rn "secret.*=.*['\"]" backend/src/ 2>/dev/null | grep -v "process\.env" | grep -v "test"; then
+            echo "[WARN] Potential hardcoded secrets found"
+          else
+            echo "[PASS] No obvious hardcoded secrets in backend"
+          fi
+          
+          echo "Authentication bypass check completed"
+
+      - name: Check for Insecure Dependencies patterns
+        run: |
+          echo "=== Checking for insecure dependency patterns ==="
+          
+          # Check for eval usage
+          if grep -rn "\beval\s*(" backend/src/ frontend/src/ 2>/dev/null | grep -v "test"; then
+            echo "[WARN] eval() usage found - potential code injection risk"
+          else
+            echo "[PASS] No eval() usage found"
+          fi
+          
+          # Check for Function constructor
+          if grep -rn "new\s*Function\s*(" backend/src/ frontend/src/ 2>/dev/null | grep -v "test"; then
+            echo "[WARN] Function constructor found - potential code injection risk"
+          else
+            echo "[PASS] No Function constructor usage found"
+          fi
+          
+          # Check for child_process without input validation
+          if grep -rn "child_process\|exec\|spawn" backend/src/ 2>/dev/null | grep -v "test"; then
+            echo "[WARN] child_process usage found - verify input validation"
+          else
+            echo "[PASS] No child_process usage found"
+          fi
+          
+          echo "Insecure dependency patterns check completed"
+
+      - name: Check for Path Traversal vulnerabilities
+        run: |
+          echo "=== Checking for potential Path Traversal patterns ==="
+          
+          # Check for path operations with user input
+          if grep -rn "path\.join.*req\." backend/src/ 2>/dev/null | grep -v "test"; then
+            echo "[WARN] Path operations with request data found - verify sanitization"
+          else
+            echo "[PASS] No obvious path traversal risks"
+          fi
+          
+          # Check for fs operations with user input
+          if grep -rn "fs\.\(readFile\|writeFile\|unlink\).*req\." backend/src/ 2>/dev/null | grep -v "test"; then
+            echo "[WARN] File operations with request data found - verify sanitization"
+          else
+            echo "[PASS] No obvious file operation risks"
+          fi
+          
+          echo "Path traversal check completed"
+
+      - name: Generate Security Summary
+        run: |
+          echo "=== Custom Security Checks Summary ==="
+          echo ""
+          echo "The following security patterns were checked:"
+          echo "1. SQL Injection (string concatenation, template literals)"
+          echo "2. XSS (dangerouslySetInnerHTML, innerHTML, document.write)"
+          echo "3. Authentication Bypass (unprotected routes, JWT issues)"
+          echo "4. Code Injection (eval, Function constructor, child_process)"
+          echo "5. Path Traversal (path operations, file operations)"
+          echo ""
+          echo "Review any [WARN] items above for potential security issues."
+          echo "These checks complement CodeQL analysis and should not replace thorough security review."
