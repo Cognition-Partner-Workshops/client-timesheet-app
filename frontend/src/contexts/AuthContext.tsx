@@ -1,12 +1,61 @@
+/**
+ * @fileoverview Authentication context for the Client Timesheet application.
+ * Provides global authentication state management using React Context API.
+ * 
+ * @module contexts/AuthContext
+ * @description This module exports the AuthProvider component and useAuth hook
+ * for managing user authentication state throughout the application.
+ * 
+ * @example
+ * ```tsx
+ * // Wrap your app with AuthProvider
+ * <AuthProvider>
+ *   <App />
+ * </AuthProvider>
+ * 
+ * // Use the hook in components
+ * const { user, login, logout, isAuthenticated } = useAuth();
+ * ```
+ */
+
 import React, { useState, useEffect, type ReactNode } from 'react';
 import { type User } from '../types/api';
 import apiClient from '../api/client';
 import { AuthContext, type AuthContextType } from './AuthContextValue';
 
+/**
+ * Props for the AuthProvider component.
+ * @interface AuthProviderProps
+ */
 interface AuthProviderProps {
+  /** Child components that will have access to auth context */
   children: ReactNode;
 }
 
+/**
+ * Authentication provider component that wraps the application.
+ * Manages user authentication state and provides login/logout functionality.
+ * 
+ * @component
+ * @param {AuthProviderProps} props - Component props
+ * @returns {JSX.Element} Provider component wrapping children
+ * 
+ * @example
+ * ```tsx
+ * // In your main App file
+ * import { AuthProvider } from './contexts/AuthContext';
+ * 
+ * function App() {
+ *   return (
+ *     <AuthProvider>
+ *       <Router>
+ *         <Routes />
+ *       </Router>
+ *     </AuthProvider>
+ *   );
+ * }
+ * ```
+ */
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
