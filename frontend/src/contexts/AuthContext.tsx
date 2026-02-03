@@ -1,7 +1,7 @@
 import React, { useState, useEffect, type ReactNode } from 'react';
 import { type User } from '../types/api';
 import apiClient from '../api/client';
-import { AuthContext, type AuthContextType } from './AuthContextValue';
+import { AuthContext, type AuthContextType } from './AuthContextDef';
 
 interface AuthProviderProps {
   children: ReactNode;
