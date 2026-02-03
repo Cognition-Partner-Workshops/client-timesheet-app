@@ -24,11 +24,13 @@ const DashboardPage: React.FC = () => {
   const { data: clientsData } = useQuery({
     queryKey: ['clients'],
     queryFn: () => apiClient.getClients(),
+    staleTime: 0,
   });
 
   const { data: workEntriesData } = useQuery({
     queryKey: ['workEntries'],
     queryFn: () => apiClient.getWorkEntries(),
+    staleTime: 0,
   });
 
   const clients = clientsData?.clients || [];
