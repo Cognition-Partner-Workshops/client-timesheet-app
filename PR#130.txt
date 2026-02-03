@@ -1,0 +1,86 @@
+PR #130: Fix data persistence and make clients visible to all users
+=====================================================================
+
+URL: https://github.com/Cognition-Partner-Workshops/client-timesheet-app/pull/130
+Status: Open (All CI checks passed)
+Branch: devin/1770110743-fix-data-persistence -> main
+Files Changed: 5 (+40 lines, -24 lines)
+
+SUMMARY
+-------
+This PR addresses three issues in the Client Timesheet Application:
+
+1. DATA PERSISTENCE FIX
+-----------------------
+Problem: Records were not being retained across server restarts because the 
+backend was using an in-memory SQLite database (:memory:), which loses all 
+data when the server stops.
+
+Changes:
+- Changed default database from in-memory to file-based storage at ./data/timesheet.db
+- Added DATABASE_PATH environment variable for custom database location
+- Added automatic directory creation for the database file
+- Updated test assertion to accommodate the new log message format
+
+2. SHARED CLIENTS ACROSS USERS
+------------------------------
+Problem: Clients were isolated per user (each user could only see their own clients).
+Per user request, clients should be visible to all authenticated users.
+
+Changes:
+- Removed user_email filter from GET /api/clients (list all clients)
+- Removed user_email filter from GET /api/clients/:id (get specific client)
+- Removed user_email filter from PUT /api/clients/:id (any user can update any client)
+- Removed user_email filter from DELETE /api/clients/:id (any user can delete any client)
+- Updated test to reflect new shared visibility behavior
+
+Note: Work entries remain user-specific (only the user who created them can see/modify them).
+
+3. PRODUCTION DATABASE SCHEMA FIX
+---------------------------------
+Problem: "Failed to create client" error in production because the Docker 
+override database schema was missing the department and email columns.
+
+Changes:
+- Added department TEXT and email TEXT columns to docker/overrides/database/init.js
+
+FILES CHANGED
+-------------
+1. backend/src/database/init.js - Changed to file-based database
+2. backend/src/__tests__/database/init.test.js - Updated test assertion
+3. backend/src/routes/clients.js - Removed user_email filters for shared visibility
+4. backend/src/__tests__/routes/clients.test.js - Updated test for new behavior
+5. docker/overrides/database/init.js - Added missing department and email columns
+
+COMMITS
+-------
+1. fef4b1a - Fix data persistence by using file-based SQLite database
+2. a818ebd - Make clients visible to all authenticated users
+3. 01958e2 - Merge origin/main into devin/1770110743-fix-data-persistence
+4. 5b462c8 - Fix production database schema - add missing department and email columns
+5. 4f7b08f - Merge origin/main - resolve conflict in clients.js
+
+POST-MERGE ACTIONS REQUIRED
+---------------------------
+After merging, the existing production database may need manual migration 
+since CREATE TABLE IF NOT EXISTS won't modify existing tables.
+
+Run this SQL on the production database:
+  ALTER TABLE clients ADD COLUMN department TEXT;
+  ALTER TABLE clients ADD COLUMN email TEXT;
+
+Or delete the existing database file to recreate it with the new schema.
+
+TESTING CHECKLIST
+-----------------
+[ ] Verify shared client visibility: Login as User A, create a client, logout, 
+    login as User B, confirm the client is visible
+[ ] Verify any user can edit/delete clients: As User B, try editing and deleting 
+    a client created by User A
+[ ] Verify data persistence: Create data, restart server, confirm data is retained
+[ ] Test client creation in production: After deploying, verify creating a new 
+    client no longer returns "Failed to create client"
+
+DEVIN SESSION
+-------------
+Link to Devin run: https://partner-workshops.devinenterprise.com/sessions/663cacb24b3c4e02a38b124b49b53d20
