@@ -3,16 +3,20 @@
   "version": "1.0.0",
   "description": "Backend API for employee time tracking application",
   "main": "src/server.js",
-  "scripts": {
-    "start": "node src/server.js",
-    "dev": "nodemon src/server.js",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
-    "test:coverage:html": "jest --coverage && open coverage/index.html",
-    "test:verbose": "jest --verbose",
-    "test:ci": "jest --coverage --ci --maxWorkers=2"
-  },
+    "scripts": {
+      "start": "node src/server.js",
+      "dev": "nodemon src/server.js",
+      "test": "jest",
+      "test:watch": "jest --watch",
+      "test:coverage": "jest --coverage",
+      "test:coverage:html": "jest --coverage && open coverage/index.html",
+      "test:verbose": "jest --verbose",
+      "test:ci": "jest --coverage --ci --maxWorkers=2",
+      "migrate": "node src/database/migrations/migrate.js",
+      "migrate:seed": "node src/database/migrations/migrate.js --seed",
+      "migrate:reset": "node src/database/migrations/migrate.js --reset --seed",
+      "migrate:status": "node src/database/migrations/migrate.js --status"
+    },
   "dependencies": {
     "cors": "^2.8.5",
     "csv-writer": "^1.6.0",
