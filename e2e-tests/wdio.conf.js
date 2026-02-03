@@ -1,3 +1,42 @@
+function getBrowserName() {
+    const browser = process.env.BROWSER || 'chrome';
+    const validBrowsers = ['chrome', 'firefox', 'MicrosoftEdge'];
+    if (validBrowsers.includes(browser)) {
+        return browser;
+    }
+    return 'chrome';
+}
+
+function getServices() {
+    const browserName = getBrowserName();
+    const services = [];
+    
+    if (browserName === 'chrome') {
+        services.push('chromedriver');
+    } else if (browserName === 'firefox') {
+        services.push('geckodriver');
+    } else if (browserName === 'MicrosoftEdge') {
+        services.push('edgedriver');
+    } else {
+        services.push('chromedriver');
+    }
+    
+    return services;
+}
+
+function getChromeOptions() {
+    const options = {
+        args: ['--no-sandbox', '--disable-dev-shm-usage']
+    };
+    if (process.env.HEADLESS === 'true') {
+        options.args.push('--headless', '--disable-gpu');
+    }
+    if (process.env.CHROME_BIN) {
+        options.binary = process.env.CHROME_BIN;
+    }
+    return options;
+}
+
 export const config = {
     runner: 'local',
     specs: [
@@ -7,16 +46,11 @@ export const config = {
     maxInstances: 1,
     capabilities: [{
         browserName: getBrowserName(),
-        'goog:chromeOptions': {
-            binary: process.env.CHROME_BIN || undefined,
-            args: process.env.HEADLESS === 'true' ? ['--headless', '--disable-gpu', '--no-sandbox', '--disable-dev-shm-usage'] : ['--no-sandbox', '--disable-dev-shm-usage']
-        },
+        'goog:chromeOptions': getChromeOptions(),
         'moz:firefoxOptions': {
-            binary: process.env.FIREFOX_BIN || undefined,
             args: process.env.HEADLESS === 'true' ? ['-headless'] : []
         },
         'ms:edgeOptions': {
-            binary: process.env.EDGE_BIN || undefined,
             args: process.env.HEADLESS === 'true' ? ['--headless', '--disable-gpu'] : []
         }
     }],
@@ -50,29 +84,3 @@ export const config = {
         await browser.execute('window.localStorage.clear()');
     }
 };
-
-function getBrowserName() {
-    const browser = process.env.BROWSER || 'chrome';
-    const validBrowsers = ['chrome', 'firefox', 'MicrosoftEdge'];
-    if (validBrowsers.includes(browser)) {
-        return browser;
-    }
-    return 'chrome';
-}
-
-function getServices() {
-    const browserName = getBrowserName();
-    const services = [];
-    
-    if (browserName === 'chrome') {
-        services.push('chromedriver');
-    } else if (browserName === 'firefox') {
-        services.push('geckodriver');
-    } else if (browserName === 'MicrosoftEdge') {
-        services.push('edgedriver');
-    } else {
-        services.push('chromedriver');
-    }
-    
-    return services;
-}
