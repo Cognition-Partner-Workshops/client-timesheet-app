@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Work entries management page for the Client Timesheet Application.
+ * Provides CRUD operations for managing time tracking entries with client association,
+ * date selection, and hours validation.
+ * 
+ * @module pages/WorkEntriesPage
+ */
+
 import React, { useState } from 'react';
 import {
   Box,
@@ -36,6 +44,14 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import apiClient from '../api/client';
 import { type WorkEntry } from '../types/api';
 
+/**
+ * Work entries page component providing full CRUD functionality for time tracking.
+ * Displays work entries in a table with edit and delete actions, and provides a modal
+ * dialog for creating and editing entries. Includes client selection, date picker,
+ * and hours validation (0.01-24 hours). Uses React Query for data management.
+ * 
+ * @returns Work entries management page component
+ */
 const WorkEntriesPage: React.FC = () => {
   const [open, setOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<WorkEntry | null>(null);

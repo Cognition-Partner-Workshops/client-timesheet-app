@@ -1,3 +1,10 @@
+/**
+ * @fileoverview Clients management page for the Client Timesheet Application.
+ * Provides CRUD operations for managing client records with a table view and modal forms.
+ * 
+ * @module pages/ClientsPage
+ */
+
 import React, { useState } from 'react';
 import {
   Box,
@@ -29,6 +36,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../api/client';
 import { type Client } from '../types/api';
 
+/**
+ * Clients page component providing full CRUD functionality for client management.
+ * Displays clients in a table with edit and delete actions, and provides a modal
+ * dialog for creating and editing clients. Uses React Query for data management.
+ * 
+ * @returns Clients management page component
+ */
 const ClientsPage: React.FC = () => {
   const [open, setOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);

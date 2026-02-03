@@ -1,12 +1,38 @@
+/**
+ * @fileoverview Authentication context provider for the Client Timesheet Application.
+ * Manages user authentication state, login/logout functionality, and session persistence.
+ * 
+ * @module contexts/AuthContext
+ */
+
 import React, { useState, useEffect, type ReactNode } from 'react';
 import { type User } from '../types/api';
 import apiClient from '../api/client';
 import { AuthContext, type AuthContextType } from './AuthContextValue';
 
+/**
+ * Props for the AuthProvider component.
+ */
 interface AuthProviderProps {
+  /** Child components that will have access to the auth context */
   children: ReactNode;
 }
 
+/**
+ * Authentication provider component that wraps the application.
+ * Manages user state, handles login/logout operations, and persists
+ * authentication across page refreshes using localStorage.
+ * 
+ * @param props - Component props
+ * @param props.children - Child components to render
+ * @returns Provider component wrapping children with auth context
+ * 
+ * @example
+ * // Wrap your app with AuthProvider
+ * <AuthProvider>
+ *   <App />
+ * </AuthProvider>
+ */
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
