@@ -1,3 +1,9 @@
+/**
+ * @fileoverview Main application component and entry point.
+ * This module sets up the React application with routing, theming,
+ * authentication, and data fetching providers.
+ */
+
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -12,6 +18,9 @@ import ClientsPage from './pages/ClientsPage';
 import WorkEntriesPage from './pages/WorkEntriesPage';
 import ReportsPage from './pages/ReportsPage';
 
+/**
+ * Material UI theme configuration with custom primary and secondary colors.
+ */
 const theme = createTheme({
   palette: {
     primary: {
@@ -23,6 +32,10 @@ const theme = createTheme({
   },
 });
 
+/**
+ * TanStack Query client configuration with custom default options.
+ * Configured with single retry and disabled refetch on window focus.
+ */
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -32,6 +45,10 @@ const queryClient = new QueryClient({
   },
 });
 
+/**
+ * Inner application component that handles routing based on authentication state.
+ * Renders login page for unauthenticated users and main layout with routes for authenticated users.
+ */
 const AppContent: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
   
@@ -67,6 +84,10 @@ const AppContent: React.FC = () => {
   );
 };
 
+/**
+ * Root application component that sets up all providers.
+ * Wraps the application with QueryClientProvider, ThemeProvider, and AuthProvider.
+ */
 const App: React.FC = () => {
   return (
     <QueryClientProvider client={queryClient}>

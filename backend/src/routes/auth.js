@@ -1,11 +1,31 @@
+/**
+ * @fileoverview Authentication routes for user login and session management.
+ * This module handles user authentication via email-only login (no password required).
+ * New users are automatically created on first login.
+ * @module routes/auth
+ */
+
 const express = require('express');
 const { getDatabase } = require('../database/init');
 const { emailSchema } = require('../validation/schemas');
 const { authenticateUser } = require('../middleware/auth');
 
+/**
+ * Express router for authentication endpoints.
+ * @type {import('express').Router}
+ */
 const router = express.Router();
 
-// Login endpoint - creates user if doesn't exist
+/**
+ * @route POST /api/auth/login
+ * @description Authenticates a user by email. Creates a new user account if the email doesn't exist.
+ * @param {Object} req.body - Request body
+ * @param {string} req.body.email - User's email address
+ * @returns {Object} 200 - Login successful with user data
+ * @returns {Object} 201 - New user created and logged in
+ * @returns {Object} 400 - Validation error
+ * @returns {Object} 500 - Server error
+ */
 router.post('/login', async (req, res, next) => {
   try {
     const { error, value } = emailSchema.validate(req.body);
@@ -55,7 +75,15 @@ router.post('/login', async (req, res, next) => {
   }
 });
 
-// Get current user info
+/**
+ * @route GET /api/auth/me
+ * @description Retrieves the currently authenticated user's information.
+ * @requires authenticateUser middleware
+ * @returns {Object} 200 - User data including email and creation date
+ * @returns {Object} 401 - Not authenticated
+ * @returns {Object} 404 - User not found
+ * @returns {Object} 500 - Server error
+ */
 router.get('/me', authenticateUser, (req, res) => {
   const db = getDatabase();
   

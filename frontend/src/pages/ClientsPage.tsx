@@ -1,3 +1,8 @@
+/**
+ * @fileoverview Clients management page with CRUD operations.
+ * Provides a table view of all clients with add, edit, and delete functionality.
+ */
+
 import React, { useState } from 'react';
 import {
   Box,
@@ -29,6 +34,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../api/client';
 import { type Client } from '../types/api';
 
+/**
+ * Clients page component for managing client records.
+ * Displays a table of all clients with options to add new clients,
+ * edit existing ones, and delete clients (with cascade delete of work entries).
+ */
 const ClientsPage: React.FC = () => {
   const [open, setOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
