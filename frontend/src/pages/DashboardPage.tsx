@@ -1,18 +1,25 @@
 import React from 'react';
 import {
-  Grid,
   Card,
   CardContent,
   Typography,
   Box,
   Button,
   Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Chip,
 } from '@mui/material';
 import {
   Business as BusinessIcon,
   Assignment as AssignmentIcon,
   Assessment as AssessmentIcon,
   Add as AddIcon,
+  TrendingUp as TrendingUpIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -36,149 +43,318 @@ const DashboardPage: React.FC = () => {
 
   const totalHours = workEntries.reduce((sum: number, entry: { hours: number }) => sum + entry.hours, 0);
   const recentEntries = workEntries.slice(0, 5);
+  const avgHoursPerEntry = workEntries.length > 0 ? totalHours / workEntries.length : 0;
 
   const statsCards = [
     {
       title: 'Total Clients',
       value: clients.length,
-      icon: <BusinessIcon />,
-      color: '#1976d2',
+      icon: <BusinessIcon sx={{ fontSize: 32 }} />,
+      gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
       action: () => navigate('/clients'),
     },
     {
-      title: 'Total Work Entries',
+      title: 'Work Entries',
       value: workEntries.length,
-      icon: <AssignmentIcon />,
-      color: '#388e3c',
+      icon: <AssignmentIcon sx={{ fontSize: 32 }} />,
+      gradient: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
       action: () => navigate('/work-entries'),
     },
     {
       title: 'Total Hours',
-      value: totalHours.toFixed(2),
-      icon: <AssessmentIcon />,
-      color: '#f57c00',
+      value: totalHours.toFixed(1),
+      icon: <AssessmentIcon sx={{ fontSize: 32 }} />,
+      gradient: 'linear-gradient(135deg, #eb3349 0%, #f45c43 100%)',
+      action: () => navigate('/reports'),
+    },
+    {
+      title: 'Avg Hours/Entry',
+      value: avgHoursPerEntry.toFixed(1),
+      icon: <TrendingUpIcon sx={{ fontSize: 32 }} />,
+      gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
       action: () => navigate('/reports'),
     },
   ];
 
   return (
-    <Box>
-      <Typography variant="h4" gutterBottom>
-        Dashboard
-      </Typography>
+    <Box sx={{ maxWidth: 1400, mx: 'auto' }}>
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h4" fontWeight={600} gutterBottom>
+          Dashboard
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
+          Welcome back! Here's an overview of your time tracking.
+        </Typography>
+      </Box>
 
-      <Grid container spacing={3} sx={{ mb: 4 }}>
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: {
+            xs: '1fr',
+            sm: 'repeat(2, 1fr)',
+            md: 'repeat(4, 1fr)',
+          },
+          gap: 3,
+          mb: 4,
+        }}
+      >
         {statsCards.map((stat, index) => (
-          // @ts-expect-error - MUI Grid item prop type issue
-          <Grid item xs={12} sm={6} md={4} key={index}>
-            <Card
+          <Card
+            key={index}
+            sx={{
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              borderRadius: 3,
+              overflow: 'hidden',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+              '&:hover': {
+                transform: 'translateY(-8px)',
+                boxShadow: '0 12px 40px rgba(0,0,0,0.15)',
+              },
+            }}
+            onClick={stat.action}
+          >
+            <Box
               sx={{
-                cursor: 'pointer',
-                transition: 'transform 0.2s',
-                '&:hover': {
-                  transform: 'translateY(-4px)',
-                },
+                background: stat.gradient,
+                p: 3,
+                color: 'white',
               }}
-              onClick={stat.action}
             >
-              <CardContent>
-                <Box display="flex" alignItems="center" justifyContent="space-between" gap={3}>
-                  <Box>
-                    <Typography color="textSecondary" gutterBottom variant="h6">
-                      {stat.title}
-                    </Typography>
-                    <Typography variant="h4" component="div">
-                      {stat.value}
-                    </Typography>
-                  </Box>
-                  <Box
-                    sx={{
-                      backgroundColor: stat.color,
-                      borderRadius: 1,
-                      p: 1,
-                      color: 'white',
-                      flexShrink: 0,
-                    }}
+              <Box display="flex" alignItems="center" justifyContent="space-between">
+                <Box>
+                  <Typography
+                    variant="body2"
+                    sx={{ opacity: 0.9, mb: 0.5, fontWeight: 500 }}
                   >
-                    {stat.icon}
-                  </Box>
+                    {stat.title}
+                  </Typography>
+                  <Typography variant="h3" fontWeight={700}>
+                    {stat.value}
+                  </Typography>
                 </Box>
-              </CardContent>
-            </Card>
-          </Grid>
+                <Box
+                  sx={{
+                    backgroundColor: 'rgba(255,255,255,0.2)',
+                    borderRadius: 2,
+                    p: 1.5,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {stat.icon}
+                </Box>
+              </Box>
+            </Box>
+          </Card>
         ))}
-      </Grid>
+      </Box>
 
-      <Grid container spacing={3}>
-        {/* @ts-expect-error - MUI Grid item prop type issue */}
-        <Grid item xs={12} md={8}>
-          <Paper sx={{ p: 3 }}>
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2} gap={3}>
-              <Typography variant="h6">Recent Work Entries</Typography>
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: {
+            xs: '1fr',
+            lg: '2fr 1fr',
+          },
+          gap: 3,
+        }}
+      >
+        <Paper
+          sx={{
+            borderRadius: 3,
+            overflow: 'hidden',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+          }}
+        >
+          <Box
+            sx={{
+              p: 3,
+              borderBottom: '1px solid',
+              borderColor: 'divider',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
+            <Typography variant="h6" fontWeight={600}>
+              Recent Work Entries
+            </Typography>
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={<AddIcon />}
+              onClick={() => navigate('/work-entries')}
+              sx={{
+                borderRadius: 2,
+                textTransform: 'none',
+                boxShadow: 'none',
+                '&:hover': { boxShadow: 'none' },
+              }}
+            >
+              Add Entry
+            </Button>
+          </Box>
+          {recentEntries.length > 0 ? (
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow sx={{ backgroundColor: 'grey.50' }}>
+                    <TableCell sx={{ fontWeight: 600 }}>Client</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Date</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }} align="center">Hours</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Description</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {recentEntries.map((entry: { id: number; client_name: string; hours: number; date: string; description?: string }) => (
+                    <TableRow
+                      key={entry.id}
+                      sx={{
+                        '&:hover': { backgroundColor: 'grey.50' },
+                        '&:last-child td': { borderBottom: 0 },
+                      }}
+                    >
+                      <TableCell>
+                        <Typography variant="body2" fontWeight={500}>
+                          {entry.client_name}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" color="text.secondary">
+                          {new Date(entry.date).toLocaleDateString()}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="center">
+                        <Chip
+                          label={`${entry.hours}h`}
+                          size="small"
+                          sx={{
+                            backgroundColor: 'primary.light',
+                            color: 'primary.dark',
+                            fontWeight: 600,
+                          }}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          sx={{
+                            maxWidth: 200,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {entry.description || 'No description'}
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          ) : (
+            <Box sx={{ p: 4, textAlign: 'center' }}>
+              <Typography color="text.secondary" sx={{ mb: 2 }}>
+                No work entries yet
+              </Typography>
               <Button
                 variant="outlined"
                 startIcon={<AddIcon />}
                 onClick={() => navigate('/work-entries')}
-                sx={{ flexShrink: 0 }}
+                sx={{ borderRadius: 2, textTransform: 'none' }}
               >
-                Add Entry
+                Create your first entry
               </Button>
             </Box>
-            {recentEntries.length > 0 ? (
-              recentEntries.map((entry: { id: number; client_name: string; hours: number; date: string; description?: string }) => (
-                <Box key={entry.id} sx={{ mb: 2, pb: 2, borderBottom: '1px solid #eee' }}>
-                  <Typography variant="subtitle1">{entry.client_name}</Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {entry.hours} hours - {new Date(entry.date).toLocaleDateString()}
-                  </Typography>
-                  {entry.description && (
-                    <Typography variant="body2" sx={{ mt: 1 }}>
-                      {entry.description}
-                    </Typography>
-                  )}
-                </Box>
-              ))
-            ) : (
-              <Typography color="text.secondary">No work entries yet</Typography>
-            )}
-          </Paper>
-        </Grid>
+          )}
+        </Paper>
 
-        {/* @ts-expect-error - MUI Grid item prop type issue */}
-        <Grid item xs={12} md={4}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" mb={2}>
+        <Paper
+          sx={{
+            borderRadius: 3,
+            overflow: 'hidden',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+            height: 'fit-content',
+          }}
+        >
+          <Box
+            sx={{
+              p: 3,
+              borderBottom: '1px solid',
+              borderColor: 'divider',
+            }}
+          >
+            <Typography variant="h6" fontWeight={600}>
               Quick Actions
             </Typography>
+          </Box>
+          <CardContent sx={{ p: 3 }}>
             <Box display="flex" flexDirection="column" gap={2}>
               <Button
                 variant="contained"
-                startIcon={<AddIcon />}
+                startIcon={<BusinessIcon />}
                 onClick={() => navigate('/clients')}
                 fullWidth
+                sx={{
+                  py: 1.5,
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  fontWeight: 500,
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  boxShadow: 'none',
+                  '&:hover': {
+                    boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)',
+                  },
+                }}
               >
-                Add Client
+                Add New Client
               </Button>
               <Button
                 variant="contained"
-                startIcon={<AddIcon />}
+                startIcon={<AssignmentIcon />}
                 onClick={() => navigate('/work-entries')}
                 fullWidth
+                sx={{
+                  py: 1.5,
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  fontWeight: 500,
+                  background: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
+                  boxShadow: 'none',
+                  '&:hover': {
+                    boxShadow: '0 4px 15px rgba(17, 153, 142, 0.4)',
+                  },
+                }}
               >
-                Add Work Entry
+                Log Work Entry
               </Button>
               <Button
                 variant="outlined"
                 startIcon={<AssessmentIcon />}
                 onClick={() => navigate('/reports')}
                 fullWidth
+                sx={{
+                  py: 1.5,
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  fontWeight: 500,
+                  borderWidth: 2,
+                  '&:hover': {
+                    borderWidth: 2,
+                  },
+                }}
               >
                 View Reports
               </Button>
             </Box>
-          </Paper>
-        </Grid>
-      </Grid>
+          </CardContent>
+        </Paper>
+      </Box>
     </Box>
   );
 };
