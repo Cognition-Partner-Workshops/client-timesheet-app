@@ -1,0 +1,101 @@
+<div class="dashboard-container">
+  <h1>Dashboard</h1>
+
+  <div class="stats-grid" *ngIf="!isLoading">
+    <mat-card class="stat-card" (click)="navigateTo('/clients')">
+      <mat-card-content>
+        <div class="stat-content">
+          <div class="stat-info">
+            <h3>Total Clients</h3>
+            <span class="stat-value">{{ clients.length }}</span>
+          </div>
+          <div class="stat-icon" style="background-color: #1976d2;">
+            <mat-icon>business</mat-icon>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="stat-card" (click)="navigateTo('/work-entries')">
+      <mat-card-content>
+        <div class="stat-content">
+          <div class="stat-info">
+            <h3>Total Work Entries</h3>
+            <span class="stat-value">{{ workEntries.length }}</span>
+          </div>
+          <div class="stat-icon" style="background-color: #388e3c;">
+            <mat-icon>assignment</mat-icon>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="stat-card" (click)="navigateTo('/reports')">
+      <mat-card-content>
+        <div class="stat-content">
+          <div class="stat-info">
+            <h3>Total Hours</h3>
+            <span class="stat-value">{{ totalHours.toFixed(2) }}</span>
+          </div>
+          <div class="stat-icon" style="background-color: #f57c00;">
+            <mat-icon>assessment</mat-icon>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <div class="content-grid" *ngIf="!isLoading">
+    <mat-card class="recent-entries">
+      <mat-card-header>
+        <mat-card-title>
+          <div class="card-header">
+            <h2>Recent Work Entries</h2>
+            <button mat-stroked-button (click)="navigateTo('/work-entries')">
+              <mat-icon>add</mat-icon>
+              Add Entry
+            </button>
+          </div>
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div *ngIf="recentEntries.length > 0">
+          <div class="entry-item" *ngFor="let entry of recentEntries">
+            <h4>{{ entry.client_name }}</h4>
+            <p class="entry-meta">{{ entry.hours }} hours - {{ entry.date | date:'shortDate' }}</p>
+            <p class="entry-description" *ngIf="entry.description">{{ entry.description }}</p>
+          </div>
+        </div>
+        <p class="no-data" *ngIf="recentEntries.length === 0">No work entries yet</p>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="quick-actions">
+      <mat-card-header>
+        <mat-card-title>
+          <h2>Quick Actions</h2>
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="actions-list">
+          <button mat-raised-button color="primary" (click)="navigateTo('/clients')">
+            <mat-icon>add</mat-icon>
+            Add Client
+          </button>
+          <button mat-raised-button color="primary" (click)="navigateTo('/work-entries')">
+            <mat-icon>add</mat-icon>
+            Add Work Entry
+          </button>
+          <button mat-stroked-button color="primary" (click)="navigateTo('/reports')">
+            <mat-icon>assessment</mat-icon>
+            View Reports
+          </button>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <div class="loading-container" *ngIf="isLoading">
+    <mat-spinner></mat-spinner>
+  </div>
+</div>

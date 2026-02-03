@@ -1,0 +1,34 @@
+<div class="login-container">
+  <mat-card class="login-card">
+    <mat-card-header>
+      <mat-card-title>
+        <h1>Time Tracker</h1>
+      </mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <p class="subtitle">Enter your email to log in</p>
+      
+      <div class="info-alert">
+        <mat-icon>info</mat-icon>
+        <span>This app intentionally does not have a password field.</span>
+      </div>
+
+      <div class="error-alert" *ngIf="error">
+        <mat-icon>error</mat-icon>
+        <span>{{ error }}</span>
+      </div>
+
+      <form (ngSubmit)="onSubmit()">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Email Address</mat-label>
+          <input matInput type="email" [(ngModel)]="email" name="email" required [disabled]="isLoading">
+        </mat-form-field>
+
+        <button mat-raised-button color="primary" type="submit" class="full-width" [disabled]="isLoading || !email">
+          <mat-spinner diameter="20" *ngIf="isLoading"></mat-spinner>
+          <span *ngIf="!isLoading">Log In</span>
+        </button>
+      </form>
+    </mat-card-content>
+  </mat-card>
+</div>

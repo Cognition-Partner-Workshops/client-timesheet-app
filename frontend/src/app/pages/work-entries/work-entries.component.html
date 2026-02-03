@@ -1,0 +1,80 @@
+<div class="work-entries-container">
+  <div class="header">
+    <h1>Work Entries</h1>
+    <button mat-raised-button color="primary" (click)="openDialog()" [disabled]="clients.length === 0">
+      <mat-icon>add</mat-icon>
+      Add Work Entry
+    </button>
+  </div>
+
+  <div class="error-alert" *ngIf="error" (click)="clearError()">
+    <mat-icon>error</mat-icon>
+    <span>{{ error }}</span>
+    <mat-icon class="close-icon">close</mat-icon>
+  </div>
+
+  <mat-card *ngIf="!isLoading && clients.length === 0" class="no-clients-card">
+    <mat-card-content>
+      <p>You need to create at least one client before adding work entries.</p>
+      <a mat-raised-button color="primary" routerLink="/clients">Create Client</a>
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card *ngIf="!isLoading && clients.length > 0">
+    <table mat-table [dataSource]="workEntries" class="full-width">
+      <ng-container matColumnDef="client">
+        <th mat-header-cell *matHeaderCellDef>Client</th>
+        <td mat-cell *matCellDef="let entry">
+          <strong>{{ entry.client_name }}</strong>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="date">
+        <th mat-header-cell *matHeaderCellDef>Date</th>
+        <td mat-cell *matCellDef="let entry">
+          {{ entry.date | date:'shortDate' }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="hours">
+        <th mat-header-cell *matHeaderCellDef>Hours</th>
+        <td mat-cell *matCellDef="let entry">
+          <mat-chip color="primary">{{ entry.hours }} hours</mat-chip>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="description">
+        <th mat-header-cell *matHeaderCellDef>Description</th>
+        <td mat-cell *matCellDef="let entry">
+          <span *ngIf="entry.description">{{ entry.description }}</span>
+          <mat-chip *ngIf="!entry.description">No description</mat-chip>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef class="actions-column">Actions</th>
+        <td mat-cell *matCellDef="let entry" class="actions-column">
+          <button mat-icon-button color="primary" (click)="openDialog(entry)">
+            <mat-icon>edit</mat-icon>
+          </button>
+          <button mat-icon-button color="warn" (click)="deleteEntry(entry)">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+
+      <tr class="mat-row" *matNoDataRow>
+        <td class="mat-cell no-data" [attr.colspan]="displayedColumns.length">
+          No work entries found. Add your first work entry to get started.
+        </td>
+      </tr>
+    </table>
+  </mat-card>
+
+  <div class="loading-container" *ngIf="isLoading">
+    <mat-spinner></mat-spinner>
+  </div>
+</div>
