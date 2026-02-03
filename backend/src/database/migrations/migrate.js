@@ -100,6 +100,13 @@ function getMigrationFiles(includeSeed = false) {
   return files;
 }
 
+function removeComments(sql) {
+  return sql
+    .split('\n')
+    .filter(line => !line.trim().startsWith('--'))
+    .join('\n');
+}
+
 async function runMigration(db, filename) {
   const filepath = path.join(MIGRATIONS_DIR, filename);
   const sql = fs.readFileSync(filepath, 'utf8');
@@ -107,10 +114,11 @@ async function runMigration(db, filename) {
   console.log(`\nRunning migration: ${filename}`);
   console.log('-'.repeat(50));
   
-  const statements = sql
+  const cleanedSql = removeComments(sql);
+  const statements = cleanedSql
     .split(';')
     .map(s => s.trim())
-    .filter(s => s.length > 0 && !s.startsWith('--'));
+    .filter(s => s.length > 0);
   
   for (const statement of statements) {
     try {
