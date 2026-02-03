@@ -13,6 +13,7 @@ import {
   Assignment as AssignmentIcon,
   Assessment as AssessmentIcon,
   Add as AddIcon,
+  Schedule as ScheduleIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -37,6 +38,13 @@ const DashboardPage: React.FC = () => {
   const totalHours = workEntries.reduce((sum: number, entry: { hours: number }) => sum + entry.hours, 0);
   const recentEntries = workEntries.slice(0, 5);
 
+  // Calculate days and minutes from total hours
+  const totalDays = Math.floor(totalHours / 24);
+  const remainingHoursAfterDays = totalHours % 24;
+  const totalMinutes = Math.round((remainingHoursAfterDays % 1) * 60);
+  const wholeHours = Math.floor(remainingHoursAfterDays);
+  const daysAndMinsDisplay = `${totalDays}d ${wholeHours}h ${totalMinutes}m`;
+
   const statsCards = [
     {
       title: 'Total Clients',
@@ -59,6 +67,13 @@ const DashboardPage: React.FC = () => {
       color: '#f57c00',
       action: () => navigate('/reports'),
     },
+    {
+      title: 'Days & Minutes',
+      value: daysAndMinsDisplay,
+      icon: <ScheduleIcon />,
+      color: '#9c27b0',
+      action: () => navigate('/reports'),
+    },
   ];
 
   return (
@@ -70,7 +85,7 @@ const DashboardPage: React.FC = () => {
       <Grid container spacing={3} sx={{ mb: 4 }}>
         {statsCards.map((stat, index) => (
           // @ts-expect-error - MUI Grid item prop type issue
-          <Grid item xs={12} sm={6} md={4} key={index}>
+          <Grid item xs={12} sm={6} md={3} key={index}>
             <Card
               sx={{
                 cursor: 'pointer',
