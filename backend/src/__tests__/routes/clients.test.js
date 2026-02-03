@@ -1,3 +1,30 @@
+/**
+ * ============================================================================
+ * CLIENT ROUTES - COMPREHENSIVE UNIT TESTS
+ * ============================================================================
+ * 
+ * PURPOSE: These tests verify that client management works correctly.
+ * Clients are the companies or individuals that users track time for.
+ * 
+ * WHAT IS BEING TESTED:
+ * 1. Creating new clients (POST)
+ * 2. Viewing all clients (GET list)
+ * 3. Viewing a single client (GET by ID)
+ * 4. Updating client information (PUT)
+ * 5. Deleting clients (DELETE)
+ * 6. Error handling for all operations
+ * 7. Data validation (name required, etc.)
+ * 
+ * NON-TECHNICAL SUMMARY:
+ * - Users can add new clients they work for
+ * - Users can see all their clients in a list
+ * - Users can update client names and descriptions
+ * - Users can delete clients they no longer work with
+ * - The system validates data and shows helpful error messages
+ * - Users can only see and manage their own clients (privacy)
+ * ============================================================================
+ */
+
 const request = require('supertest');
 const express = require('express');
 const clientRoutes = require('../../routes/clients');
