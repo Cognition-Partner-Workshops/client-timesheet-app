@@ -10,6 +10,7 @@ import DashboardPage from './pages/DashboardPage';
 import ClientsPage from './pages/ClientsPage';
 import WorkEntriesPage from './pages/WorkEntriesPage';
 import ReportsPage from './pages/ReportsPage';
+import PatientRegistrationPage from './pages/PatientRegistrationPage';
 
 const theme = createTheme({
   palette: {
@@ -51,8 +52,9 @@ const AppContent: React.FC = () => {
                   <Route path="/dashboard" element={<DashboardPage />} />
                   <Route path="/clients" element={<ClientsPage />} />
                   <Route path="/work-entries" element={<WorkEntriesPage />} />
-                  <Route path="/reports" element={<ReportsPage />} />
-                  <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                                    <Route path="/reports" element={<ReportsPage />} />
+                                    <Route path="/patient-registration" element={<PatientRegistrationPage />} />
+                                    <Route path="/" element={<Navigate to="/dashboard" replace />} />
                   <Route path="*" element={<Navigate to="/dashboard" replace />} />
                 </Routes>
               </Layout>
