@@ -1,12 +1,26 @@
+/**
+ * @fileoverview Authentication context provider for managing user authentication state.
+ * @module contexts/AuthContext
+ */
+
 import React, { useState, useEffect, type ReactNode } from 'react';
 import { type User } from '../types/api';
 import apiClient from '../api/client';
 import { AuthContext, type AuthContextType } from './AuthContextValue';
 
+/**
+ * Props for the AuthProvider component.
+ */
 interface AuthProviderProps {
   children: ReactNode;
 }
 
+/**
+ * Authentication provider component that wraps the application.
+ * Manages user authentication state and provides login/logout functionality.
+ * @param props - Component props containing children elements
+ * @returns React component with authentication context
+ */
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);

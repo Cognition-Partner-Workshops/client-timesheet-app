@@ -1,10 +1,25 @@
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
+/**
+ * @fileoverview Database initialization and connection management module.
+ * Provides SQLite database connection, schema initialization, and cleanup functions.
+ * @module database/init
+ */
 
+const sqlite3 = require('sqlite3').verbose();
+const _path = require('path');
+
+/** @type {sqlite3.Database|null} Database connection instance */
 let db = null;
+/** @type {boolean} Flag indicating if database is currently closing */
 let isClosing = false;
+/** @type {boolean} Flag indicating if database has been closed */
 let isClosed = false;
 
+/**
+ * Gets or creates the SQLite database connection.
+ * Uses an in-memory database by default.
+ * @returns {sqlite3.Database} The database connection instance
+ * @throws {Error} If database connection fails
+ */
 function getDatabase() {
   if (!db) {
     // Reset state when creating a new database connection
@@ -22,10 +37,16 @@ function getDatabase() {
   return db;
 }
 
+/**
+ * Initializes the database schema by creating all required tables and indexes.
+ * Creates users, clients, and work_entries tables with appropriate foreign keys.
+ * @async
+ * @returns {Promise<void>} Resolves when database initialization is complete
+ */
 async function initializeDatabase() {
   const database = getDatabase();
-  
-  return new Promise((resolve, reject) => {
+
+  return new Promise((resolve, _reject) => {
     database.serialize(() => {
       // Create users table
       database.run(`
@@ -67,10 +88,10 @@ async function initializeDatabase() {
       `);
 
       // Create indexes for better performance
-      database.run(`CREATE INDEX IF NOT EXISTS idx_clients_user_email ON clients (user_email)`);
-      database.run(`CREATE INDEX IF NOT EXISTS idx_work_entries_client_id ON work_entries (client_id)`);
-      database.run(`CREATE INDEX IF NOT EXISTS idx_work_entries_user_email ON work_entries (user_email)`);
-      database.run(`CREATE INDEX IF NOT EXISTS idx_work_entries_date ON work_entries (date)`);
+      database.run('CREATE INDEX IF NOT EXISTS idx_clients_user_email ON clients (user_email)');
+      database.run('CREATE INDEX IF NOT EXISTS idx_work_entries_client_id ON work_entries (client_id)');
+      database.run('CREATE INDEX IF NOT EXISTS idx_work_entries_user_email ON work_entries (user_email)');
+      database.run('CREATE INDEX IF NOT EXISTS idx_work_entries_date ON work_entries (date)');
 
       console.log('Database tables created successfully');
       resolve();
@@ -78,14 +99,19 @@ async function initializeDatabase() {
   });
 }
 
+/**
+ * Closes the database connection gracefully.
+ * Handles concurrent close requests and already-closed states.
+ * @returns {Promise<void>} Resolves when database is closed
+ */
 function closeDatabase() {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve, _reject) => {
     if (isClosed) {
       // Already closed, resolve immediately
       resolve();
       return;
     }
-    
+
     if (isClosing) {
       // Currently closing, wait for it to complete
       const checkClosed = setInterval(() => {
@@ -96,13 +122,13 @@ function closeDatabase() {
       }, 10);
       return;
     }
-    
+
     if (!db) {
       // No database connection, resolve immediately
       resolve();
       return;
     }
-    
+
     isClosing = true;
     db.close((err) => {
       isClosed = true;

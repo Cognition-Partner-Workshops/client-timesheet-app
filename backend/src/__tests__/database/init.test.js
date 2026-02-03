@@ -1,4 +1,4 @@
-const sqlite3 = require('sqlite3');
+const _sqlite3 = require('sqlite3');
 const { getDatabase, initializeDatabase, closeDatabase } = require('../../database/init');
 
 // Mock sqlite3
@@ -27,7 +27,7 @@ describe('Database Initialization', () => {
   beforeEach(() => {
     consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
     consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
-    
+
     // Reset the database singleton
     jest.resetModules();
   });
@@ -41,7 +41,7 @@ describe('Database Initialization', () => {
   describe('getDatabase', () => {
     test('should create and return database instance', () => {
       const db = getDatabase();
-      
+
       expect(db).toBeDefined();
       expect(consoleLogSpy).toHaveBeenCalledWith('Connected to SQLite in-memory database');
     });
@@ -49,13 +49,13 @@ describe('Database Initialization', () => {
     test('should return same database instance on multiple calls', () => {
       const db1 = getDatabase();
       const db2 = getDatabase();
-      
+
       expect(db1).toBe(db2);
     });
 
     test('should handle database connection error', () => {
       jest.resetModules();
-      
+
       jest.doMock('sqlite3', () => {
         return {
           verbose: jest.fn(() => ({
@@ -68,7 +68,7 @@ describe('Database Initialization', () => {
       });
 
       const { getDatabase: getDatabaseWithError } = require('../../database/init');
-      
+
       expect(() => getDatabaseWithError()).toThrow('Connection failed');
       expect(consoleErrorSpy).toHaveBeenCalledWith('Error opening database:', expect.any(Error));
     });
@@ -81,11 +81,11 @@ describe('Database Initialization', () => {
 
       expect(db.serialize).toHaveBeenCalled();
       expect(db.run).toHaveBeenCalled();
-      
+
       // Check that run was called for each table and index
       const runCalls = db.run.mock.calls;
       const queries = runCalls.map(call => call[0]);
-      
+
       expect(queries.some(q => q.includes('CREATE TABLE IF NOT EXISTS users'))).toBe(true);
       expect(queries.some(q => q.includes('CREATE TABLE IF NOT EXISTS clients'))).toBe(true);
       expect(queries.some(q => q.includes('CREATE TABLE IF NOT EXISTS work_entries'))).toBe(true);
@@ -97,7 +97,7 @@ describe('Database Initialization', () => {
 
       const runCalls = db.run.mock.calls;
       const queries = runCalls.map(call => call[0]);
-      
+
       expect(queries.some(q => q.includes('CREATE INDEX IF NOT EXISTS idx_clients_user_email'))).toBe(true);
       expect(queries.some(q => q.includes('CREATE INDEX IF NOT EXISTS idx_work_entries_client_id'))).toBe(true);
       expect(queries.some(q => q.includes('CREATE INDEX IF NOT EXISTS idx_work_entries_user_email'))).toBe(true);
@@ -106,7 +106,7 @@ describe('Database Initialization', () => {
 
     test('should log success message', async () => {
       await initializeDatabase();
-      
+
       expect(consoleLogSpy).toHaveBeenCalledWith('Database tables created successfully');
     });
 
@@ -149,7 +149,7 @@ describe('Database Initialization', () => {
       const db = getDatabase();
       await initializeDatabase();
 
-      const userTableQuery = db.run.mock.calls.find(call => 
+      const userTableQuery = db.run.mock.calls.find(call =>
         call[0].includes('CREATE TABLE IF NOT EXISTS users')
       );
 
@@ -162,7 +162,7 @@ describe('Database Initialization', () => {
       const db = getDatabase();
       await initializeDatabase();
 
-      const clientTableQuery = db.run.mock.calls.find(call => 
+      const clientTableQuery = db.run.mock.calls.find(call =>
         call[0].includes('CREATE TABLE IF NOT EXISTS clients')
       );
 
@@ -175,7 +175,7 @@ describe('Database Initialization', () => {
       const db = getDatabase();
       await initializeDatabase();
 
-      const workEntriesQuery = db.run.mock.calls.find(call => 
+      const workEntriesQuery = db.run.mock.calls.find(call =>
         call[0].includes('CREATE TABLE IF NOT EXISTS work_entries')
       );
 

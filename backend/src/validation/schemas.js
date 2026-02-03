@@ -1,5 +1,14 @@
+/**
+ * @fileoverview Joi validation schemas for request body validation.
+ * @module validation/schemas
+ */
+
 const Joi = require('joi');
 
+/**
+ * Schema for creating a new client.
+ * @type {Joi.ObjectSchema}
+ */
 const clientSchema = Joi.object({
   name: Joi.string().trim().min(1).max(255).required(),
   description: Joi.string().trim().max(1000).optional().allow(''),

@@ -1,9 +1,18 @@
+/**
+ * @fileoverview API client for communicating with the backend server.
+ * Provides methods for authentication, client management, work entries, and reports.
+ * @module api/client
+ */
+
 import axios, { type AxiosInstance, type AxiosResponse } from 'axios';
 
-// Use empty string to make requests relative to the current origin
-// Vite proxy will forward /api requests to the backend
+/** Base URL for API requests - empty string for relative requests via Vite proxy */
 const API_BASE_URL = '';
 
+/**
+ * API client class for making HTTP requests to the backend.
+ * Handles authentication headers and error responses automatically.
+ */
 class ApiClient {
   private client: AxiosInstance;
 

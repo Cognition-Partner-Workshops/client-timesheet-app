@@ -1,3 +1,9 @@
+/**
+ * @fileoverview Authentication routes for user login and profile retrieval.
+ * Handles email-based authentication without passwords.
+ * @module routes/auth
+ */
+
 const express = require('express');
 const { getDatabase } = require('../database/init');
 const { emailSchema } = require('../validation/schemas');
@@ -5,7 +11,13 @@ const { authenticateUser } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Login endpoint - creates user if doesn't exist
+/**
+ * POST /api/auth/login
+ * Authenticates a user by email. Creates a new user if one doesn't exist.
+ * @param {Object} req.body - Request body
+ * @param {string} req.body.email - User's email address
+ * @returns {Object} User information and success message
+ */
 router.post('/login', async (req, res, next) => {
   try {
     const { error, value } = emailSchema.validate(req.body);
@@ -55,10 +67,15 @@ router.post('/login', async (req, res, next) => {
   }
 });
 
-// Get current user info
+/**
+ * GET /api/auth/me
+ * Retrieves the current authenticated user's information.
+ * @requires authenticateUser middleware
+ * @returns {Object} User profile information
+ */
 router.get('/me', authenticateUser, (req, res) => {
   const db = getDatabase();
-  
+
   db.get('SELECT email, created_at FROM users WHERE email = ?', [req.userEmail], (err, row) => {
     if (err) {
       console.error('Database error:', err);

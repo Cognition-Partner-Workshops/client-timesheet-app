@@ -10,7 +10,7 @@ describe('Error Handler Middleware', () => {
       json: jest.fn()
     };
     next = jest.fn();
-    
+
     // Mock console.error to avoid cluttering test output
     jest.spyOn(console, 'error').mockImplementation(() => {});
   });
@@ -129,7 +129,7 @@ describe('Error Handler Middleware', () => {
   describe('Console Logging', () => {
     test('should log error to console', () => {
       const error = new Error('Test error');
-      
+
       errorHandler(error, req, res, next);
 
       expect(console.error).toHaveBeenCalledWith('Error:', error);
