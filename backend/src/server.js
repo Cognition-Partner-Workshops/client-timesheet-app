@@ -4,7 +4,7 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const crypto = require('crypto');
-const { doubleCsrf } = require('csrf-csrf');
+const cookieParser = require('cookie-parser');
 
 const authRoutes = require('./routes/auth');
 const clientRoutes = require('./routes/clients');
@@ -81,22 +81,38 @@ const authLimiter = rateLimit({
   skipSuccessfulRequests: false
 });
 
-// CSRF Protection configuration
+// CSRF Protection configuration - Simple double-submit cookie pattern
 const CSRF_SECRET = process.env.CSRF_SECRET || crypto.randomBytes(32).toString('hex');
-const { generateToken, doubleCsrfProtection } = doubleCsrf({
-  getSecret: () => CSRF_SECRET,
-  cookieName: '__Host-csrf',
-  cookieOptions: {
-    httpOnly: true,
-    sameSite: 'strict',
-    secure: process.env.NODE_ENV === 'production',
-    path: '/'
-  },
-  getTokenFromRequest: (req) => req.headers['x-csrf-token']
-});
+
+function generateCsrfToken() {
+  return crypto.randomBytes(32).toString('hex');
+}
+
+function csrfProtection(req, res, next) {
+  // Skip CSRF for GET, HEAD, OPTIONS requests
+  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+    return next();
+  }
+  
+  const tokenFromHeader = req.headers['x-csrf-token'];
+  const tokenFromCookie = req.cookies['csrf-token'];
+  
+  if (!tokenFromHeader || !tokenFromCookie) {
+    return res.status(403).json({ error: 'CSRF token missing' });
+  }
+  
+  if (tokenFromHeader !== tokenFromCookie) {
+    return res.status(403).json({ error: 'CSRF token mismatch' });
+  }
+  
+  next();
+}
 
 // Logging
 app.use(morgan('combined'));
+
+// Cookie parser (required for CSRF protection)
+app.use(cookieParser());
 
 // Body parsing
 app.use(express.json({ limit: '10mb' }));
@@ -109,7 +125,14 @@ app.get('/health', (req, res) => {
 
 // CSRF token endpoint - provides CSRF token to frontend
 app.get('/api/csrf-token', (req, res) => {
-  const token = generateToken(req, res);
+  const token = generateCsrfToken();
+  // Set the token in a cookie for the double-submit pattern
+  res.cookie('csrf-token', token, {
+    httpOnly: false, // Frontend needs to read this
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/'
+  });
   res.json({ csrfToken: token });
 });
 
@@ -120,8 +143,8 @@ app.use('/api/auth/register', authLimiter);
 app.use('/api/auth', authRoutes);
 
 // Protected routes with CSRF protection for state-changing operations
-app.use('/api/clients', doubleCsrfProtection, clientRoutes);
-app.use('/api/work-entries', doubleCsrfProtection, workEntryRoutes);
+app.use('/api/clients', csrfProtection, clientRoutes);
+app.use('/api/work-entries', csrfProtection, workEntryRoutes);
 app.use('/api/reports', reportRoutes);
 
 // Error handling
