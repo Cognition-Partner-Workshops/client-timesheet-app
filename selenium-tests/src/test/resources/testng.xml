@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="Client Timesheet App Test Suite" parallel="false" verbose="2">
+    
+    <listeners>
+        <listener class-name="org.testng.reporters.EmailableReporter2"/>
+    </listeners>
+    
+    <test name="Login Tests">
+        <classes>
+            <class name="com.timesheet.tests.LoginTests"/>
+        </classes>
+    </test>
+    
+    <test name="Dashboard Tests">
+        <classes>
+            <class name="com.timesheet.tests.DashboardTests"/>
+        </classes>
+    </test>
+    
+    <test name="Clients Tests">
+        <classes>
+            <class name="com.timesheet.tests.ClientsTests"/>
+        </classes>
+    </test>
+    
+    <test name="Work Entries Tests">
+        <classes>
+            <class name="com.timesheet.tests.WorkEntriesTests"/>
+        </classes>
+    </test>
+    
+    <test name="Reports Tests">
+        <classes>
+            <class name="com.timesheet.tests.ReportsTests"/>
+        </classes>
+    </test>
+    
+    <test name="Navigation Tests">
+        <classes>
+            <class name="com.timesheet.tests.NavigationTests"/>
+        </classes>
+    </test>
+    
+    <test name="End-to-End Tests">
+        <classes>
+            <class name="com.timesheet.tests.EndToEndTests"/>
+        </classes>
+    </test>
+    
+</suite>

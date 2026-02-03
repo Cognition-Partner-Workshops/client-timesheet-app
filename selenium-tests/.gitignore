@@ -1,0 +1,23 @@
+# Compiled class files
+target/
+
+# IDE files
+.classpath
+.factorypath
+.project
+.settings/
+*.iml
+.idea/
+
+# Log files
+*.log
+
+# Test output
+test-output/
+
+# Screenshots
+screenshots/
+
+# OS files
+.DS_Store
+Thumbs.db
