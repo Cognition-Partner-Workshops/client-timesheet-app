@@ -108,23 +108,23 @@ class ApiClient {
     return response.data;
   }
 
-  /**
+/**
    * Creates a new client for the authenticated user.
    * @param clientData - Client creation data
    * @returns Created client object with success message
    */
-  async createClient(clientData: { name: string; description?: string }) {
+  async createClient(clientData: { name: string; description?: string; department?: string; email?: string }) {
     const response = await this.client.post('/api/clients', clientData);
     return response.data;
   }
 
-  /**
+/**
    * Updates an existing client.
    * @param id - Client ID to update
    * @param clientData - Fields to update
    * @returns Updated client object with success message
    */
-  async updateClient(id: number, clientData: { name?: string; description?: string }) {
+  async updateClient(id: number, clientData: { name?: string; description?: string; department?: string; email?: string }) {
     const response = await this.client.put(`/api/clients/${id}`, clientData);
     return response.data;
   }

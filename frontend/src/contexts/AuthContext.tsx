@@ -4,55 +4,10 @@
  * and automatic session restoration from localStorage.
  */
 
-import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import React, { useState, useEffect, type ReactNode } from 'react';
 import { type User } from '../types/api';
 import apiClient from '../api/client';
-
-/**
- * Shape of the authentication context value.
- */
-interface AuthContextType {
-  /** Currently authenticated user, or null if not logged in */
-  user: User | null;
-  /** Function to log in with an email address */
-  login: (email: string) => Promise<void>;
-  /** Function to log out the current user */
-  logout: () => void;
-  /** Whether the initial auth check is still in progress */
-  isLoading: boolean;
-  /** Whether a user is currently authenticated */
-  isAuthenticated: boolean;
-}
-
-/**
- * React context for authentication state.
- * @internal
- */
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-/**
- * Hook to access the authentication context.
- * Must be used within an AuthProvider component.
- * 
- * @returns The authentication context value
- * @throws Error if used outside of AuthProvider
- * 
- * @example
- * ```tsx
- * const { user, login, logout, isAuthenticated } = useAuth();
- * 
- * if (isAuthenticated) {
- *   console.log(`Logged in as ${user?.email}`);
- * }
- * ```
- */
-export const useAuth = (): AuthContextType => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
+import { AuthContext, type AuthContextType } from './AuthContextValue';
 
 /**
  * Props for the AuthProvider component.

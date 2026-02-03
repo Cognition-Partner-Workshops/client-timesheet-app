@@ -42,7 +42,7 @@ import { type Client } from '../types/api';
 const ClientsPage: React.FC = () => {
   const [open, setOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
-  const [formData, setFormData] = useState({ name: '', description: '' });
+  const [formData, setFormData] = useState({ name: '', description: '', department: '', email: '' });
   const [error, setError] = useState('');
 
   const queryClient = useQueryClient();
@@ -53,7 +53,7 @@ const ClientsPage: React.FC = () => {
   });
 
   const createMutation = useMutation({
-    mutationFn: (clientData: { name: string; description?: string }) =>
+    mutationFn: (clientData: { name: string; description?: string; department?: string; email?: string }) =>
       apiClient.createClient(clientData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
@@ -66,7 +66,7 @@ const ClientsPage: React.FC = () => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: { name?: string; description?: string } }) =>
+    mutationFn: ({ id, data }: { id: number; data: { name?: string; description?: string; department?: string; email?: string } }) =>
       apiClient.updateClient(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
@@ -94,10 +94,15 @@ const ClientsPage: React.FC = () => {
   const handleOpen = (client?: Client) => {
     if (client) {
       setEditingClient(client);
-      setFormData({ name: client.name, description: client.description || '' });
+      setFormData({ 
+        name: client.name, 
+        description: client.description || '',
+        department: client.department || '',
+        email: client.email || ''
+      });
     } else {
       setEditingClient(null);
-      setFormData({ name: '', description: '' });
+      setFormData({ name: '', description: '', department: '', email: '' });
     }
     setError('');
     setOpen(true);
@@ -106,7 +111,7 @@ const ClientsPage: React.FC = () => {
   const handleClose = () => {
     setOpen(false);
     setEditingClient(null);
-    setFormData({ name: '', description: '' });
+    setFormData({ name: '', description: '', department: '', email: '' });
     setError('');
   };
 
@@ -125,12 +130,16 @@ const ClientsPage: React.FC = () => {
         data: {
           name: formData.name,
           description: formData.description || undefined,
+          department: formData.department || undefined,
+          email: formData.email || undefined,
         },
       });
     } else {
       createMutation.mutate({
         name: formData.name,
         description: formData.description || undefined,
+        department: formData.department || undefined,
+        email: formData.email || undefined,
       });
     }
   };
@@ -170,6 +179,8 @@ const ClientsPage: React.FC = () => {
             <TableHead>
               <TableRow>
                 <TableCell>Name</TableCell>
+                <TableCell>Department</TableCell>
+                <TableCell>Email</TableCell>
                 <TableCell>Description</TableCell>
                 <TableCell>Created</TableCell>
                 <TableCell align="right">Actions</TableCell>
@@ -183,6 +194,24 @@ const ClientsPage: React.FC = () => {
                       <Typography variant="subtitle1" fontWeight="medium">
                         {client.name}
                       </Typography>
+                    </TableCell>
+                    <TableCell>
+                      {client.department ? (
+                        <Typography variant="body2" color="text.secondary">
+                          {client.department}
+                        </Typography>
+                      ) : (
+                        <Chip label="-" size="small" variant="outlined" />
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {client.email ? (
+                        <Typography variant="body2" color="text.secondary">
+                          {client.email}
+                        </Typography>
+                      ) : (
+                        <Chip label="-" size="small" variant="outlined" />
+                      )}
                     </TableCell>
                     <TableCell>
                       {client.description ? (
@@ -218,7 +247,7 @@ const ClientsPage: React.FC = () => {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={4} align="center">
+                  <TableCell colSpan={6} align="center">
                     <Typography color="text.secondary" sx={{ py: 3 }}>
                       No clients found. Create your first client to get started.
                     </Typography>
@@ -244,6 +273,23 @@ const ClientsPage: React.FC = () => {
               required
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              disabled={createMutation.isPending || updateMutation.isPending}
+            />
+            <TextField
+              margin="dense"
+              label="Department"
+              fullWidth
+              value={formData.department}
+              onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+              disabled={createMutation.isPending || updateMutation.isPending}
+            />
+            <TextField
+              margin="dense"
+              label="Email"
+              fullWidth
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               disabled={createMutation.isPending || updateMutation.isPending}
             />
             <TextField
