@@ -81,6 +81,11 @@ class ApiClient {
     return response.data;
   }
 
+  async deleteAllClients() {
+    const response = await this.client.delete('/api/clients');
+    return response.data;
+  }
+
   // Work entry endpoints
   async getWorkEntries(clientId?: number) {
     const params = clientId ? { clientId } : {};
