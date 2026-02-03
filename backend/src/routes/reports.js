@@ -121,7 +121,14 @@ router.get('/export/csv/:clientId', (req, res) => {
             ]
           });
           
-          csvWriter.writeRecords(workEntries)
+          // Format dates for CSV export
+          const formattedEntries = workEntries.map(entry => ({
+            ...entry,
+            date: new Date(entry.date).toISOString().split('T')[0],
+            created_at: entry.created_at
+          }));
+
+          csvWriter.writeRecords(formattedEntries)
             .then(() => {
               // Send file and clean up
               res.download(tempPath, filename, (err) => {
