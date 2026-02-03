@@ -335,8 +335,6 @@ const WorkEntriesPage: React.FC = () => {
                 label="Description"
                 fullWidth
                 margin="dense"
-                multiline
-                rows={3}
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 disabled={createMutation.isPending || updateMutation.isPending}
