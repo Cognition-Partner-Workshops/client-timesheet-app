@@ -57,15 +57,15 @@ describe('Work Entry Routes', () => {
 
     test('should filter by client ID when provided', async () => {
       mockDb.all.mockImplementation((query, params, callback) => {
-        expect(params).toEqual(['test@example.com', 1]);
+        expect(params).toEqual([1]);
         callback(null, []);
       });
 
       await request(app).get('/api/work-entries?clientId=1');
 
       expect(mockDb.all).toHaveBeenCalledWith(
-        expect.stringContaining('AND we.client_id = ?'),
-        ['test@example.com', 1],
+        expect.stringContaining('WHERE we.client_id = ?'),
+        [1],
         expect.any(Function)
       );
     });
@@ -166,7 +166,7 @@ describe('Work Entry Routes', () => {
         });
 
       expect(response.status).toBe(400);
-      expect(response.body).toEqual({ error: 'Client not found or does not belong to user' });
+      expect(response.body).toEqual({ error: 'Client not found' });
     });
 
     test('should return 400 for missing required fields', async () => {
@@ -305,7 +305,7 @@ describe('Work Entry Routes', () => {
         .send({ clientId: 999 });
 
       expect(response.status).toBe(400);
-      expect(response.body).toEqual({ error: 'Client not found or does not belong to user' });
+      expect(response.body).toEqual({ error: 'Client not found' });
     });
   });
 
