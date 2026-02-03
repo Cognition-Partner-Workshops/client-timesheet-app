@@ -32,10 +32,24 @@ const emailSchema = Joi.object({
   email: Joi.string().email().required()
 });
 
+const leaveSchema = Joi.object({
+  description: Joi.string().trim().min(1).max(1000).required(),
+  start_date: Joi.date().iso().required(),
+  end_date: Joi.date().iso().required()
+});
+
+const updateLeaveSchema = Joi.object({
+  description: Joi.string().trim().min(1).max(1000).optional(),
+  start_date: Joi.date().iso().optional(),
+  end_date: Joi.date().iso().optional()
+}).min(1);
+
 module.exports = {
   clientSchema,
   workEntrySchema,
   updateWorkEntrySchema,
   updateClientSchema,
-  emailSchema
+  emailSchema,
+  leaveSchema,
+  updateLeaveSchema
 };

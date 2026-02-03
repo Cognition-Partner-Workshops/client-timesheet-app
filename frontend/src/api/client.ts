@@ -128,6 +128,32 @@ class ApiClient {
     return response.data;
   }
 
+  // Leave endpoints
+  async getLeaves() {
+    const response = await this.client.get('/api/leaves');
+    return response.data;
+  }
+
+  async getLeave(id: number) {
+    const response = await this.client.get(`/api/leaves/${id}`);
+    return response.data;
+  }
+
+  async createLeave(leaveData: { description: string; start_date: string; end_date: string }) {
+    const response = await this.client.post('/api/leaves', leaveData);
+    return response.data;
+  }
+
+  async updateLeave(id: number, leaveData: { description?: string; start_date?: string; end_date?: string }) {
+    const response = await this.client.put(`/api/leaves/${id}`, leaveData);
+    return response.data;
+  }
+
+  async deleteLeave(id: number) {
+    const response = await this.client.delete(`/api/leaves/${id}`);
+    return response.data;
+  }
+
   // Health check
   async healthCheck() {
     const response = await this.client.get('/health');
