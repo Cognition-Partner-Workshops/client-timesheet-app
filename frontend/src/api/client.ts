@@ -16,7 +16,7 @@ class ApiClient {
       },
     });
 
-ra    // Request interceptor to add JWT token
+    // Request interceptor to add JWT token
     this.client.interceptors.request.use(
       (config) => {
         const authToken = localStorage.getItem('authToken');
