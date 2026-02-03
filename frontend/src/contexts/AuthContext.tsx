@@ -4,7 +4,7 @@ import apiClient from '../api/client';
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string) => Promise<void>;
+  login: (email: string, location?: string) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
   isAuthenticated: boolean;
@@ -47,9 +47,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     checkAuth();
   }, []);
 
-  const login = async (email: string) => {
+  const login = async (email: string, location?: string) => {
     try {
-      const response = await apiClient.login(email);
+      const response = await apiClient.login(email, location);
       setUser(response.user);
       localStorage.setItem('userEmail', email);
     } catch (error) {

@@ -14,6 +14,7 @@ import { useNavigate } from 'react-router-dom';
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
+  const [location, setLocation] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
@@ -25,7 +26,7 @@ const LoginPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      await login(email);
+      await login(email, location || undefined);
       navigate('/dashboard');
     } catch (err: unknown) {
       const error = err as { response?: { data?: { error?: string } } };
@@ -75,6 +76,17 @@ const LoginPage: React.FC = () => {
             autoFocus
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            disabled={isLoading}
+          />
+          <TextField
+            margin="normal"
+            fullWidth
+            id="location"
+            label="Location"
+            name="location"
+            placeholder="e.g., New York, USA"
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
             disabled={isLoading}
           />
           <Button

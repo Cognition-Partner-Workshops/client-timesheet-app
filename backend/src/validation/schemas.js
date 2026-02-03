@@ -25,7 +25,8 @@ const updateClientSchema = Joi.object({
 }).min(1); // At least one field must be provided
 
 const emailSchema = Joi.object({
-  email: Joi.string().email().required()
+  email: Joi.string().email().required(),
+  location: Joi.string().trim().max(255).optional().allow('')
 });
 
 module.exports = {
