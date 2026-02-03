@@ -25,6 +25,7 @@ import {
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import ThemeToggle from './ThemeToggle';
 
 const drawerWidth = 240;
 
@@ -95,20 +96,21 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
             {menuItems.find(item => item.path === location.pathname)?.text || 'Time Tracker'}
           </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Typography variant="body2">{user?.email}</Typography>
-            <Avatar sx={{ width: 32, height: 32 }}>
-              {user?.email?.charAt(0).toUpperCase()}
-            </Avatar>
-            <Button
-              color="inherit"
-              startIcon={<LogoutIcon />}
-              onClick={logout}
-              size="small"
-            >
-              Logout
-            </Button>
-          </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <ThemeToggle />
+                      <Typography variant="body2">{user?.email}</Typography>
+                      <Avatar sx={{ width: 32, height: 32 }}>
+                        {user?.email?.charAt(0).toUpperCase()}
+                      </Avatar>
+                      <Button
+                        color="inherit"
+                        startIcon={<LogoutIcon />}
+                        onClick={logout}
+                        size="small"
+                      >
+                        Logout
+                      </Button>
+                    </Box>
         </Toolbar>
       </AppBar>
       <Box
