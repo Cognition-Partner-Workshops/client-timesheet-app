@@ -8,13 +8,13 @@ const router = express.Router();
 // All routes require authentication
 router.use(authenticateUser);
 
-// Get all clients for authenticated user
+// Get all clients (visible to all authenticated users)
 router.get('/', (req, res) => {
   const db = getDatabase();
   
   db.all(
-    'SELECT id, name, description, department, email, created_at, updated_at FROM clients WHERE user_email = ? ORDER BY name',
-    [req.userEmail],
+    'SELECT id, name, description, department, email, user_email, created_at, updated_at FROM clients ORDER BY name',
+    [],
     (err, rows) => {
       if (err) {
         console.error('Database error:', err);
@@ -26,7 +26,7 @@ router.get('/', (req, res) => {
   );
 });
 
-// Get specific client
+// Get specific client (visible to all authenticated users)
 router.get('/:id', (req, res) => {
   const clientId = parseInt(req.params.id);
   
@@ -37,8 +37,8 @@ router.get('/:id', (req, res) => {
   const db = getDatabase();
   
   db.get(
-    'SELECT id, name, description, department, email, created_at, updated_at FROM clients WHERE id = ? AND user_email = ?',
-    [clientId, req.userEmail],
+    'SELECT id, name, description, department, email, user_email, created_at, updated_at FROM clients WHERE id = ?',
+    [clientId],
     (err, row) => {
       if (err) {
         console.error('Database error:', err);
