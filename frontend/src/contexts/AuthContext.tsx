@@ -1,7 +1,11 @@
 import React, { useState, useEffect, type ReactNode } from 'react';
 import { type User } from '../types/api';
 import apiClient from '../api/client';
-import { AuthContext, type AuthContextType } from './AuthContextValue';
+import { AuthContext, type AuthContextType } from './AuthContextType';
+
+// Storage keys for authentication
+const TOKEN_KEY = 'authToken';
+const USER_EMAIL_KEY = 'userEmail';
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -13,15 +17,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const storedEmail = localStorage.getItem('userEmail');
+      const storedToken = localStorage.getItem(TOKEN_KEY);
+      const storedEmail = localStorage.getItem(USER_EMAIL_KEY);
       
-      if (storedEmail) {
+      if (storedToken || storedEmail) {
         try {
           const response = await apiClient.getCurrentUser();
           setUser(response.user);
-        } catch (error) {
-          console.error('Auth check failed:', error);
-          localStorage.removeItem('userEmail');
+        } catch {
+          // Clear invalid credentials
+          localStorage.removeItem(TOKEN_KEY);
+          localStorage.removeItem(USER_EMAIL_KEY);
         }
       }
       setIsLoading(false);
@@ -31,19 +37,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const login = async (email: string) => {
-    try {
-      const response = await apiClient.login(email);
-      setUser(response.user);
-      localStorage.setItem('userEmail', email);
-    } catch (error) {
-      console.error('Login failed:', error);
-      throw error;
+    const response = await apiClient.login(email);
+    setUser(response.user);
+    // Store both token and email for authentication
+    if (response.token) {
+      localStorage.setItem(TOKEN_KEY, response.token);
     }
+    localStorage.setItem(USER_EMAIL_KEY, email);
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('userEmail');
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_EMAIL_KEY);
   };
 
   const value: AuthContextType = {

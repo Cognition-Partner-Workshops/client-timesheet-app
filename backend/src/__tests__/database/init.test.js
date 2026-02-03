@@ -184,4 +184,83 @@ describe('Database Initialization', () => {
       expect(workEntriesQuery[0]).toContain('FOREIGN KEY (user_email) REFERENCES users (email) ON DELETE CASCADE');
     });
   });
+
+  describe('closeDatabase Edge Cases', () => {
+    test('should resolve immediately if database is already closed', async () => {
+      const db = getDatabase();
+      db.close.mockImplementation((callback) => callback(null));
+      
+      // First close
+      await closeDatabase();
+      
+      // Second close should resolve immediately without calling db.close again
+      await closeDatabase();
+      
+      // The close should have been called only once (or handle gracefully)
+      expect(consoleLogSpy).toHaveBeenCalledWith('Database connection closed');
+    });
+
+    test('should handle concurrent close calls', async () => {
+      jest.resetModules();
+      
+      // Create a fresh mock with delayed close
+      jest.doMock('sqlite3', () => {
+        const mockDatabase = {
+          serialize: jest.fn((callback) => callback()),
+          run: jest.fn((query, callback) => {
+            if (typeof callback === 'function') callback(null);
+          }),
+          close: jest.fn((callback) => {
+            // Simulate async close with delay
+            setTimeout(() => callback(null), 50);
+          })
+        };
+
+        return {
+          verbose: jest.fn(() => ({
+            Database: jest.fn((path, callback) => {
+              callback(null);
+              return mockDatabase;
+            })
+          }))
+        };
+      });
+
+      const { getDatabase: getDb, closeDatabase: closeDb } = require('../../database/init');
+      
+      // Initialize database
+      getDb();
+      
+      // Call close multiple times concurrently
+      const closePromises = [closeDb(), closeDb(), closeDb()];
+      
+      // All should resolve without error
+      await expect(Promise.all(closePromises)).resolves.toBeDefined();
+    });
+
+    test('should resolve immediately if no database connection exists', async () => {
+      jest.resetModules();
+      
+      // Create a fresh module without initializing the database
+      jest.doMock('sqlite3', () => {
+        return {
+          verbose: jest.fn(() => ({
+            Database: jest.fn((path, callback) => {
+              callback(null);
+              return {
+                serialize: jest.fn((cb) => cb()),
+                run: jest.fn((q, cb) => cb && cb(null)),
+                close: jest.fn((cb) => cb(null))
+              };
+            })
+          }))
+        };
+      });
+
+      const { closeDatabase: closeDbFresh } = require('../../database/init');
+      
+      // Close without ever creating a database - should resolve immediately
+      await expect(closeDbFresh()).resolves.toBeUndefined();
+    });
+  });
 });

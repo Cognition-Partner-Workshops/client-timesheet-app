@@ -156,11 +156,11 @@ describe('Auth Routes', () => {
       expect(response.body.user.createdAt).toBe('2024-01-01T00:00:00.000Z');
     });
 
-    test('should return 401 if no email header provided', async () => {
+    test('should return 401 if no authentication provided', async () => {
       const response = await request(app).get('/api/auth/me');
 
       expect(response.status).toBe(401);
-      expect(response.body).toEqual({ error: 'User email required in x-user-email header' });
+      expect(response.body).toEqual({ error: 'Authentication required. Please provide a valid JWT token in the Authorization header.' });
     });
 
     test('should return 404 if user not found', async () => {

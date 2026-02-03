@@ -50,8 +50,8 @@ app.use('/api/reports', reportRoutes);
 // Error handling
 app.use(errorHandler);
 
-// 404 handler
-app.use('*', (req, res) => {
+// 404 handler - Express 5.x requires named wildcard parameter
+app.use('*path', (req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
