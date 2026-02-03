@@ -193,16 +193,20 @@ const ClientsPage: React.FC = () => {
                         onClick={() => handleOpen(client)}
                         color="primary"
                         size="small"
+                        sx={{ mr: 1 }}
                       >
                         <EditIcon />
                       </IconButton>
-                      <IconButton
-                        onClick={() => handleDelete(client)}
+                      <Button
+                        variant="outlined"
                         color="error"
                         size="small"
+                        startIcon={<DeleteIcon />}
+                        onClick={() => handleDelete(client)}
+                        disabled={deleteMutation.isPending}
                       >
-                        <DeleteIcon />
-                      </IconButton>
+                        Remove
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))
