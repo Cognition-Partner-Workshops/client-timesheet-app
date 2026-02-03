@@ -6,6 +6,7 @@ const API_BASE_URL = '';
 
 class ApiClient {
   private client: AxiosInstance;
+  private csrfToken: string | null = null;
 
   constructor() {
     this.client = axios.create({
@@ -14,15 +15,22 @@ class ApiClient {
       headers: {
         'Content-Type': 'application/json',
       },
+      withCredentials: true,
     });
 
-    // Request interceptor to add email header
+    // Request interceptor to add JWT token and CSRF token
     this.client.interceptors.request.use(
       (config) => {
-        const userEmail = localStorage.getItem('userEmail');
-        if (userEmail) {
-          config.headers['x-user-email'] = userEmail;
+        const token = localStorage.getItem('authToken');
+        if (token) {
+          config.headers['Authorization'] = `Bearer ${token}`;
         }
+        
+        // Add CSRF token for state-changing requests
+        if (this.csrfToken && ['post', 'put', 'delete', 'patch'].includes(config.method?.toLowerCase() || '')) {
+          config.headers['X-CSRF-Token'] = this.csrfToken;
+        }
+        
         return config;
       },
       (error) => {
@@ -35,7 +43,8 @@ class ApiClient {
       (response: AxiosResponse) => response,
       (error) => {
         if (error.response?.status === 401) {
-          // Clear stored email on auth error
+          // Clear stored token on auth error
+          localStorage.removeItem('authToken');
           localStorage.removeItem('userEmail');
           window.location.href = '/login';
         }
@@ -44,9 +53,62 @@ class ApiClient {
     );
   }
 
+  // Fetch CSRF token from server
+  async fetchCsrfToken() {
+    try {
+      const response = await this.client.get('/api/csrf-token');
+      this.csrfToken = response.data.csrfToken;
+      return this.csrfToken;
+    } catch (error) {
+      console.error('Failed to fetch CSRF token:', error);
+      throw error;
+    }
+  }
+
   // Auth endpoints
-  async login(email: string) {
-    const response = await this.client.post('/api/auth/login', { email });
+  async login(email: string, password: string) {
+    const response = await this.client.post('/api/auth/login', { email, password });
+    if (response.data.token) {
+      localStorage.setItem('authToken', response.data.token);
+      localStorage.setItem('userEmail', email);
+      // Fetch CSRF token after successful login
+      await this.fetchCsrfToken();
+    }
+    return response.data;
+  }
+
+  async register(email: string, password: string) {
+    const response = await this.client.post('/api/auth/register', { email, password });
+    return response.data;
+  }
+
+  async logout() {
+    try {
+      const response = await this.client.post('/api/auth/logout');
+      return response.data;
+    } finally {
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('userEmail');
+      this.csrfToken = null;
+    }
+  }
+
+  async logoutAll() {
+    try {
+      const response = await this.client.post('/api/auth/logout-all');
+      return response.data;
+    } finally {
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('userEmail');
+      this.csrfToken = null;
+    }
+  }
+
+  async refreshToken() {
+    const response = await this.client.post('/api/auth/refresh');
+    if (response.data.token) {
+      localStorage.setItem('authToken', response.data.token);
+    }
     return response.data;
   }
 

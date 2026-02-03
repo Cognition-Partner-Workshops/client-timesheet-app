@@ -3,6 +3,8 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
+const crypto = require('crypto');
+const cookieParser = require('cookie-parser');
 
 const authRoutes = require('./routes/auth');
 const clientRoutes = require('./routes/clients');
@@ -15,22 +17,102 @@ const { errorHandler } = require('./middleware/errorHandler');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Security middleware
-app.use(helmet());
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
-  credentials: true
+// Security middleware with explicit Content Security Policy
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "blob:"],
+      fontSrc: ["'self'"],
+      connectSrc: ["'self'"],
+      frameSrc: ["'none'"],
+      objectSrc: ["'none'"],
+      baseUri: ["'self'"],
+      formAction: ["'self'"],
+      frameAncestors: ["'none'"],
+      upgradeInsecureRequests: []
+    }
+  },
+  crossOriginEmbedderPolicy: false,
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true
+  },
+  referrerPolicy: {
+    policy: 'strict-origin-when-cross-origin'
+  }
 }));
 
-// Rate limiting
-const limiter = rateLimit({
+// CORS configuration
+const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173').split(',');
+app.use(cors({
+  origin: function(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token']
+}));
+
+// General rate limiting
+const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: { error: 'Too many requests, please try again later' },
+  standardHeaders: true,
+  legacyHeaders: false
 });
-app.use(limiter);
+app.use(generalLimiter);
+
+// Stricter rate limiting for authentication endpoints
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // limit each IP to 5 login attempts per windowMs
+  message: { error: 'Too many authentication attempts, please try again after 15 minutes' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: false
+});
+
+// CSRF Protection configuration - Simple double-submit cookie pattern
+const CSRF_SECRET = process.env.CSRF_SECRET || crypto.randomBytes(32).toString('hex');
+
+function generateCsrfToken() {
+  return crypto.randomBytes(32).toString('hex');
+}
+
+function csrfProtection(req, res, next) {
+  // Skip CSRF for GET, HEAD, OPTIONS requests
+  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+    return next();
+  }
+  
+  const tokenFromHeader = req.headers['x-csrf-token'];
+  const tokenFromCookie = req.cookies['csrf-token'];
+  
+  if (!tokenFromHeader || !tokenFromCookie) {
+    return res.status(403).json({ error: 'CSRF token missing' });
+  }
+  
+  if (tokenFromHeader !== tokenFromCookie) {
+    return res.status(403).json({ error: 'CSRF token mismatch' });
+  }
+  
+  next();
+}
 
 // Logging
 app.use(morgan('combined'));
+
+// Cookie parser (required for CSRF protection)
+app.use(cookieParser());
 
 // Body parsing
 app.use(express.json({ limit: '10mb' }));
@@ -41,10 +123,28 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-// Routes
+// CSRF token endpoint - provides CSRF token to frontend
+app.get('/api/csrf-token', (req, res) => {
+  const token = generateCsrfToken();
+  // Set the token in a cookie for the double-submit pattern
+  res.cookie('csrf-token', token, {
+    httpOnly: false, // Frontend needs to read this
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/'
+  });
+  res.json({ csrfToken: token });
+});
+
+// Routes with appropriate rate limiting and CSRF protection
+// Auth routes with stricter rate limiting (login/register don't need CSRF as they're initial requests)
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
 app.use('/api/auth', authRoutes);
-app.use('/api/clients', clientRoutes);
-app.use('/api/work-entries', workEntryRoutes);
+
+// Protected routes with CSRF protection for state-changing operations
+app.use('/api/clients', csrfProtection, clientRoutes);
+app.use('/api/work-entries', csrfProtection, workEntryRoutes);
 app.use('/api/reports', reportRoutes);
 
 // Error handling
