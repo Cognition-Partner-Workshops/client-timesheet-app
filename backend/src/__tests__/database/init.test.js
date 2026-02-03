@@ -142,6 +142,74 @@ describe('Database Initialization', () => {
 
       expect(consoleErrorSpy).not.toHaveBeenCalled();
     });
+
+    test('should resolve immediately when database is already closed', async () => {
+      const db = getDatabase();
+      db.close.mockImplementation((callback) => callback(null));
+      
+      await closeDatabase();
+      const result = await closeDatabase();
+      
+      expect(result).toBeUndefined();
+    });
+
+    test('should resolve immediately when no database connection exists', async () => {
+      jest.resetModules();
+      
+      jest.doMock('sqlite3', () => {
+        return {
+          verbose: jest.fn(() => ({
+            Database: jest.fn((path, callback) => {
+              callback(null);
+              return {
+                serialize: jest.fn((cb) => cb()),
+                run: jest.fn(),
+                close: jest.fn((cb) => cb(null))
+              };
+            })
+          }))
+        };
+      });
+
+      const { closeDatabase: closeFresh } = require('../../database/init');
+      const result = await closeFresh();
+      
+      expect(result).toBeUndefined();
+    });
+
+    test('should wait for closing to complete when called concurrently', async () => {
+      jest.resetModules();
+      
+      let closeCallback = null;
+      jest.doMock('sqlite3', () => {
+        return {
+          verbose: jest.fn(() => ({
+            Database: jest.fn((path, callback) => {
+              callback(null);
+              return {
+                serialize: jest.fn((cb) => cb()),
+                run: jest.fn(),
+                close: jest.fn((cb) => {
+                  closeCallback = cb;
+                })
+              };
+            })
+          }))
+        };
+      });
+
+      const { getDatabase: getDb, closeDatabase: closeDb } = require('../../database/init');
+      getDb();
+      
+      const closePromise1 = closeDb();
+      const closePromise2 = closeDb();
+      
+      setTimeout(() => {
+        if (closeCallback) closeCallback(null);
+      }, 50);
+      
+      await Promise.all([closePromise1, closePromise2]);
+    });
   });
 
   describe('Database Schema', () => {
