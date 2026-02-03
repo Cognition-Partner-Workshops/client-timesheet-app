@@ -18,9 +18,6 @@ import {
   TextField,
   Alert,
   CircularProgress,
-  FormControl,
-  InputLabel,
-  Select,
   MenuItem,
   Chip,
 } from '@mui/material';
@@ -291,26 +288,28 @@ const WorkEntriesPage: React.FC = () => {
           </DialogTitle>
           <form onSubmit={handleSubmit}>
             <DialogContent>
-              <FormControl fullWidth margin="dense" required>
-                <InputLabel>Client</InputLabel>
-                <Select
-                  value={formData.clientId}
-                  onChange={(e) => setFormData({ ...formData, clientId: Number(e.target.value) })}
-                  disabled={createMutation.isPending || updateMutation.isPending}
-                >
-                  {clients.map((client: { id: number; name: string }) => (
-                    <MenuItem key={client.id} value={client.id}>
-                      {client.name}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+              <TextField
+                select
+                label="Client"
+                fullWidth
+                margin="dense"
+                required
+                value={formData.clientId}
+                onChange={(e) => setFormData({ ...formData, clientId: Number(e.target.value) })}
+                disabled={createMutation.isPending || updateMutation.isPending}
+              >
+                {clients.map((client: { id: number; name: string }) => (
+                  <MenuItem key={client.id} value={client.id}>
+                    {client.name}
+                  </MenuItem>
+                ))}
+              </TextField>
 
               <TextField
-                margin="dense"
                 label="Hours"
                 type="number"
                 fullWidth
+                margin="dense"
                 required
                 inputProps={{ min: 0.01, max: 24, step: 0.01 }}
                 value={formData.hours}
@@ -333,9 +332,9 @@ const WorkEntriesPage: React.FC = () => {
               />
 
               <TextField
-                margin="dense"
                 label="Description"
                 fullWidth
+                margin="dense"
                 multiline
                 rows={3}
                 value={formData.description}
