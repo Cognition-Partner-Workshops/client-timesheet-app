@@ -269,11 +269,25 @@ See `backend/DEPLOYMENT.md` for detailed production deployment instructions.
 - [ ] Review and adjust rate limiting settings
 - [ ] Consider integrating with company SSO
 
+## Data Model
+
+### Shared Clients
+Clients are **shared across all users** of the application. This means:
+- Any authenticated user can view, create, edit, or delete any client
+- Clients persist across user sessions and are visible to all users
+- This design supports team collaboration where multiple users track time against the same clients
+
+### User-Specific Work Entries
+Work entries (time logs) are **user-specific**:
+- Each user can only view and manage their own work entries
+- Work entries are associated with shared clients
+- Reports show only the current user's work entries for a given client
+
 ## Known Limitations
 
 1. **In-memory database** - All data is lost on server restart
 2. **Email-only auth** - No password protection, assumes trusted network
-3. **No user roles** - All users have equal access to all data
+3. **Shared client access** - All users can modify any client (no ownership restrictions)
 4. **Single-server architecture** - Not designed for horizontal scaling
 5. **No real-time updates** - Changes require page refresh
 

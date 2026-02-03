@@ -243,22 +243,25 @@ describe('Report Routes', () => {
   });
 
   describe('Data Isolation', () => {
-    test('should only return data for authenticated user', async () => {
+    test('should return shared client but filter work entries by user', async () => {
       mockDb.get.mockImplementation((query, params, callback) => {
-        expect(params).toContain('test@example.com');
+        // Client query should NOT include user_email (clients are shared)
+        expect(params).toEqual([1]);
         callback(null, { id: 1, name: 'Test Client' });
       });
 
       mockDb.all.mockImplementation((query, params, callback) => {
+        // Work entries query should include user_email (work entries are user-specific)
         expect(params).toContain('test@example.com');
         callback(null, []);
       });
 
       await request(app).get('/api/reports/client/1');
 
+      // Client lookup should only use clientId (shared clients)
       expect(mockDb.get).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.arrayContaining(['test@example.com']),
+        expect.stringContaining('SELECT id, name FROM clients WHERE id = ?'),
+        [1],
         expect.any(Function)
       );
     });
@@ -345,9 +348,10 @@ describe('Report Routes', () => {
 
       await request(app).get('/api/reports/export/csv/1');
 
+      // Client lookup should only use clientId (clients are shared)
       expect(mockDb.get).toHaveBeenCalledWith(
         expect.stringContaining('SELECT id, name FROM clients'),
-        expect.arrayContaining([1, 'test@example.com']),
+        [1],
         expect.any(Function)
       );
     });
@@ -431,9 +435,10 @@ describe('Report Routes', () => {
 
       await request(app).get('/api/reports/export/pdf/1');
 
+      // Client lookup should only use clientId (clients are shared)
       expect(mockDb.get).toHaveBeenCalledWith(
         expect.stringContaining('SELECT id, name FROM clients'),
-        expect.arrayContaining([1, 'test@example.com']),
+        [1],
         expect.any(Function)
       );
     });
