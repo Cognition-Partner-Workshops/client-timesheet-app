@@ -101,7 +101,10 @@ const TimesheetEntryPage: React.FC = () => {
     const workEntries: WorkEntry[] = workEntriesData?.workEntries || [];
     const map: { [key: string]: WorkEntry } = {};
     workEntries.forEach((entry) => {
-      const key = `${entry.client_id}-${entry.date}`;
+      const entryDate = typeof entry.date === 'number' 
+        ? new Date(entry.date).toISOString().split('T')[0]
+        : entry.date.split('T')[0];
+      const key = `${entry.client_id}-${entryDate}`;
       map[key] = entry;
     });
     return map;
