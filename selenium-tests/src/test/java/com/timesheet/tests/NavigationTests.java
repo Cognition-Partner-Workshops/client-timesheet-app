@@ -27,8 +27,6 @@ public class NavigationTests extends BaseTest {
         Assert.assertTrue(clientsPage.isClientsPageDisplayed(), "Clients page should be displayed");
         Assert.assertTrue(driver.getCurrentUrl().contains("/clients"), "URL should contain /clients");
         
-        dashboardPage = clientsPage.navigateTo("/dashboard") instanceof DashboardPage ? 
-            new DashboardPage(driver) : null;
         dashboardPage = new DashboardPage(driver);
         dashboardPage.navigateToDashboard();
         Assert.assertTrue(dashboardPage.isDashboardDisplayed(), "Dashboard should be displayed");

@@ -9,6 +9,7 @@ import com.timesheet.pages.LoginPage;
 import com.timesheet.utils.ConfigReader;
 import com.timesheet.utils.DriverManager;
 import com.timesheet.utils.ScreenshotUtils;
+import com.timesheet.utils.WaitUtils;
 import org.openqa.selenium.WebDriver;
 import org.testng.ITestResult;
 import org.testng.annotations.AfterClass;
@@ -23,6 +24,7 @@ import java.lang.reflect.Method;
 
 public class BaseTest {
     protected WebDriver driver;
+    protected WaitUtils waitUtils;
     protected LoginPage loginPage;
     protected DashboardPage dashboardPage;
     
@@ -48,11 +50,12 @@ public class BaseTest {
         extent.setSystemInfo("Environment", "Test");
     }
 
-    @BeforeClass
-    public void setupClass() {
-        DriverManager.initializeDriver();
-        driver = DriverManager.getDriver();
-    }
+        @BeforeClass
+        public void setupClass() {
+            DriverManager.initializeDriver();
+            driver = DriverManager.getDriver();
+            waitUtils = new WaitUtils(driver);
+        }
 
     @BeforeMethod
     public void setupMethod(Method method) {
