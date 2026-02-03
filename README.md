@@ -288,6 +288,156 @@ See `backend/DEPLOYMENT.md` for detailed production deployment instructions.
 - Mobile app
 - Integration with calendar systems
 
+## Database Schema
+
+The application uses SQLite with the following schema:
+
+```sql
+-- Users table (identified by email)
+CREATE TABLE users (
+  email TEXT PRIMARY KEY,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Clients table (linked to users)
+CREATE TABLE clients (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  description TEXT,
+  user_email TEXT NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_email) REFERENCES users (email) ON DELETE CASCADE
+);
+
+-- Work entries table (linked to clients and users)
+CREATE TABLE work_entries (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  client_id INTEGER NOT NULL,
+  user_email TEXT NOT NULL,
+  hours DECIMAL(5,2) NOT NULL,
+  description TEXT,
+  date DATE NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (client_id) REFERENCES clients (id) ON DELETE CASCADE,
+  FOREIGN KEY (user_email) REFERENCES users (email) ON DELETE CASCADE
+);
+```
+
+**Indexes for Performance:**
+- `idx_clients_user_email` - Optimize client lookups by user
+- `idx_work_entries_client_id` - Optimize work entry queries by client
+- `idx_work_entries_user_email` - Optimize work entry queries by user
+- `idx_work_entries_date` - Optimize date-based queries
+
+**Data Isolation:** All queries filter by `user_email` to ensure users only access their own data. Foreign keys use `ON DELETE CASCADE` to automatically clean up related records when a parent is deleted.
+
+## Docker Containerization
+
+The application uses a multi-stage Docker build for optimized production images.
+
+### Dockerfile Overview
+
+Located at `docker/Dockerfile`, the build process consists of three stages:
+
+1. **frontend-builder** - Builds the React application with Vite
+2. **backend-builder** - Installs production Node.js dependencies
+3. **production** - Combines built frontend and backend into a minimal image
+
+### Key Features
+
+- **Base Image:** `node:20-alpine` for minimal footprint
+- **Process Manager:** `dumb-init` for proper signal handling
+- **Security:** Runs as non-root user (`nodejs:1001`)
+- **Health Check:** Built-in health check on `/health` endpoint
+- **Persistent Storage:** SQLite database stored at `/app/data/timesheet.db`
+
+### Building the Docker Image
+
+```bash
+# Build the image
+docker build -f docker/Dockerfile -t client-timesheet-app .
+
+# Run the container
+docker run -d \
+  -p 3001:3001 \
+  -e JWT_SECRET=your-secure-secret \
+  -v timesheet-data:/app/data \
+  client-timesheet-app
+```
+
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `NODE_ENV` | `production` | Environment mode |
+| `PORT` | `3001` | Server port |
+| `DATABASE_PATH` | `/app/data/timesheet.db` | SQLite database location |
+| `JWT_SECRET` | - | Secret key for JWT tokens (required) |
+
+## CI/CD Pipeline
+
+The project uses GitHub Actions for continuous integration and deployment.
+
+### Workflows
+
+#### 1. Deploy to AWS (`deploy.yml`)
+
+Triggered on push to `main` branch or manual dispatch.
+
+**Jobs:**
+
+**build-and-push:**
+- Checks out the repository
+- Configures AWS credentials
+- Logs into Amazon ECR
+- Builds Docker image using multi-stage Dockerfile
+- Tags image with commit SHA and `latest`
+- Pushes to ECR repository
+
+**deploy:**
+- Retrieves EC2 instance ID by tag (`Name=client-timesheet-app`)
+- Executes deployment script via AWS Systems Manager (SSM)
+- Runs `/opt/app/deploy.sh` on the EC2 instance
+- Performs health check on `/health` endpoint
+
+**Required Secrets:**
+- `AWS_ACCESS_KEY_ID` - AWS access key
+- `AWS_SECRET_ACCESS_KEY` - AWS secret key
+
+#### 2. Security Vulnerability Scan (`security-scan.yml`)
+
+Triggered on push/PR to `main` or manual dispatch.
+
+**Jobs:**
+
+- **trivy-scan** - Scans for vulnerabilities (CRITICAL, HIGH, MEDIUM severity)
+- **trivy-secret-scan** - Scans for exposed secrets in code
+- **trivy-config-scan** - Scans for misconfigurations
+
+Results are uploaded to GitHub Security tab in SARIF format.
+
+### Deployment Architecture
+
+```
+GitHub Actions → Build Docker Image → Push to ECR → SSM Command → EC2 Instance
+                                                                      ↓
+                                                              /opt/app/deploy.sh
+                                                                      ↓
+                                                              Docker Pull & Run
+```
+
+### Manual Deployment
+
+```bash
+# Trigger deployment manually via GitHub CLI
+gh workflow run deploy.yml
+
+# Or push to main branch
+git push origin main
+```
+
 ## License
 
 MIT
