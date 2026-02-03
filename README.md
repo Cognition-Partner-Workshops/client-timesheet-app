@@ -1,230 +1,313 @@
-# Employee Time Tracking Application
+# Client Timesheet Application
 
-A full-stack web application for tracking and reporting employee hourly work across different clients.
+A full-stack web application for tracking and reporting employee hourly work across multiple clients. The application enables consultants, freelancers, and employees to manage client information, record work entries with hours and descriptions, generate reports showing total hours worked per client, and export time tracking data in CSV and PDF formats.
 
-## ⚠️ Important Notes
+## Technical Specifications
 
-### Data Persistence
-**This application uses SQLite in-memory database as specified in requirements.**
-- ⚠️ **All data is lost when the backend server restarts**
-- Suitable for development and testing
-- For production use, modify `backend/src/database/init.js` to use file-based SQLite instead of `:memory:`
+### System Requirements
 
-### Authentication
-- Email-only authentication with JWT tokens
-- No password required - assumes trusted internal network
-- Anyone with a valid email can create an account and log in
-- Consider integrating with company SSO for production use
+The application requires Node.js version 18 or higher and npm package manager. For containerized deployment, Docker 20.10+ is required. The backend runs on port 3001 by default, while the frontend development server runs on port 5173.
 
-## Features
+### Architecture Overview
 
-- ✅ User authentication (email-based with JWT tokens)
-- ✅ Add, edit, and delete clients
-- ✅ Add, edit, and delete hourly work entries for each client
-- ✅ View hourly reports for each client
-- ✅ Export hourly reports to CSV or PDF
-
-## Tech Stack
-
-### Frontend
-- **React** with TypeScript
-- **Vite** for build tooling
-- **Material UI** for components
-- **React Query** for server state management
-- **React Router** for navigation
-- **Axios** for API calls
-
-### Backend
-- **Node.js** with Express
-- **SQLite** in-memory database
-- **JWT** for authentication
-- **Joi** for validation
-- **PDFKit** for PDF generation
-- **csv-writer** for CSV export
-
-## Project Structure
+The application follows a client-server architecture with a React single-page application frontend communicating with an Express.js REST API backend. Data persistence is handled through SQLite, which can operate in-memory for development or file-based for production deployments.
 
 ```
-.
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              Client Browser                                  │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │                    React SPA (TypeScript + Vite)                       │  │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐   │  │
+│  │  │  LoginPage  │  │ DashboardPage│  │ ClientsPage │  │ ReportsPage │   │  │
+│  │  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘   │  │
+│  │                              │                                         │  │
+│  │                    ┌─────────▼─────────┐                              │  │
+│  │                    │   TanStack Query   │                              │  │
+│  │                    │   + Axios Client   │                              │  │
+│  │                    └─────────┬─────────┘                              │  │
+│  └──────────────────────────────┼────────────────────────────────────────┘  │
+└─────────────────────────────────┼────────────────────────────────────────────┘
+                                  │ HTTP/REST + JWT
+┌─────────────────────────────────▼────────────────────────────────────────────┐
+│                           Express.js Backend                                  │
+│  ┌───────────────────────────────────────────────────────────────────────┐  │
+│  │                         Middleware Stack                               │  │
+│  │  Helmet → CORS → Rate Limiter → Morgan → Body Parser → Auth → Routes  │  │
+│  └───────────────────────────────────────────────────────────────────────┘  │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐        │
+│  │  /api/auth  │  │ /api/clients│  │/api/work-   │  │ /api/reports│        │
+│  │             │  │             │  │  entries    │  │             │        │
+│  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘        │
+│                              │                                              │
+│                    ┌─────────▼─────────┐                                   │
+│                    │   SQLite Database  │                                   │
+│                    │  (in-memory/file)  │                                   │
+│                    └───────────────────┘                                   │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Technology Stack
+
+#### Frontend Technologies
+
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| React | 19.2.0 | UI component library |
+| TypeScript | 5.9.3 | Static type checking |
+| Vite | 7.2.4 | Build tool and dev server |
+| Material UI | 7.3.6 | Component library |
+| TanStack React Query | 5.90.11 | Server state management |
+| React Router DOM | 7.10.0 | Client-side routing |
+| Axios | 1.13.2 | HTTP client |
+| date-fns | 4.1.0 | Date manipulation |
+| Emotion | 11.14.0 | CSS-in-JS styling |
+
+#### Backend Technologies
+
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| Node.js | 20+ | JavaScript runtime |
+| Express | 4.18.2 | Web framework |
+| SQLite3 | 5.1.6 | Database engine |
+| JSON Web Token | 9.0.2 | Authentication |
+| Joi | 17.11.0 | Input validation |
+| Helmet | 7.1.0 | Security headers |
+| CORS | 2.8.5 | Cross-origin resource sharing |
+| express-rate-limit | 7.1.5 | Rate limiting |
+| PDFKit | 0.13.0 | PDF generation |
+| csv-writer | 1.6.0 | CSV export |
+| Morgan | 1.10.0 | HTTP request logging |
+
+#### Development and Testing
+
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| Jest | 29.7.0 | Testing framework |
+| Supertest | 6.3.3 | HTTP assertion library |
+| Nodemon | 3.0.2 | Development auto-reload |
+| ESLint | 9.39.1 | Code linting |
+
+### Database Schema
+
+The application uses SQLite with three main tables and foreign key relationships with cascade delete behavior.
+
+```sql
+-- Users table: stores authenticated user records
+CREATE TABLE users (
+    email TEXT PRIMARY KEY,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Clients table: stores client information per user
+CREATE TABLE clients (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    description TEXT,
+    department TEXT,
+    email TEXT,
+    user_email TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_email) REFERENCES users (email) ON DELETE CASCADE
+);
+
+-- Work entries table: stores time tracking records
+CREATE TABLE work_entries (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    client_id INTEGER NOT NULL,
+    user_email TEXT NOT NULL,
+    hours DECIMAL(5,2) NOT NULL,
+    description TEXT,
+    date DATE NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (client_id) REFERENCES clients (id) ON DELETE CASCADE,
+    FOREIGN KEY (user_email) REFERENCES users (email) ON DELETE CASCADE
+);
+
+-- Performance indexes
+CREATE INDEX idx_clients_user_email ON clients (user_email);
+CREATE INDEX idx_work_entries_client_id ON work_entries (client_id);
+CREATE INDEX idx_work_entries_user_email ON work_entries (user_email);
+CREATE INDEX idx_work_entries_date ON work_entries (date);
+```
+
+### API Specification
+
+All authenticated endpoints require the `Authorization: Bearer <token>` header. The API uses JSON for request and response bodies.
+
+#### Authentication Endpoints
+
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| POST | /api/auth/login | Authenticate with email, returns JWT token | No |
+| GET | /api/auth/me | Get current authenticated user info | Yes |
+
+#### Client Management Endpoints
+
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| GET | /api/clients | List all clients for authenticated user | Yes |
+| GET | /api/clients/:id | Get specific client by ID | Yes |
+| POST | /api/clients | Create new client | Yes |
+| PUT | /api/clients/:id | Update existing client | Yes |
+| DELETE | /api/clients/:id | Delete client and associated work entries | Yes |
+
+#### Work Entry Endpoints
+
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| GET | /api/work-entries | List work entries (optional ?clientId filter) | Yes |
+| GET | /api/work-entries/:id | Get specific work entry | Yes |
+| POST | /api/work-entries | Create new work entry | Yes |
+| PUT | /api/work-entries/:id | Update existing work entry | Yes |
+| DELETE | /api/work-entries/:id | Delete work entry | Yes |
+
+#### Report Endpoints
+
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| GET | /api/reports/client/:clientId | Get JSON report with aggregated hours | Yes |
+| GET | /api/reports/export/csv/:clientId | Export report as CSV file | Yes |
+| GET | /api/reports/export/pdf/:clientId | Export report as PDF file | Yes |
+
+#### Health Check
+
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| GET | /health | Application health status | No |
+
+### Input Validation Schemas
+
+The backend uses Joi for input validation with the following schemas:
+
+**Client Schema**: name (required, 1-255 chars), description (optional, max 1000 chars), department (optional, max 255 chars), email (optional, valid email format)
+
+**Work Entry Schema**: clientId (required, positive integer), hours (required, 0.01-24.00), description (optional, max 1000 chars), date (required, ISO date format)
+
+**Email Schema**: email (required, valid email format)
+
+### Security Implementation
+
+The application implements multiple security layers. JWT-based authentication uses 24-hour token expiration with tokens stored in browser localStorage. Rate limiting restricts authentication endpoints to 5 attempts per 15 minutes per IP address. Helmet middleware adds security headers including Content-Security-Policy, X-Content-Type-Options, and X-Frame-Options. CORS is configured to accept requests only from the specified frontend URL. All database queries use parameterized statements to prevent SQL injection attacks.
+
+### Project Structure
+
+```
+client-timesheet-app/
+├── .github/
+│   └── workflows/
+│       ├── deploy.yml              # CI/CD deployment pipeline
+│       └── security-scan.yml       # Trivy vulnerability scanning
 ├── backend/
 │   ├── src/
 │   │   ├── database/
-│   │   │   └── init.js           # Database initialization
+│   │   │   └── init.js             # SQLite initialization and schema
 │   │   ├── middleware/
-│   │   │   ├── auth.js           # JWT authentication
-│   │   │   └── errorHandler.js  # Error handling
+│   │   │   ├── auth.js             # JWT authentication middleware
+│   │   │   └── errorHandler.js     # Centralized error handling
 │   │   ├── routes/
-│   │   │   ├── auth.js           # Authentication endpoints
-│   │   │   ├── clients.js        # Client CRUD
-│   │   │   ├── workEntries.js    # Work entry CRUD
-│   │   │   └── reports.js        # Reporting & export
+│   │   │   ├── auth.js             # Authentication endpoints
+│   │   │   ├── clients.js          # Client CRUD operations
+│   │   │   ├── workEntries.js      # Work entry CRUD operations
+│   │   │   └── reports.js          # Reporting and export
 │   │   ├── validation/
-│   │   │   └── schemas.js        # Joi validation schemas
-│   │   └── server.js             # Express server
+│   │   │   └── schemas.js          # Joi validation schemas
+│   │   ├── __tests__/              # Jest test suites
+│   │   └── server.js               # Express application entry point
 │   ├── package.json
-│   └── DEPLOYMENT.md             # Production deployment guide
-│
-└── frontend/
-    ├── src/
-    │   ├── api/
-    │   │   └── client.ts         # API client with JWT
-    │   ├── components/
-    │   │   └── Layout.tsx        # Main layout
-    │   ├── contexts/
-    │   │   └── AuthContext.tsx   # Auth state management
-    │   ├── pages/
-    │   │   ├── LoginPage.tsx     # Login page
-    │   │   ├── DashboardPage.tsx # Dashboard
-    │   │   ├── ClientsPage.tsx   # Client management
-    │   │   ├── WorkEntriesPage.tsx # Work entry management
-    │   │   └── ReportsPage.tsx   # Reports & exports
-    │   ├── types/
-    │   │   └── api.ts            # TypeScript interfaces
-    │   └── App.tsx               # Main app component
-    └── package.json
+│   └── jest.config.js
+├── frontend/
+│   ├── src/
+│   │   ├── api/
+│   │   │   └── client.ts           # Axios HTTP client with interceptors
+│   │   ├── components/
+│   │   │   └── Layout.tsx          # Main application layout
+│   │   ├── contexts/
+│   │   │   └── AuthContext.tsx     # Authentication state management
+│   │   ├── pages/
+│   │   │   ├── LoginPage.tsx       # Email authentication form
+│   │   │   ├── DashboardPage.tsx   # Metrics and navigation hub
+│   │   │   ├── ClientsPage.tsx     # Client management interface
+│   │   │   ├── WorkEntriesPage.tsx # Time entry interface
+│   │   │   └── ReportsPage.tsx     # Report viewing and export
+│   │   ├── types/
+│   │   │   └── api.ts              # TypeScript interfaces
+│   │   ├── App.tsx                 # Root component with routing
+│   │   └── index.css               # Global styles
+│   ├── package.json
+│   └── vite.config.ts
+├── docker/
+│   ├── Dockerfile                  # Multi-stage production build
+│   └── overrides/
+│       ├── server.js               # Production Express configuration
+│       └── database/
+│           └── init.js             # File-based SQLite for production
+└── README.md
 ```
 
-## Getting Started
+### Development Setup
 
-### Prerequisites
-- Node.js 18+ installed
-- npm or yarn package manager
+#### Backend Setup
 
-### Backend Setup
+Navigate to the backend directory and install dependencies:
 
-1. Navigate to backend directory:
 ```bash
 cd backend
-```
-
-2. Install dependencies:
-```bash
 npm install
 ```
 
-3. Create environment file:
-```bash
-cp .env.example .env
-```
+Create a `.env` file with the following configuration:
 
-4. Update `.env` with your configuration:
-```bash
+```
 PORT=3001
 NODE_ENV=development
 FRONTEND_URL=http://localhost:5173
 JWT_SECRET=your-secure-secret-key-change-this
 ```
 
-5. Start the development server:
+Start the development server with auto-reload:
+
 ```bash
 npm run dev
 ```
 
-Backend will be running at `http://localhost:3001`
+The backend API will be available at http://localhost:3001 with the health check endpoint at http://localhost:3001/health.
 
-### Frontend Setup
+#### Frontend Setup
 
-1. Navigate to frontend directory:
+Navigate to the frontend directory and install dependencies:
+
 ```bash
 cd frontend
-```
-
-2. Install dependencies:
-```bash
 npm install
 ```
 
-3. Create environment file:
-```bash
-cp .env.example .env
-```
+Start the Vite development server:
 
-4. Update `.env`:
-```bash
-VITE_API_URL=http://localhost:3001
-```
-
-5. Start the development server:
 ```bash
 npm run dev
 ```
 
-Frontend will be running at `http://localhost:5173`
+The frontend application will be available at http://localhost:5173. The Vite dev server proxies API requests to the backend automatically.
 
-## Usage
+### Testing
 
-1. Open `http://localhost:5173` in your browser
-2. Enter any email address to log in (no password required)
-3. Start adding clients and tracking work hours
-4. View reports and export data as CSV or PDF
+The backend includes a comprehensive Jest test suite with 161 tests across 8 test suites. Run tests using the following commands:
 
-## API Endpoints
-
-### Authentication
-- `POST /api/auth/login` - Login with email, returns JWT token
-- `GET /api/auth/me` - Get current user info (requires auth)
-
-### Clients
-- `GET /api/clients` - Get all clients
-- `POST /api/clients` - Create new client
-- `GET /api/clients/:id` - Get specific client
-- `PUT /api/clients/:id` - Update client
-- `DELETE /api/clients/:id` - Delete client
-
-### Work Entries
-- `GET /api/work-entries` - Get all work entries (optional ?clientId filter)
-- `POST /api/work-entries` - Create new work entry
-- `GET /api/work-entries/:id` - Get specific work entry
-- `PUT /api/work-entries/:id` - Update work entry
-- `DELETE /api/work-entries/:id` - Delete work entry
-
-### Reports
-- `GET /api/reports/client/:clientId` - Get hourly report for client
-- `GET /api/reports/export/csv/:clientId` - Export report as CSV
-- `GET /api/reports/export/pdf/:clientId` - Export report as PDF
-
-All authenticated endpoints require `Authorization: Bearer <token>` header.
-
-## Security Features
-
-- JWT-based authentication with 24-hour token expiration
-- Rate limiting on authentication endpoints (5 attempts per 15 minutes)
-- CORS protection
-- Helmet security headers
-- Input validation with Joi schemas
-- SQL injection protection with parameterized queries
-
-## Development
-
-### Backend Development
-```bash
-cd backend
-npm run dev  # Starts with nodemon for auto-reload
-```
-
-### Frontend Development
-```bash
-cd frontend
-npm run dev  # Starts Vite dev server with HMR
-```
-
-### Running Tests
-
-**Backend:**
 ```bash
 cd backend
 npm test                    # Run all tests
-npm run test:coverage       # Run tests with coverage report
+npm run test:coverage       # Generate coverage report
 npm run test:watch          # Run tests in watch mode
+npm run test:ci             # CI mode with coverage
 ```
 
-### Test Coverage
+#### Test Coverage
 
-The backend has comprehensive test coverage with **161 tests** across 8 test suites:
-
-| File | Statements | Branches | Functions | Lines |
-|------|------------|----------|-----------|-------|
-| **Overall** | **90.16%** | **93.82%** | **92.18%** | **90.35%** |
+| Module | Statements | Branches | Functions | Lines |
+|--------|------------|----------|-----------|-------|
+| Overall | 90.16% | 93.82% | 92.18% | 90.35% |
 | database/init.js | 100% | 100% | 100% | 100% |
 | middleware/auth.js | 100% | 100% | 100% | 100% |
 | middleware/errorHandler.js | 100% | 100% | 100% | 100% |
@@ -234,64 +317,73 @@ The backend has comprehensive test coverage with **161 tests** across 8 test sui
 | routes/reports.js | 64.15% | 69.44% | 68.75% | 64.42% |
 | validation/schemas.js | 100% | 100% | 100% | 100% |
 
-Coverage thresholds are configured in `jest.config.js`:
-- Statements: 60%
-- Branches: 60%
-- Functions: 65%
-- Lines: 60%
+Coverage thresholds are configured in jest.config.js requiring minimum 60% for branches, statements, and lines, and 65% for functions.
 
-### Building for Production
+### Production Build
 
-**Backend:**
-```bash
-cd backend
-npm start  # Production mode
-```
+#### Frontend Build
 
-**Frontend:**
 ```bash
 cd frontend
-npm run build  # Creates optimized production build in dist/
-npm run preview  # Preview production build
+npm run build
 ```
 
-## Production Deployment
+This generates an optimized production build in the `dist/` directory. Preview the build locally with:
 
-See `backend/DEPLOYMENT.md` for detailed production deployment instructions.
+```bash
+npm run preview
+```
 
-### Quick Production Checklist
-- [ ] Set strong `JWT_SECRET` in environment variables
-- [ ] Configure proper `FRONTEND_URL` for CORS
-- [ ] Consider switching to file-based SQLite for data persistence
-- [ ] Set up HTTPS/SSL certificates
-- [ ] Configure proper logging and monitoring
-- [ ] Set up automated backups (if using persistent storage)
-- [ ] Review and adjust rate limiting settings
-- [ ] Consider integrating with company SSO
+#### Backend Production Mode
 
-## Known Limitations
+```bash
+cd backend
+npm start
+```
 
-1. **In-memory database** - All data is lost on server restart
-2. **Email-only auth** - No password protection, assumes trusted network
-3. **No user roles** - All users have equal access to all data
-4. **Single-server architecture** - Not designed for horizontal scaling
-5. **No real-time updates** - Changes require page refresh
+### Docker Deployment
 
-## Future Enhancements
+The application uses a multi-stage Docker build for production deployment. The Dockerfile creates an optimized image with the following stages:
 
-- Persistent database storage
-- User roles and permissions
-- Multi-tenancy support
-- Real-time updates with WebSockets
-- Advanced reporting and analytics
-- Email notifications
-- Mobile app
-- Integration with calendar systems
+1. **frontend-builder**: Builds the React application using Vite
+2. **backend-builder**: Installs production Node.js dependencies
+3. **production**: Combines built assets with minimal runtime dependencies
 
-## License
+Build and run the Docker container:
+
+```bash
+docker build -f docker/Dockerfile -t client-timesheet-app .
+docker run -p 3001:3001 -e JWT_SECRET=your-secret client-timesheet-app
+```
+
+The production container runs as a non-root user with dumb-init for proper signal handling. SQLite data is persisted at `/app/data/timesheet.db` when using the production configuration.
+
+### CI/CD Pipeline
+
+The repository includes GitHub Actions workflows for automated deployment and security scanning.
+
+#### Deployment Workflow (deploy.yml)
+
+Triggers on push to main branch or manual dispatch. The workflow builds the Docker image, pushes to AWS ECR with commit SHA and latest tags, deploys to EC2 via AWS Systems Manager, and performs health checks.
+
+#### Security Scanning (security-scan.yml)
+
+Runs Trivy vulnerability scanner on push, pull requests, and manual dispatch. Scans for vulnerabilities (CRITICAL, HIGH, MEDIUM severity), secrets, and misconfigurations. Results are uploaded to GitHub Security tab in SARIF format.
+
+### Environment Variables
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| PORT | No | 3001 | Backend server port |
+| NODE_ENV | No | development | Environment mode |
+| FRONTEND_URL | No | http://localhost:5173 | Allowed CORS origin |
+| JWT_SECRET | Yes | - | Secret key for JWT signing |
+| DATABASE_PATH | No | :memory: | SQLite database file path |
+
+### Known Limitations
+
+The application uses an in-memory SQLite database by default, meaning all data is lost when the backend server restarts. For persistent storage, set the DATABASE_PATH environment variable to a file path. Authentication is email-only without password protection, assuming a trusted internal network environment. All authenticated users have equal access to their own data with no role-based permissions. The single-server architecture is not designed for horizontal scaling, and changes require page refresh as there are no real-time updates via WebSockets.
+
+### License
 
 MIT
-
-## Support
-
-For issues or questions, please contact your system administrator.
