@@ -135,12 +135,71 @@ describe('Database Initialization', () => {
 
     test('should handle multiple close calls safely', () => {
       const db = getDatabase();
-      // Reset close mock to default behavior (no error)
       db.close.mockImplementation((callback) => callback(null));
       closeDatabase();
-      closeDatabase(); // Second call should not throw
+      closeDatabase();
 
       expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    test('should resolve immediately when already closed', async () => {
+      const db = getDatabase();
+      db.close.mockImplementation((callback) => callback(null));
+      
+      await closeDatabase();
+      const result = await closeDatabase();
+      
+      expect(result).toBeUndefined();
+    });
+
+    test('should wait for closing to complete when isClosing is true', async () => {
+      jest.useFakeTimers();
+      
+      const db = getDatabase();
+      let closeCallback = null;
+      db.close.mockImplementation((callback) => {
+        closeCallback = callback;
+      });
+      
+      const firstClose = closeDatabase();
+      const secondClose = closeDatabase();
+      
+      jest.advanceTimersByTime(10);
+      
+      if (closeCallback) {
+        closeCallback(null);
+      }
+      
+      jest.advanceTimersByTime(20);
+      
+      await Promise.all([firstClose, secondClose]);
+      
+      jest.useRealTimers();
+    });
+
+    test('should resolve immediately when db is null', async () => {
+      jest.resetModules();
+      
+      jest.doMock('sqlite3', () => {
+        return {
+          verbose: jest.fn(() => ({
+            Database: jest.fn((path, callback) => {
+              callback(null);
+              return {
+                serialize: jest.fn((cb) => cb()),
+                run: jest.fn(),
+                close: jest.fn((cb) => cb(null))
+              };
+            })
+          }))
+        };
+      });
+
+      const { closeDatabase: closeFreshDb } = require('../../database/init');
+      
+      const result = await closeFreshDb();
+      
+      expect(result).toBeUndefined();
     });
   });
 
