@@ -4,56 +4,10 @@
  * using React Context API. Handles login, logout, and session persistence.
  */
 
-import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import React, { useState, useEffect, type ReactNode } from 'react';
 import { type User } from '../types/api';
 import apiClient from '../api/client';
-
-/**
- * Type definition for the authentication context value.
- * Provides user state and authentication methods to consuming components.
- */
-interface AuthContextType {
-  /** Currently authenticated user or null if not logged in */
-  user: User | null;
-  /** Authenticates user by email and stores session */
-  login: (email: string) => Promise<void>;
-  /** Clears user session and removes stored credentials */
-  logout: () => void;
-  /** True while checking authentication status on initial load */
-  isLoading: boolean;
-  /** True if user is currently authenticated */
-  isAuthenticated: boolean;
-}
-
-/**
- * React Context for authentication state.
- * Undefined when accessed outside of AuthProvider.
- */
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-/**
- * Custom hook to access authentication context.
- * Must be used within an AuthProvider component.
- *
- * @returns The authentication context value with user state and methods.
- * @throws Error if used outside of AuthProvider.
- *
- * @example
- * ```tsx
- * const { user, login, logout, isAuthenticated } = useAuth();
- *
- * if (isAuthenticated) {
- *   console.log(`Logged in as ${user?.email}`);
- * }
- * ```
- */
-export const useAuth = (): AuthContextType => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
+import { AuthContext, type AuthContextType } from './AuthContextValue';
 
 /**
  * Props for the AuthProvider component.

@@ -127,12 +127,14 @@ class ApiClient {
   /**
    * Creates a new client for the authenticated user.
    *
-   * @param clientData - Object containing client name and optional description.
+   * @param clientData - Object containing client name and optional fields.
    * @param clientData.name - Required client name (1-255 characters).
    * @param clientData.description - Optional client description.
+   * @param clientData.department - Optional department name.
+   * @param clientData.email - Optional client email address.
    * @returns Promise resolving to the created client record.
    */
-  async createClient(clientData: { name: string; description?: string }) {
+  async createClient(clientData: { name: string; description?: string; department?: string; email?: string }) {
     const response = await this.client.post('/api/clients', clientData);
     return response.data;
   }
@@ -142,10 +144,14 @@ class ApiClient {
    *
    * @param id - The unique identifier of the client to update.
    * @param clientData - Object containing fields to update.
+   * @param clientData.name - Updated client name.
+   * @param clientData.description - Updated description.
+   * @param clientData.department - Updated department name.
+   * @param clientData.email - Updated client email address.
    * @returns Promise resolving to the updated client record.
    * @throws Error if client not found or doesn't belong to user.
    */
-  async updateClient(id: number, clientData: { name?: string; description?: string }) {
+  async updateClient(id: number, clientData: { name?: string; description?: string; department?: string; email?: string }) {
     const response = await this.client.put(`/api/clients/${id}`, clientData);
     return response.data;
   }

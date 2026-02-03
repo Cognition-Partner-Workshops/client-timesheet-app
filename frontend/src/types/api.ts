@@ -25,6 +25,10 @@ export interface Client {
   name: string;
   /** Optional description of the client */
   description: string | null;
+  /** Optional department name */
+  department: string | null;
+  /** Optional client email address */
+  email: string | null;
   /** ISO timestamp of when the client was created */
   created_at: string;
   /** ISO timestamp of when the client was last updated */
@@ -86,6 +90,8 @@ export interface CreateClientRequest {
   name: string;
   /** Optional client description (max 1000 characters) */
   description?: string;
+  department?: string;
+  email?: string;
 }
 
 /**
@@ -97,6 +103,8 @@ export interface UpdateClientRequest {
   name?: string;
   /** Updated description (max 1000 characters) */
   description?: string;
+  department?: string;
+  email?: string;
 }
 
 /**
