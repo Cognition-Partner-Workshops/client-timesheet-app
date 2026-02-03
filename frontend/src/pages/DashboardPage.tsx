@@ -36,6 +36,7 @@ const DashboardPage: React.FC = () => {
 
   const totalHours = workEntries.reduce((sum: number, entry: { hours: number }) => sum + entry.hours, 0);
   const recentEntries = workEntries.slice(0, 5);
+  const sampleClients = clients.slice(0, 5);
 
   const statsCards = [
     {
@@ -176,6 +177,72 @@ const DashboardPage: React.FC = () => {
                 View Reports
               </Button>
             </Box>
+          </Paper>
+        </Grid>
+      </Grid>
+
+      <Grid container spacing={3} sx={{ mt: 1 }}>
+        {/* @ts-expect-error - MUI Grid item prop type issue */}
+        <Grid item xs={12}>
+          <Paper sx={{ p: 3 }}>
+            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2} gap={3}>
+              <Typography variant="h6">Sample Clients</Typography>
+              <Button
+                variant="outlined"
+                startIcon={<AddIcon />}
+                onClick={() => navigate('/clients')}
+                sx={{ flexShrink: 0 }}
+              >
+                Add Client
+              </Button>
+            </Box>
+            {sampleClients.length > 0 ? (
+              <Grid container spacing={2}>
+                {sampleClients.map((client: { id: number; name: string; description?: string }) => (
+                  // @ts-expect-error - MUI Grid item prop type issue
+                  <Grid item xs={12} sm={6} md={4} key={client.id}>
+                    <Card
+                      sx={{
+                        cursor: 'pointer',
+                        transition: 'transform 0.2s',
+                        '&:hover': {
+                          transform: 'translateY(-2px)',
+                        },
+                      }}
+                      onClick={() => navigate('/clients')}
+                    >
+                      <CardContent>
+                        <Box display="flex" alignItems="center" gap={2}>
+                          <Box
+                            sx={{
+                              backgroundColor: '#1976d2',
+                              borderRadius: 1,
+                              p: 1,
+                              color: 'white',
+                              flexShrink: 0,
+                            }}
+                          >
+                            <BusinessIcon />
+                          </Box>
+                          <Box>
+                            <Typography variant="subtitle1" fontWeight="medium">
+                              {client.name}
+                            </Typography>
+                            {client.description && (
+                              <Typography variant="body2" color="text.secondary" noWrap>
+                                {client.description}
+                              </Typography>
+                            )}
+                          </Box>
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+            ) : (
+              <Typography color="text.secondary">No clients yet. Add your first client to get started!</Typography>
+            )}
           </Paper>
         </Grid>
       </Grid>
