@@ -9,7 +9,8 @@ Feature: Reports Functionality
 
   @positive @smoke
   Scenario: Reports page displays correctly
-    Given I am on the reports page
+    Given a client "Test Client" exists
+    And I am on the reports page
     Then I should see the reports page title
     And I should see the client selector
 
