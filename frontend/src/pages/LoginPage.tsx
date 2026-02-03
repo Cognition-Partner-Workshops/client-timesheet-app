@@ -8,8 +8,14 @@ import {
   Box,
   Alert,
   CircularProgress,
+  IconButton,
 } from '@mui/material';
+import {
+  Brightness4 as DarkModeIcon,
+  Brightness7 as LightModeIcon,
+} from '@mui/icons-material';
 import { useAuth } from '../hooks/useAuth';
+import { useThemeMode } from '../hooks/useThemeMode';
 import { useNavigate } from 'react-router-dom';
 
 const LoginPage: React.FC = () => {
@@ -17,6 +23,7 @@ const LoginPage: React.FC = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
+  const { mode, toggleTheme } = useThemeMode();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -37,15 +44,24 @@ const LoginPage: React.FC = () => {
 
   return (
     <Container component="main" maxWidth="sm">
-    <Box
-      sx={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '100vh',
-        px: 2,
-      }}
-    >
+      <Box sx={{ position: 'absolute', top: 16, right: 16 }}>
+        <IconButton
+          onClick={toggleTheme}
+          aria-label={mode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          title={mode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+        >
+          {mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
+        </IconButton>
+      </Box>
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          minHeight: '100vh',
+          px: 2,
+        }}
+      >
       <Paper elevation={3} sx={{ padding: 3, width: '100%', maxWidth: 500 }}>
         <Typography component="h1" variant="h4" align="center" gutterBottom>
           Time Tracker
