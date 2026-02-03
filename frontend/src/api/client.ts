@@ -128,6 +128,12 @@ class ApiClient {
     return response.data;
   }
 
+  // Analytics endpoint
+  async getAnalytics() {
+    const response = await this.client.get('/api/reports/analytics');
+    return response.data;
+  }
+
   // Health check
   async healthCheck() {
     const response = await this.client.get('/health');
