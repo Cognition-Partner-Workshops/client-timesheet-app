@@ -186,6 +186,27 @@ router.put('/:id', (req, res, next) => {
   }
 });
 
+// Delete all clients (shared globally - deletes ALL clients, not just user's)
+router.delete('/', (req, res) => {
+  const db = getDatabase();
+  
+  db.run(
+    'DELETE FROM clients',
+    [],
+    function(err) {
+      if (err) {
+        console.error('Database error:', err);
+        return res.status(500).json({ error: 'Failed to delete clients' });
+      }
+      
+      res.json({ 
+        message: 'All clients deleted successfully',
+        deletedCount: this.changes
+      });
+    }
+  );
+});
+
 // Delete client (shared globally)
 router.delete('/:id', (req, res) => {
   const clientId = parseInt(req.params.id);
