@@ -352,7 +352,7 @@ describe('Report Routes', () => {
       );
     });
 
-    test('should create temp directory if it does not exist', async () => {
+    test('should use system temp directory for CSV file', async () => {
       const mockClient = { id: 1, name: 'Test Client' };
       const mockWorkEntries = [
         { date: '2024-01-01', hours: 5, description: 'Work 1', created_at: '2024-01-01' }
@@ -366,40 +366,19 @@ describe('Report Routes', () => {
         callback(null, mockWorkEntries);
       });
 
-      fs.existsSync.mockReturnValue(false);
-
       const csvWriter = require('csv-writer');
+      const mockWriteRecords = jest.fn().mockRejectedValue(new Error('Write failed'));
       csvWriter.createObjectCsvWriter.mockReturnValue({
-        writeRecords: jest.fn().mockRejectedValue(new Error('Write failed'))
+        writeRecords: mockWriteRecords
       });
 
       await request(app).get('/api/reports/export/csv/1');
 
-      expect(fs.mkdirSync).toHaveBeenCalledWith(expect.any(String), { recursive: true });
-    });
-
-    test('should not create temp directory if it exists', async () => {
-      const mockClient = { id: 1, name: 'Test Client' };
-      const mockWorkEntries = [];
-
-      mockDb.get.mockImplementation((query, params, callback) => {
-        callback(null, mockClient);
-      });
-
-      mockDb.all.mockImplementation((query, params, callback) => {
-        callback(null, mockWorkEntries);
-      });
-
-      fs.existsSync.mockReturnValue(true);
-
-      const csvWriter = require('csv-writer');
-      csvWriter.createObjectCsvWriter.mockReturnValue({
-        writeRecords: jest.fn().mockRejectedValue(new Error('Write failed'))
-      });
-
-      await request(app).get('/api/reports/export/csv/1');
-
-      expect(fs.mkdirSync).not.toHaveBeenCalled();
+      expect(csvWriter.createObjectCsvWriter).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: expect.stringContaining('Test_Client_report_')
+        })
+      );
     });
   });
 
