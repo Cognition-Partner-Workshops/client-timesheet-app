@@ -4,12 +4,21 @@ const clientRoutes = require('../../routes/clients');
 const { getDatabase } = require('../../database/init');
 
 jest.mock('../../database/init');
+
+// Use 'mock' prefix to allow Jest to reference this variable
+let mockUserEmail = 'test@example.com';
+
 jest.mock('../../middleware/auth', () => ({
   authenticateUser: (req, res, next) => {
-    req.userEmail = 'test@example.com';
+    req.userEmail = mockUserEmail;
     next();
   }
 }));
+
+// Helper function to set the current user email for tests
+const setMockUserEmail = (email) => {
+  mockUserEmail = email;
+};
 
 const app = express();
 app.use(express.json());
@@ -32,6 +41,8 @@ describe('Client Routes', () => {
       run: jest.fn()
     };
     getDatabase.mockReturnValue(mockDb);
+    // Reset to default user email before each test
+    setMockUserEmail('test@example.com');
   });
 
   afterEach(() => {
@@ -41,8 +52,8 @@ describe('Client Routes', () => {
   describe('GET /api/clients', () => {
     test('should return all clients for authenticated user', async () => {
       const mockClients = [
-        { id: 1, name: 'Client A', description: 'Desc A', created_at: '2024-01-01', updated_at: '2024-01-01' },
-        { id: 2, name: 'Client B', description: 'Desc B', created_at: '2024-01-02', updated_at: '2024-01-02' }
+        { id: 1, name: 'Client A', description: 'Desc A', user_email: 'user1@example.com', created_at: '2024-01-01', updated_at: '2024-01-01' },
+        { id: 2, name: 'Client B', description: 'Desc B', user_email: 'user2@example.com', created_at: '2024-01-02', updated_at: '2024-01-02' }
       ];
 
       mockDb.all.mockImplementation((query, params, callback) => {
@@ -55,7 +66,7 @@ describe('Client Routes', () => {
       expect(response.body).toEqual({ clients: mockClients });
       expect(mockDb.all).toHaveBeenCalledWith(
         expect.stringContaining('SELECT id, name, description'),
-        ['test@example.com'],
+        [],
         expect.any(Function)
       );
     });
@@ -124,6 +135,122 @@ describe('Client Routes', () => {
 
       expect(response.status).toBe(500);
       expect(response.body).toEqual({ error: 'Internal server error' });
+    });
+  });
+
+  describe('Client Visibility - Different Users', () => {
+    test('should return all clients regardless of which user created them', async () => {
+      const mockClients = [
+        { id: 1, name: 'Client A', description: 'Desc A', user_email: 'user1@example.com', created_at: '2024-01-01', updated_at: '2024-01-01' },
+        { id: 2, name: 'Client B', description: 'Desc B', user_email: 'user2@example.com', created_at: '2024-01-02', updated_at: '2024-01-02' },
+        { id: 3, name: 'Client C', description: 'Desc C', user_email: 'admin@company.com', created_at: '2024-01-03', updated_at: '2024-01-03' }
+      ];
+
+      mockDb.all.mockImplementation((query, params, callback) => {
+        callback(null, mockClients);
+      });
+
+      setMockUserEmail('newuser@example.com');
+      const response = await request(app).get('/api/clients');
+
+      expect(response.status).toBe(200);
+      expect(response.body.clients).toHaveLength(3);
+      expect(response.body.clients).toEqual(mockClients);
+    });
+
+    test('should allow user from different domain to see all clients', async () => {
+      const mockClients = [
+        { id: 1, name: 'Client A', description: 'Desc A', user_email: 'user@company1.com', created_at: '2024-01-01', updated_at: '2024-01-01' },
+        { id: 2, name: 'Client B', description: 'Desc B', user_email: 'user@company2.com', created_at: '2024-01-02', updated_at: '2024-01-02' }
+      ];
+
+      mockDb.all.mockImplementation((query, params, callback) => {
+        callback(null, mockClients);
+      });
+
+      setMockUserEmail('user@company3.com');
+      const response = await request(app).get('/api/clients');
+
+      expect(response.status).toBe(200);
+      expect(response.body.clients).toHaveLength(2);
+      expect(response.body.clients[0].user_email).toBe('user@company1.com');
+      expect(response.body.clients[1].user_email).toBe('user@company2.com');
+    });
+
+    test('should allow any authenticated user to view specific client created by another user', async () => {
+      const mockClient = { 
+        id: 1, 
+        name: 'Client A', 
+        description: 'Desc A', 
+        user_email: 'creator@company1.com',
+        created_at: '2024-01-01', 
+        updated_at: '2024-01-01' 
+      };
+
+      mockDb.get.mockImplementation((query, params, callback) => {
+        callback(null, mockClient);
+      });
+
+      setMockUserEmail('viewer@company2.com');
+      const response = await request(app).get('/api/clients/1');
+
+      expect(response.status).toBe(200);
+      expect(response.body.client).toEqual(mockClient);
+      expect(response.body.client.user_email).toBe('creator@company1.com');
+    });
+
+    test('should return clients from multiple domains to any authenticated user', async () => {
+      const mockClients = [
+        { id: 1, name: 'Acme Corp', description: 'Acme client', user_email: 'john@acme.com', created_at: '2024-01-01', updated_at: '2024-01-01' },
+        { id: 2, name: 'Beta Inc', description: 'Beta client', user_email: 'jane@beta.org', created_at: '2024-01-02', updated_at: '2024-01-02' },
+        { id: 3, name: 'Gamma LLC', description: 'Gamma client', user_email: 'bob@gamma.net', created_at: '2024-01-03', updated_at: '2024-01-03' },
+        { id: 4, name: 'Delta Co', description: 'Delta client', user_email: 'alice@delta.io', created_at: '2024-01-04', updated_at: '2024-01-04' }
+      ];
+
+      mockDb.all.mockImplementation((query, params, callback) => {
+        callback(null, mockClients);
+      });
+
+      setMockUserEmail('external@outsider.com');
+      const response = await request(app).get('/api/clients');
+
+      expect(response.status).toBe(200);
+      expect(response.body.clients).toHaveLength(4);
+      const userEmails = response.body.clients.map(c => c.user_email);
+      expect(userEmails).toContain('john@acme.com');
+      expect(userEmails).toContain('jane@beta.org');
+      expect(userEmails).toContain('bob@gamma.net');
+      expect(userEmails).toContain('alice@delta.io');
+    });
+
+    test('should verify GET query does not filter by user_email', async () => {
+      mockDb.all.mockImplementation((query, params, callback) => {
+        callback(null, []);
+      });
+
+      setMockUserEmail('anyuser@anydomain.com');
+      await request(app).get('/api/clients');
+
+      expect(mockDb.all).toHaveBeenCalledWith(
+        expect.not.stringContaining('WHERE user_email'),
+        [],
+        expect.any(Function)
+      );
+    });
+
+    test('should verify GET by ID query does not filter by user_email', async () => {
+      mockDb.get.mockImplementation((query, params, callback) => {
+        callback(null, { id: 1, name: 'Test Client' });
+      });
+
+      setMockUserEmail('anyuser@anydomain.com');
+      await request(app).get('/api/clients/1');
+
+      expect(mockDb.get).toHaveBeenCalledWith(
+        expect.not.stringContaining('AND user_email'),
+        [1],
+        expect.any(Function)
+      );
     });
   });
 
