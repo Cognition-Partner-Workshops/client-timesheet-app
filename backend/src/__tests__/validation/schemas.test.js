@@ -83,6 +83,78 @@ describe('Validation Schemas', () => {
       const { value } = clientSchema.validate(client);
       expect(value.name).toBe('Test Client');
     });
+
+    test('should validate client with email', () => {
+      const client = {
+        name: 'Test Client',
+        email: 'client@example.com'
+      };
+
+      const { error } = clientSchema.validate(client);
+      expect(error).toBeUndefined();
+    });
+
+    test('should validate client with mobile_no', () => {
+      const client = {
+        name: 'Test Client',
+        mobile_no: '+1234567890'
+      };
+
+      const { error } = clientSchema.validate(client);
+      expect(error).toBeUndefined();
+    });
+
+    test('should validate client with all fields', () => {
+      const client = {
+        name: 'Test Client',
+        description: 'A test client',
+        email: 'client@example.com',
+        mobile_no: '+1234567890'
+      };
+
+      const { error } = clientSchema.validate(client);
+      expect(error).toBeUndefined();
+    });
+
+    test('should reject invalid email format', () => {
+      const client = {
+        name: 'Test Client',
+        email: 'not-an-email'
+      };
+
+      const { error } = clientSchema.validate(client);
+      expect(error).toBeDefined();
+    });
+
+    test('should allow empty email', () => {
+      const client = {
+        name: 'Test Client',
+        email: ''
+      };
+
+      const { error } = clientSchema.validate(client);
+      expect(error).toBeUndefined();
+    });
+
+    test('should allow empty mobile_no', () => {
+      const client = {
+        name: 'Test Client',
+        mobile_no: ''
+      };
+
+      const { error } = clientSchema.validate(client);
+      expect(error).toBeUndefined();
+    });
+
+    test('should reject mobile_no longer than 20 characters', () => {
+      const client = {
+        name: 'Test Client',
+        mobile_no: '123456789012345678901'
+      };
+
+      const { error } = clientSchema.validate(client);
+      expect(error).toBeDefined();
+    });
   });
 
   describe('workEntrySchema', () => {
@@ -287,6 +359,45 @@ describe('Validation Schemas', () => {
 
       const { error } = updateClientSchema.validate(update);
       expect(error).toBeUndefined();
+    });
+
+    test('should validate email update', () => {
+      const update = {
+        email: 'updated@example.com'
+      };
+
+      const { error } = updateClientSchema.validate(update);
+      expect(error).toBeUndefined();
+    });
+
+    test('should validate mobile_no update', () => {
+      const update = {
+        mobile_no: '+9876543210'
+      };
+
+      const { error } = updateClientSchema.validate(update);
+      expect(error).toBeUndefined();
+    });
+
+    test('should validate all fields update', () => {
+      const update = {
+        name: 'New Name',
+        description: 'New Description',
+        email: 'new@example.com',
+        mobile_no: '+1234567890'
+      };
+
+      const { error } = updateClientSchema.validate(update);
+      expect(error).toBeUndefined();
+    });
+
+    test('should reject invalid email in update', () => {
+      const update = {
+        email: 'invalid-email'
+      };
+
+      const { error } = updateClientSchema.validate(update);
+      expect(error).toBeDefined();
     });
   });
 
