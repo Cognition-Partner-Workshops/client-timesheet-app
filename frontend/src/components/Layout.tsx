@@ -1,4 +1,6 @@
-import React, { type ReactNode } from 'react';
+'use client';
+
+import React, { type ReactNode, useState } from 'react';
 import {
   AppBar,
   Box,
@@ -23,7 +25,7 @@ import {
   Assessment as AssessmentIcon,
   Logout as LogoutIcon,
 } from '@mui/icons-material';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '../hooks/useAuth';
 
 const drawerWidth = 240;
@@ -33,13 +35,18 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const navigate = useNavigate();
-  const location = useLocation();
+  const router = useRouter();
+  const pathname = usePathname();
   const { user, logout } = useAuth();
-  const [mobileOpen, setMobileOpen] = React.useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
+  };
+
+  const handleLogout = () => {
+    logout();
+    router.push('/login');
   };
 
   const menuItems = [
@@ -60,8 +67,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         {menuItems.map((item) => (
           <ListItem key={item.text} disablePadding>
             <ListItemButton
-              selected={location.pathname === item.path}
-              onClick={() => navigate(item.path)}
+              selected={pathname === item.path}
+              onClick={() => router.push(item.path)}
             >
               <ListItemIcon>{item.icon}</ListItemIcon>
               <ListItemText primary={item.text} />
@@ -93,7 +100,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <MenuIcon />
           </IconButton>
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            {menuItems.find(item => item.path === location.pathname)?.text || 'Time Tracker'}
+            {menuItems.find(item => item.path === pathname)?.text || 'Time Tracker'}
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <Typography variant="body2">{user?.email}</Typography>
@@ -103,7 +110,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <Button
               color="inherit"
               startIcon={<LogoutIcon />}
-              onClick={logout}
+              onClick={handleLogout}
               size="small"
             >
               Logout
