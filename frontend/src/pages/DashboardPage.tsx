@@ -126,7 +126,7 @@ const DashboardPage: React.FC = () => {
             </Box>
             {recentEntries.length > 0 ? (
               recentEntries.map((entry: { id: number; client_name: string; hours: number; date: string; description?: string }) => (
-                <Box key={entry.id} sx={{ mb: 2, pb: 2, borderBottom: '1px solid #eee' }}>
+                <Box key={entry.id} sx={{ mb: 2, pb: 2, borderBottom: (theme) => `1px solid ${theme.palette.divider}` }}>
                   <Typography variant="subtitle1">{entry.client_name}</Typography>
                   <Typography variant="body2" color="text.secondary">
                     {entry.hours} hours - {new Date(entry.date).toLocaleDateString()}
