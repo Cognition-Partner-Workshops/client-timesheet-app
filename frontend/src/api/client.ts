@@ -138,6 +138,38 @@ class ApiClient {
     const response = await this.client.get('/health');
     return response.data;
   }
+
+  // SLO Metrics endpoints
+  async getSLOMetrics(timeWindow?: number) {
+    const params = timeWindow ? { timeWindow } : {};
+    const response = await this.client.get('/api/slo/metrics', { params });
+    return response.data;
+  }
+
+  async getSLOEndpointMetrics(timeWindow?: number) {
+    const params = timeWindow ? { timeWindow } : {};
+    const response = await this.client.get('/api/slo/endpoints', { params });
+    return response.data;
+  }
+
+  async getSLOTimeSeries(timeWindow?: number, bucketSize?: number) {
+    const params: Record<string, number> = {};
+    if (timeWindow) params.timeWindow = timeWindow;
+    if (bucketSize) params.bucketSize = bucketSize;
+    const response = await this.client.get('/api/slo/timeseries', { params });
+    return response.data;
+  }
+
+  async getSLOTargets() {
+    const response = await this.client.get('/api/slo/targets');
+    return response.data;
+  }
+
+  async getSLOQualityGates(timeWindow?: number) {
+    const params = timeWindow ? { timeWindow } : {};
+    const response = await this.client.get('/api/slo/quality-gates', { params });
+    return response.data;
+  }
 }
 
 export const apiClient = new ApiClient();

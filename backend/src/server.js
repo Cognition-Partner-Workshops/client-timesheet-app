@@ -8,9 +8,11 @@ const authRoutes = require('./routes/auth');
 const clientRoutes = require('./routes/clients');
 const workEntryRoutes = require('./routes/workEntries');
 const reportRoutes = require('./routes/reports');
+const sloRoutes = require('./routes/slo');
 
 const { initializeDatabase } = require('./database/init');
 const { errorHandler } = require('./middleware/errorHandler');
+const { sloMetricsMiddleware } = require('./middleware/sloMetrics');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -32,6 +34,9 @@ app.use(limiter);
 // Logging
 app.use(morgan('combined'));
 
+// SLO Metrics Collection (before body parsing to capture all requests)
+app.use(sloMetricsMiddleware);
+
 // Body parsing
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
@@ -46,6 +51,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/clients', clientRoutes);
 app.use('/api/work-entries', workEntryRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/slo', sloRoutes);
 
 // Error handling
 app.use(errorHandler);

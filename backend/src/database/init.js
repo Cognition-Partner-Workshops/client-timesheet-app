@@ -72,6 +72,26 @@ async function initializeDatabase() {
       database.run(`CREATE INDEX IF NOT EXISTS idx_work_entries_user_email ON work_entries (user_email)`);
       database.run(`CREATE INDEX IF NOT EXISTS idx_work_entries_date ON work_entries (date)`);
 
+      // Create SLO metrics table for tracking service level objectives
+      database.run(`
+        CREATE TABLE IF NOT EXISTS slo_metrics (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          timestamp DATETIME NOT NULL,
+          endpoint TEXT NOT NULL,
+          method TEXT NOT NULL,
+          path TEXT NOT NULL,
+          status_code INTEGER NOT NULL,
+          duration_ms INTEGER NOT NULL,
+          is_error INTEGER NOT NULL DEFAULT 0,
+          is_server_error INTEGER NOT NULL DEFAULT 0
+        )
+      `);
+
+      // Create indexes for SLO metrics queries
+      database.run(`CREATE INDEX IF NOT EXISTS idx_slo_metrics_timestamp ON slo_metrics (timestamp)`);
+      database.run(`CREATE INDEX IF NOT EXISTS idx_slo_metrics_endpoint ON slo_metrics (endpoint)`);
+      database.run(`CREATE INDEX IF NOT EXISTS idx_slo_metrics_status_code ON slo_metrics (status_code)`);
+
       console.log('Database tables created successfully');
       resolve();
     });
