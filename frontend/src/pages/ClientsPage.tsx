@@ -153,7 +153,7 @@ const ClientsPage: React.FC = () => {
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h4">Clients</Typography>
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => handleOpen()}>
-          Add Client
+          Add Clients
         </Button>
       </Box>
 
