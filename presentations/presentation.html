@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Devin AI Presentation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #1a1a2e;
+            color: #fff;
+            min-height: 100vh;
+        }
+        .slide-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .slide {
+            display: none;
+            background: linear-gradient(135deg, #16213e 0%, #0f3460 100%);
+            border-radius: 16px;
+            padding: 60px;
+            min-height: 600px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            position: relative;
+        }
+        .slide.active {
+            display: block;
+        }
+        .slide.title-slide {
+            background: linear-gradient(135deg, #003366 0%, #0070c0 100%);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .slide h1 {
+            font-size: 3.5em;
+            margin-bottom: 20px;
+            color: #fff;
+        }
+        .slide h2 {
+            font-size: 2.2em;
+            margin-bottom: 30px;
+            color: #00b4d8;
+            border-bottom: 3px solid #00b4d8;
+            padding-bottom: 15px;
+        }
+        .slide .subtitle {
+            font-size: 1.8em;
+            color: #ccc;
+        }
+        .slide ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        .slide li {
+            font-size: 1.3em;
+            margin: 20px 0;
+            padding-left: 30px;
+            position: relative;
+            line-height: 1.5;
+        }
+        .slide li:before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 12px;
+            width: 12px;
+            height: 12px;
+            background: #00b4d8;
+            border-radius: 50%;
+        }
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-top: 20px;
+        }
+        .column h3 {
+            font-size: 1.5em;
+            color: #00b4d8;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #00b4d8;
+            padding-bottom: 10px;
+        }
+        .column li {
+            font-size: 1.1em;
+            margin: 15px 0;
+        }
+        .navigation {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            z-index: 100;
+        }
+        .nav-btn {
+            background: #0070c0;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.1em;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .nav-btn:hover {
+            background: #005a9e;
+            transform: translateY(-2px);
+        }
+        .nav-btn:disabled {
+            background: #444;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .slide-counter {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: rgba(0,0,0,0.5);
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 1em;
+        }
+        .developer-slide h2 { color: #00b050; border-color: #00b050; }
+        .developer-slide .column h3 { color: #00b050; border-color: #00b050; }
+        .developer-slide li:before { background: #00b050; }
+        
+        .qa-slide h2 { color: #9b59b6; border-color: #9b59b6; }
+        .qa-slide .column h3 { color: #9b59b6; border-color: #9b59b6; }
+        .qa-slide li:before { background: #9b59b6; }
+        
+        .api-slide h2 { color: #ff6600; border-color: #ff6600; }
+        .api-slide .column h3 { color: #ff6600; border-color: #ff6600; }
+        .api-slide li:before { background: #ff6600; }
+        
+        .security-slide h2 { color: #e74c3c; border-color: #e74c3c; }
+        .security-slide .column h3 { color: #e74c3c; border-color: #e74c3c; }
+        .security-slide li:before { background: #e74c3c; }
+        
+        .benefits-slide h2 { color: #00b050; border-color: #00b050; }
+        .benefits-slide li:before { background: #00b050; }
+
+        .print-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1em;
+            border-radius: 8px;
+            cursor: pointer;
+            z-index: 100;
+        }
+        .print-btn:hover {
+            background: #218838;
+        }
+
+        @media print {
+            .navigation, .slide-counter, .print-btn { display: none; }
+            .slide { 
+                display: block !important; 
+                page-break-after: always;
+                min-height: auto;
+                margin-bottom: 20px;
+            }
+            body { background: white; }
+        }
+    </style>
+</head>
+<body>
+    <button class="print-btn" onclick="window.print()">Print / Save as PDF</button>
+    
+    <div class="slide-container">
+        <!-- Slide 1: Title -->
+        <div class="slide title-slide active">
+            <h1>Devin AI</h1>
+            <p class="subtitle">The World's First Autonomous AI Software Engineer</p>
+        </div>
+
+        <!-- Slide 2: What is Devin AI -->
+        <div class="slide">
+            <h2>What is Devin AI?</h2>
+            <ul>
+                <li>Devin is an autonomous AI software engineer developed by Cognition AI</li>
+                <li>It can independently plan, code, debug, and deploy software projects</li>
+                <li>Works alongside human engineers as a collaborative team member</li>
+                <li>Has its own development environment with shell, code editor, and browser</li>
+                <li>Can learn and adapt to new technologies and codebases</li>
+                <li>Handles end-to-end software development tasks autonomously</li>
+            </ul>
+        </div>
+
+        <!-- Slide 3: How Devin Works -->
+        <div class="slide">
+            <h2>How Devin Works</h2>
+            <ul>
+                <li>Receives tasks through natural language instructions</li>
+                <li>Plans and breaks down complex tasks into manageable steps</li>
+                <li>Uses integrated tools: shell, editor, browser, and more</li>
+                <li>Executes code, runs tests, and iterates on solutions</li>
+                <li>Creates pull requests and handles code reviews</li>
+                <li>Communicates progress and asks clarifying questions when needed</li>
+            </ul>
+        </div>
+
+        <!-- Slide 4: Devin for Developers -->
+        <div class="slide developer-slide">
+            <h2>Devin for Developers</h2>
+            <div class="two-column">
+                <div class="column">
+                    <h3>Code Development</h3>
+                    <ul>
+                        <li>Write new features from scratch</li>
+                        <li>Refactor and modernize legacy code</li>
+                        <li>Code migration between frameworks</li>
+                        <li>Bug fixing and debugging</li>
+                        <li>Code review and optimization</li>
+                        <li>Documentation generation</li>
+                    </ul>
+                </div>
+                <div class="column">
+                    <h3>Productivity Benefits</h3>
+                    <ul>
+                        <li>Reduces repetitive coding tasks</li>
+                        <li>Handles boilerplate code generation</li>
+                        <li>Assists with complex algorithms</li>
+                        <li>Supports multiple programming languages</li>
+                        <li>Integrates with existing workflows</li>
+                        <li>24/7 availability for development tasks</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 5: Devin for QA Testing -->
+        <div class="slide qa-slide">
+            <h2>Devin for QA Testing</h2>
+            <div class="two-column">
+                <div class="column">
+                    <h3>Testing Capabilities</h3>
+                    <ul>
+                        <li>Write unit tests and integration tests</li>
+                        <li>Create end-to-end test scenarios</li>
+                        <li>Generate test data and fixtures</li>
+                        <li>Implement test automation frameworks</li>
+                        <li>Perform regression testing</li>
+                        <li>Browser-based UI testing</li>
+                    </ul>
+                </div>
+                <div class="column">
+                    <h3>Quality Assurance Benefits</h3>
+                    <ul>
+                        <li>Increases test coverage significantly</li>
+                        <li>Identifies edge cases automatically</li>
+                        <li>Reduces manual testing effort</li>
+                        <li>Consistent test execution</li>
+                        <li>Quick test suite maintenance</li>
+                        <li>Supports TDD and BDD approaches</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 6: Devin for API Testing -->
+        <div class="slide api-slide">
+            <h2>Devin for API Testing</h2>
+            <div class="two-column">
+                <div class="column">
+                    <h3>API Testing Features</h3>
+                    <ul>
+                        <li>Create comprehensive API test suites</li>
+                        <li>Test REST, GraphQL, and SOAP APIs</li>
+                        <li>Validate request/response schemas</li>
+                        <li>Performance and load testing</li>
+                        <li>Authentication testing (OAuth, JWT)</li>
+                        <li>API contract testing</li>
+                    </ul>
+                </div>
+                <div class="column">
+                    <h3>Testing Automation</h3>
+                    <ul>
+                        <li>Generate Postman/Insomnia collections</li>
+                        <li>Write automated API test scripts</li>
+                        <li>Mock API responses for testing</li>
+                        <li>CI/CD pipeline integration</li>
+                        <li>API documentation validation</li>
+                        <li>Error handling verification</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 7: Security & Vulnerability Testing -->
+        <div class="slide security-slide">
+            <h2>Security & Vulnerability Testing</h2>
+            <div class="two-column">
+                <div class="column">
+                    <h3>Security Testing Capabilities</h3>
+                    <ul>
+                        <li>OWASP Top 10 vulnerability checks</li>
+                        <li>SQL injection detection</li>
+                        <li>Cross-Site Scripting (XSS) testing</li>
+                        <li>Authentication bypass testing</li>
+                        <li>Sensitive data exposure checks</li>
+                        <li>Security header validation</li>
+                    </ul>
+                </div>
+                <div class="column">
+                    <h3>Vulnerability Assessment</h3>
+                    <ul>
+                        <li>Dependency vulnerability scanning</li>
+                        <li>Code security analysis</li>
+                        <li>API security testing</li>
+                        <li>Input validation testing</li>
+                        <li>Session management testing</li>
+                        <li>Security best practices review</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 8: Key Benefits -->
+        <div class="slide benefits-slide">
+            <h2>Key Benefits of Devin AI</h2>
+            <ul>
+                <li><strong>Increased Productivity:</strong> Automates repetitive tasks, freeing developers for complex work</li>
+                <li><strong>Faster Time-to-Market:</strong> Accelerates development cycles with 24/7 availability</li>
+                <li><strong>Improved Code Quality:</strong> Consistent coding standards and comprehensive testing</li>
+                <li><strong>Cost Efficiency:</strong> Reduces development costs while maintaining quality</li>
+                <li><strong>Knowledge Sharing:</strong> Learns from codebases and shares best practices</li>
+                <li><strong>Seamless Integration:</strong> Works with existing tools, workflows, and CI/CD pipelines</li>
+            </ul>
+        </div>
+
+        <!-- Slide 9: Enterprise Use Cases -->
+        <div class="slide">
+            <h2>Enterprise Use Cases</h2>
+            <ul>
+                <li><strong>Code Migration:</strong> Modernize legacy systems to new frameworks</li>
+                <li><strong>Test Automation:</strong> Build comprehensive test suites for existing applications</li>
+                <li><strong>Bug Fixing:</strong> Quickly identify and resolve issues in production code</li>
+                <li><strong>Documentation:</strong> Generate and maintain technical documentation</li>
+                <li><strong>Code Reviews:</strong> Assist with pull request reviews and code quality checks</li>
+                <li><strong>Prototyping:</strong> Rapidly build proof-of-concept applications</li>
+            </ul>
+        </div>
+
+        <!-- Slide 10: Thank You -->
+        <div class="slide title-slide">
+            <h1>Thank You</h1>
+            <p class="subtitle">Questions & Discussion</p>
+            <p style="margin-top: 40px; font-size: 1.2em;">Learn more at: docs.devin.ai</p>
+        </div>
+    </div>
+
+    <div class="navigation">
+        <button class="nav-btn" id="prevBtn" onclick="changeSlide(-1)">Previous</button>
+        <button class="nav-btn" id="nextBtn" onclick="changeSlide(1)">Next</button>
+    </div>
+
+    <div class="slide-counter">
+        <span id="currentSlide">1</span> / <span id="totalSlides">10</span>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+        
+        document.getElementById('totalSlides').textContent = totalSlides;
+
+        function showSlide(n) {
+            slides[currentSlide].classList.remove('active');
+            currentSlide = (n + totalSlides) % totalSlides;
+            slides[currentSlide].classList.add('active');
+            document.getElementById('currentSlide').textContent = currentSlide + 1;
+            
+            document.getElementById('prevBtn').disabled = currentSlide === 0;
+            document.getElementById('nextBtn').disabled = currentSlide === totalSlides - 1;
+        }
+
+        function changeSlide(direction) {
+            showSlide(currentSlide + direction);
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ') changeSlide(1);
+            if (e.key === 'ArrowLeft') changeSlide(-1);
+        });
+
+        // Initialize
+        showSlide(0);
+    </script>
+</body>
+</html>
