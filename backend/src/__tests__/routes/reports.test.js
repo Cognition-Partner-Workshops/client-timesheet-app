@@ -256,9 +256,10 @@ describe('Report Routes', () => {
 
       await request(app).get('/api/reports/client/1');
 
+      // Clients are now shared across all users, so user_email is not used for client lookup
       expect(mockDb.get).toHaveBeenCalledWith(
         expect.any(String),
-        expect.arrayContaining(['test@example.com']),
+        expect.arrayContaining([1]),
         expect.any(Function)
       );
     });
@@ -345,9 +346,10 @@ describe('Report Routes', () => {
 
       await request(app).get('/api/reports/export/csv/1');
 
+      // Clients are now shared across all users, so user_email is not used for client lookup
       expect(mockDb.get).toHaveBeenCalledWith(
         expect.stringContaining('SELECT id, name FROM clients'),
-        expect.arrayContaining([1, 'test@example.com']),
+        [1],
         expect.any(Function)
       );
     });
@@ -431,9 +433,10 @@ describe('Report Routes', () => {
 
       await request(app).get('/api/reports/export/pdf/1');
 
+      // Clients are now shared across all users, so user_email is not used for client lookup
       expect(mockDb.get).toHaveBeenCalledWith(
         expect.stringContaining('SELECT id, name FROM clients'),
-        expect.arrayContaining([1, 'test@example.com']),
+        [1],
         expect.any(Function)
       );
     });
