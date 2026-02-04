@@ -1,23 +1,32 @@
-# Git Diff Analyzer
+# Git Diff Analyzer (Java)
 
-A Python tool that uses OpenAI to analyze git diff and generate:
+A Java tool that uses OpenAI to analyze git diff and generate:
 - Code review comments
 - Summary of changes
 - Potential bugs/issues
 - Security vulnerabilities
 
-## Installation
+## Requirements
 
-1. Create a virtual environment and install dependencies:
+- Java 21 or higher
+- Maven 3.6+
+- OpenAI API key
+
+## Building
+
 ```bash
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-pip install openai python-dotenv
+cd tools/git-diff-analyzer
+mvn clean package
 ```
 
-2. Set up your OpenAI API key:
+This creates an executable JAR file at `target/git-diff-analyzer-1.0.0.jar`.
+
+## Setup
+
+Set up your OpenAI API key:
+
 ```bash
-# Option 1: Create a .env file
+# Option 1: Create a .env file in the same directory
 echo "OPENAI_API_KEY=your-api-key-here" > .env
 
 # Option 2: Export as environment variable
@@ -30,51 +39,51 @@ export OPENAI_API_KEY=your-api-key-here
 
 Analyze current uncommitted changes:
 ```bash
-python git_diff_analyzer.py
+java -jar target/git-diff-analyzer-1.0.0.jar
 ```
 
 ### Compare Branches
 
 Compare two branches:
 ```bash
-python git_diff_analyzer.py --base main --target feature-branch
+java -jar target/git-diff-analyzer-1.0.0.jar --base main --target feature-branch
 ```
 
 ### Analyze Staged Changes
 
 Analyze only staged changes:
 ```bash
-python git_diff_analyzer.py --staged
+java -jar target/git-diff-analyzer-1.0.0.jar --staged
 ```
 
 ### Analyze a Different Repository
 
 ```bash
-python git_diff_analyzer.py --repo /path/to/repo
+java -jar target/git-diff-analyzer-1.0.0.jar --repo /path/to/repo
 ```
 
 ### Analyze from a Diff File
 
 ```bash
-python git_diff_analyzer.py --diff-file changes.diff
+java -jar target/git-diff-analyzer-1.0.0.jar --diff-file changes.diff
 ```
 
 ### Output Formats
 
 Text format (default):
 ```bash
-python git_diff_analyzer.py --output text
+java -jar target/git-diff-analyzer-1.0.0.jar --output text
 ```
 
 JSON format:
 ```bash
-python git_diff_analyzer.py --output json
+java -jar target/git-diff-analyzer-1.0.0.jar --output json
 ```
 
 ### Save Output to File
 
 ```bash
-python git_diff_analyzer.py --save report.txt
+java -jar target/git-diff-analyzer-1.0.0.jar --save report.txt
 ```
 
 ## Command Line Options
@@ -89,6 +98,7 @@ python git_diff_analyzer.py --save report.txt
 | `--output` | `-o` | Output format: text or json (default: text) |
 | `--api-key` | `-k` | OpenAI API key |
 | `--save` | | Save output to a file |
+| `--help` | `-h` | Show help message |
 
 ## Example Output
 
@@ -106,17 +116,17 @@ functionality. The implementation includes JWT token generation and validation.
 
 ## CODE REVIEW COMMENTS
 
-1. [SUGGESTION] auth.py:45
+1. [SUGGESTION] auth.java:45
    Consider using a constant for the token expiration time instead of hardcoding.
 
-2. [IMPROVEMENT] auth.py:78
+2. [IMPROVEMENT] auth.java:78
    The error handling could be more specific to provide better debugging info.
 
 --------------------------------------------------------------------------------
 
 ## POTENTIAL BUGS/ISSUES
 
-1. [MEDIUM] auth.py:52
+1. [MEDIUM] auth.java:52
    Description: The token validation doesn't check for token expiration.
    Recommendation: Add expiration check before validating the token signature.
 
@@ -124,7 +134,7 @@ functionality. The implementation includes JWT token generation and validation.
 
 ## SECURITY VULNERABILITIES
 
-1. [HIGH] SQL Injection - database.py:34
+1. [HIGH] SQL Injection - database.java:34
    Description: User input is directly concatenated into SQL query.
    Recommendation: Use parameterized queries or an ORM.
 
@@ -133,8 +143,9 @@ END OF REPORT
 ================================================================================
 ```
 
-## Requirements
+## Dependencies
 
-- Python 3.8+
-- OpenAI API key
-- Git installed and accessible from command line
+- OkHttp 4.12.0 - HTTP client for OpenAI API calls
+- Jackson 2.16.1 - JSON parsing
+- Apache Commons CLI 1.6.0 - Command line argument parsing
+- dotenv-java 3.0.0 - Environment variable loading from .env files
