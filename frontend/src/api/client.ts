@@ -113,11 +113,18 @@ class ApiClient {
     return response.data;
   }
 
-  // Report endpoints
-  async getClientReport(clientId: number) {
-    const response = await this.client.get(`/api/reports/client/${clientId}`);
-    return response.data;
-  }
+    // Report endpoints
+    async getClientReport(clientId: number) {
+      const response = await this.client.get(`/api/reports/client/${clientId}`);
+      return response.data;
+    }
+
+    async getWeeklyDefaulters(weekStart: string) {
+      const response = await this.client.get('/api/reports/weekly-defaulters', {
+        params: { weekStart },
+      });
+      return response.data;
+    }
 
   async exportClientReportCsv(clientId: number) {
     const response = await this.client.get(`/api/reports/export/csv/${clientId}`, {
