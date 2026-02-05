@@ -1,0 +1,58 @@
+name: Performance Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  api-performance:
+    runs-on: ubuntu-latest
+    name: API Performance Tests
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install Backend Dependencies
+        run: cd backend && npm ci
+
+      - name: Start Backend Server
+        run: |
+          cd backend
+          npm start &
+          sleep 5
+
+      - name: Setup K6
+        uses: grafana/setup-k6-action@v1
+        with:
+          k6-version: '1.0.0'
+
+      - name: Run Smoke Tests
+        run: k6 run tests/performance/smoke.js
+        env:
+          BASE_URL: http://localhost:3001
+          TEST_USER_EMAIL: perftest@example.com
+
+      - name: Run Load Tests
+        run: k6 run tests/performance/load.js
+        env:
+          BASE_URL: http://localhost:3001
+          TEST_USER_EMAIL: perftest@example.com
+        continue-on-error: true
+
+      - name: Run Stress Tests
+        run: k6 run tests/performance/stress.js
+        env:
+          BASE_URL: http://localhost:3001
+          TEST_USER_EMAIL: perftest@example.com
+        continue-on-error: true
