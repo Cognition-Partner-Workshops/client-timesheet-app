@@ -1,0 +1,159 @@
+{
+  "_metadata": {
+    "description": "Synthetic test data for Client Timesheet Application",
+    "warning": "THIS IS TEST DATA ONLY - Not for production use",
+    "created": "2025-12-15",
+    "version": "1.0.0",
+    "total_entries": 50
+  },
+  "scenario_1_user_authentication": {
+    "description": "Email-based login entries covering diverse user roles",
+    "method": "Synthetic email addresses using RFC 2606 reserved domains (@example.com, @testdomain.com)",
+    "rationale": "Covers QA, dev, PM, admin, contractor, and intern roles to test the full spectrum of user types",
+    "entry_count": 10,
+    "data": [
+      { "email": "test.user1@example.com" },
+      { "email": "test.user2@example.com" },
+      { "email": "qa.engineer@testdomain.com" },
+      { "email": "dev.lead@testdomain.com" },
+      { "email": "project.manager@example.com" },
+      { "email": "junior.dev@testdomain.com" },
+      { "email": "senior.consultant@example.com" },
+      { "email": "admin.tester@testdomain.com" },
+      { "email": "contractor.alpha@example.com" },
+      { "email": "intern.beta@testdomain.com" }
+    ]
+  },
+  "scenario_2_client_management": {
+    "description": "Adding and managing client information across industries",
+    "method": "Fictional company names with generic industry descriptions and test-domain contact emails",
+    "rationale": "Covers tech, finance, healthcare, retail, manufacturing, logistics, airlines, education, data, and cloud industries",
+    "entry_count": 10,
+    "data": [
+      {
+        "name": "Acme Tech Solutions",
+        "description": "Test client - Software development consulting",
+        "department": "Engineering",
+        "email": "contact@acme-test.example.com",
+        "user_email": "test.user1@example.com"
+      },
+      {
+        "name": "Globex Financial Services",
+        "description": "Test client - Financial advisory and reporting",
+        "department": "Finance",
+        "email": "info@globex-test.example.com",
+        "user_email": "test.user1@example.com"
+      },
+      {
+        "name": "Initech Healthcare Systems",
+        "description": "Test client - Healthcare IT infrastructure",
+        "department": "IT Operations",
+        "email": "support@initech-test.example.com",
+        "user_email": "test.user1@example.com"
+      },
+      {
+        "name": "Umbrella Retail Group",
+        "description": "Test client - E-commerce platform development",
+        "department": "Digital Commerce",
+        "email": "dev@umbrella-test.example.com",
+        "user_email": "test.user1@example.com"
+      },
+      {
+        "name": "Stark Manufacturing Co",
+        "description": "Test client - Manufacturing process automation",
+        "department": "Operations",
+        "email": "ops@stark-test.example.com",
+        "user_email": "test.user1@example.com"
+      },
+      {
+        "name": "Wayne Logistics Inc",
+        "description": "Test client - Supply chain management system",
+        "department": "Logistics",
+        "email": "logistics@wayne-test.example.com",
+        "user_email": "qa.engineer@testdomain.com"
+      },
+      {
+        "name": "Oceanic Airlines Digital",
+        "description": "Test client - Airline booking platform",
+        "department": "Product Development",
+        "email": "product@oceanic-test.example.com",
+        "user_email": "qa.engineer@testdomain.com"
+      },
+      {
+        "name": "Wonka EdTech Labs",
+        "description": "Test client - Educational software platform",
+        "department": "Education Technology",
+        "email": "edu@wonka-test.example.com",
+        "user_email": "dev.lead@testdomain.com"
+      },
+      {
+        "name": "Pied Piper Data Corp",
+        "description": "Test client - Data compression services",
+        "department": "Research and Development",
+        "email": "rd@piedpiper-test.example.com",
+        "user_email": "dev.lead@testdomain.com"
+      },
+      {
+        "name": "Hooli Cloud Services",
+        "description": "Test client - Cloud infrastructure migration",
+        "department": "Cloud Engineering",
+        "email": "cloud@hooli-test.example.com",
+        "user_email": "project.manager@example.com"
+      }
+    ]
+  },
+  "scenario_3_time_entry_tracking": {
+    "description": "Recording work hours for different clients with varied tasks",
+    "method": "Realistic consulting activities with hours ranging from 0.5 to 8.0 across a two-week period",
+    "rationale": "Covers sprint planning, development, reviews, testing, meetings, and deployments to represent typical consultant workflows",
+    "entry_count": 10,
+    "data": [
+      { "client_id": 1, "user_email": "test.user1@example.com", "hours": 4.5, "description": "TEST ENTRY - Sprint planning and backlog grooming session", "date": "2025-12-01" },
+      { "client_id": 1, "user_email": "test.user1@example.com", "hours": 8.0, "description": "TEST ENTRY - Full day backend API development for user module", "date": "2025-12-02" },
+      { "client_id": 2, "user_email": "test.user1@example.com", "hours": 3.0, "description": "TEST ENTRY - Financial report dashboard wireframe review", "date": "2025-12-03" },
+      { "client_id": 2, "user_email": "test.user1@example.com", "hours": 6.5, "description": "TEST ENTRY - Quarterly compliance data integration work", "date": "2025-12-04" },
+      { "client_id": 3, "user_email": "test.user1@example.com", "hours": 2.0, "description": "TEST ENTRY - HIPAA security audit preparation meeting", "date": "2025-12-05" },
+      { "client_id": 3, "user_email": "test.user1@example.com", "hours": 7.5, "description": "TEST ENTRY - Patient records system database migration", "date": "2025-12-08" },
+      { "client_id": 4, "user_email": "test.user1@example.com", "hours": 5.0, "description": "TEST ENTRY - E-commerce checkout flow implementation", "date": "2025-12-09" },
+      { "client_id": 4, "user_email": "test.user1@example.com", "hours": 1.5, "description": "TEST ENTRY - Payment gateway integration testing", "date": "2025-12-10" },
+      { "client_id": 5, "user_email": "test.user1@example.com", "hours": 0.5, "description": "TEST ENTRY - Quick deployment hotfix for production issue", "date": "2025-12-11" },
+      { "client_id": 5, "user_email": "test.user1@example.com", "hours": 6.0, "description": "TEST ENTRY - Manufacturing dashboard real-time monitoring setup", "date": "2025-12-12" }
+    ]
+  },
+  "scenario_4_reporting": {
+    "description": "Work entries across multiple users/clients to enable report generation and aggregation",
+    "method": "Multi-user work entries for clients 6-10 enabling per-client report queries with aggregated hours",
+    "rationale": "Tests report generation with varying entry counts and total hours per client, covering multiple users",
+    "entry_count": 10,
+    "data": [
+      { "client_id": 6, "user_email": "qa.engineer@testdomain.com", "hours": 3.5, "description": "TEST ENTRY - Logistics API load testing and benchmarking", "date": "2025-12-01" },
+      { "client_id": 6, "user_email": "qa.engineer@testdomain.com", "hours": 7.0, "description": "TEST ENTRY - Warehouse management module QA testing", "date": "2025-12-02" },
+      { "client_id": 7, "user_email": "qa.engineer@testdomain.com", "hours": 4.0, "description": "TEST ENTRY - Flight booking system regression test suite", "date": "2025-12-03" },
+      { "client_id": 7, "user_email": "qa.engineer@testdomain.com", "hours": 2.5, "description": "TEST ENTRY - Airline API endpoint performance profiling", "date": "2025-12-04" },
+      { "client_id": 8, "user_email": "dev.lead@testdomain.com", "hours": 6.0, "description": "TEST ENTRY - Learning management system architecture review", "date": "2025-12-05" },
+      { "client_id": 8, "user_email": "dev.lead@testdomain.com", "hours": 8.0, "description": "TEST ENTRY - Course enrollment microservice development", "date": "2025-12-08" },
+      { "client_id": 9, "user_email": "dev.lead@testdomain.com", "hours": 5.5, "description": "TEST ENTRY - Data compression algorithm optimization", "date": "2025-12-09" },
+      { "client_id": 9, "user_email": "dev.lead@testdomain.com", "hours": 3.0, "description": "TEST ENTRY - Compression benchmark report generation", "date": "2025-12-10" },
+      { "client_id": 10, "user_email": "project.manager@example.com", "hours": 4.0, "description": "TEST ENTRY - Cloud migration project kickoff and planning", "date": "2025-12-11" },
+      { "client_id": 10, "user_email": "project.manager@example.com", "hours": 7.5, "description": "TEST ENTRY - Infrastructure as Code templates for AWS setup", "date": "2025-12-12" }
+    ]
+  },
+  "scenario_5_data_export": {
+    "description": "Dense work entries for a single client to produce rich CSV/PDF export output",
+    "method": "Multiple entries for Acme Tech Solutions (client 1) spanning a full month with varied hours and task types",
+    "rationale": "Tests export functionality with sufficient volume, including edge cases like fractional hours (0.75), max hours (8.0), and varied description lengths",
+    "entry_count": 10,
+    "data": [
+      { "client_id": 1, "user_email": "test.user1@example.com", "hours": 2.25, "description": "TEST ENTRY - Code review for authentication module pull requests", "date": "2025-11-03" },
+      { "client_id": 1, "user_email": "test.user1@example.com", "hours": 7.0, "description": "TEST ENTRY - Frontend React component library build and testing", "date": "2025-11-05" },
+      { "client_id": 1, "user_email": "test.user1@example.com", "hours": 1.0, "description": "TEST ENTRY - Standup and team sync", "date": "2025-11-07" },
+      { "client_id": 1, "user_email": "test.user1@example.com", "hours": 5.75, "description": "TEST ENTRY - Database schema migration and data validation scripts", "date": "2025-11-10" },
+      { "client_id": 1, "user_email": "test.user1@example.com", "hours": 8.0, "description": "TEST ENTRY - Full day onsite client workshop for requirements gathering", "date": "2025-11-12" },
+      { "client_id": 1, "user_email": "test.user1@example.com", "hours": 3.5, "description": "TEST ENTRY - CI/CD pipeline configuration and deployment automation", "date": "2025-11-14" },
+      { "client_id": 1, "user_email": "test.user1@example.com", "hours": 0.75, "description": "TEST ENTRY - Quick bug triage session", "date": "2025-11-17" },
+      { "client_id": 1, "user_email": "test.user1@example.com", "hours": 6.0, "description": "TEST ENTRY - REST API integration testing with third-party services", "date": "2025-11-19" },
+      { "client_id": 1, "user_email": "test.user1@example.com", "hours": 4.25, "description": "TEST ENTRY - Technical documentation and API specification writing", "date": "2025-11-21" },
+      { "client_id": 1, "user_email": "test.user1@example.com", "hours": 2.0, "description": "TEST ENTRY - Sprint retrospective and process improvement planning", "date": "2025-11-24" }
+    ]
+  }
+}
