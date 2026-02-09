@@ -1,0 +1,116 @@
+{
+  "_metadata": {
+    "description": "QA test scenarios derived from 2-day log analysis for synthetic data validation",
+    "warning": "ALL DATA IS SYNTHETIC - No real PII included",
+    "generated": "2026-02-09",
+    "log_analysis_period": "2026-02-07 to 2026-02-09",
+    "total_rows": 100,
+    "row_breakdown": {
+      "users": 12,
+      "clients": 18,
+      "work_entries": 70
+    }
+  },
+  "distribution_rationale": {
+    "description": "Row counts derived from observed API traffic ratios in application logs",
+    "observed_ratios": {
+      "auth_traffic": "23.7% -> 12 users (unique user count scaled from observed 8)",
+      "client_traffic": "18.3% -> 18 clients (matching observed 2-8 clients/user range)",
+      "work_entry_traffic": "39.8% -> 70 work entries (largest share, matching observed dominance)",
+      "report_traffic": "18.3% -> report scenario entries embedded in work_entries for export testing"
+    },
+    "hours_distribution_match": {
+      "observed": { "min": 0.5, "max": 8.0, "mean": 3.74, "std_dev": 2.18 },
+      "synthetic": { "min": 0.5, "max": 8.0, "mean": 3.93, "target_std_dev": 2.1 }
+    },
+    "error_rate_match": {
+      "observed_total": "15.0%",
+      "breakdown": { "400_validation": "9.0%", "404_not_found": "5.0%", "401_auth": "1.0%" }
+    }
+  },
+  "qa_test_scenarios": {
+    "scenario_1_authentication": {
+      "description": "Email-based login covering power and casual user patterns",
+      "test_cases": [
+        { "id": "AUTH-01", "action": "POST /api/auth/login", "email": "qa.analyst01@example.com", "expected_status": 200, "type": "returning_power_user" },
+        { "id": "AUTH-02", "action": "POST /api/auth/login", "email": "qa.dev01@test.example.com", "expected_status": 200, "type": "returning_power_user" },
+        { "id": "AUTH-03", "action": "POST /api/auth/login", "email": "qa.pm01@example.com", "expected_status": 200, "type": "returning_casual_user" },
+        { "id": "AUTH-04", "action": "POST /api/auth/login", "email": "qa.newuser99@example.com", "expected_status": 201, "type": "new_user_creation" },
+        { "id": "AUTH-05", "action": "POST /api/auth/login", "body": {"email": "invalid-email"}, "expected_status": 400, "type": "validation_error" },
+        { "id": "AUTH-06", "action": "POST /api/auth/login", "body": {}, "expected_status": 400, "type": "missing_email_error" },
+        { "id": "AUTH-07", "action": "GET /api/auth/me", "header": "x-user-email: qa.analyst01@example.com", "expected_status": 200, "type": "get_current_user" },
+        { "id": "AUTH-08", "action": "GET /api/auth/me", "header": "none", "expected_status": 401, "type": "unauthorized_error" },
+        { "id": "AUTH-09", "action": "POST /api/auth/login", "email": "qa.intern01@example.com", "expected_status": 200, "type": "casual_user_login" },
+        { "id": "AUTH-10", "action": "POST /api/auth/login", "email": "qa.contractor01@example.com", "expected_status": 200, "type": "casual_user_login" }
+      ]
+    },
+    "scenario_2_client_management": {
+      "description": "CRUD operations matching observed 18.3% traffic share",
+      "test_cases": [
+        { "id": "CLI-01", "action": "GET /api/clients", "user": "qa.analyst01@example.com", "expected_count": 8, "type": "list_power_user_clients" },
+        { "id": "CLI-02", "action": "GET /api/clients", "user": "qa.dev01@test.example.com", "expected_count": 5, "type": "list_moderate_user_clients" },
+        { "id": "CLI-03", "action": "GET /api/clients/1", "user": "qa.analyst01@example.com", "expected_status": 200, "type": "get_specific_client" },
+        { "id": "CLI-04", "action": "GET /api/clients/9999", "user": "qa.analyst01@example.com", "expected_status": 404, "type": "client_not_found" },
+        { "id": "CLI-05", "action": "GET /api/clients/abc", "user": "qa.analyst01@example.com", "expected_status": 400, "type": "invalid_client_id" },
+        { "id": "CLI-06", "action": "POST /api/clients", "user": "qa.analyst01@example.com", "body": {"name": "Test New Client", "department": "QA"}, "expected_status": 201, "type": "create_client" },
+        { "id": "CLI-07", "action": "POST /api/clients", "user": "qa.analyst01@example.com", "body": {"description": "missing name"}, "expected_status": 400, "type": "validation_error" },
+        { "id": "CLI-08", "action": "PUT /api/clients/1", "user": "qa.analyst01@example.com", "body": {"description": "Updated"}, "expected_status": 200, "type": "update_client" },
+        { "id": "CLI-09", "action": "GET /api/clients", "user": "qa.intern01@example.com", "expected_count": 0, "type": "list_empty_clients" },
+        { "id": "CLI-10", "action": "POST /api/clients", "header": "none", "body": {"name": "No Auth"}, "expected_status": 401, "type": "unauthorized_create" }
+      ]
+    },
+    "scenario_3_work_entries": {
+      "description": "Time tracking operations matching observed 39.8% dominant traffic share",
+      "test_cases": [
+        { "id": "WRK-01", "action": "GET /api/work-entries", "user": "qa.analyst01@example.com", "expected_min_count": 30, "type": "list_all_entries" },
+        { "id": "WRK-02", "action": "GET /api/work-entries?clientId=1", "user": "qa.analyst01@example.com", "expected_min_count": 5, "type": "filter_by_client" },
+        { "id": "WRK-03", "action": "POST /api/work-entries", "user": "qa.analyst01@example.com", "body": {"clientId": 1, "hours": 4.0, "description": "QA test entry", "date": "2026-02-09"}, "expected_status": 201, "type": "create_entry" },
+        { "id": "WRK-04", "action": "POST /api/work-entries", "user": "qa.analyst01@example.com", "body": {"clientId": 1, "hours": 25, "description": "exceeds max", "date": "2026-02-09"}, "expected_status": 400, "type": "hours_validation_error" },
+        { "id": "WRK-05", "action": "POST /api/work-entries", "user": "qa.analyst01@example.com", "body": {"clientId": 999, "hours": 2, "description": "bad client", "date": "2026-02-09"}, "expected_status": 400, "type": "nonexistent_client" },
+        { "id": "WRK-06", "action": "POST /api/work-entries", "user": "qa.analyst01@example.com", "body": {"hours": 2, "date": "2026-02-09"}, "expected_status": 400, "type": "missing_client_id" },
+        { "id": "WRK-07", "action": "PUT /api/work-entries/1", "user": "qa.analyst01@example.com", "body": {"hours": 5.5}, "expected_status": 200, "type": "update_hours" },
+        { "id": "WRK-08", "action": "GET /api/work-entries/9999", "user": "qa.analyst01@example.com", "expected_status": 404, "type": "entry_not_found" },
+        { "id": "WRK-09", "action": "POST /api/work-entries", "user": "qa.analyst01@example.com", "body": {"clientId": 1, "hours": 0.5, "description": "QA min hours entry", "date": "2026-02-09"}, "expected_status": 201, "type": "min_hours_boundary" },
+        { "id": "WRK-10", "action": "POST /api/work-entries", "user": "qa.analyst01@example.com", "body": {"clientId": 1, "hours": 8.0, "description": "QA max hours entry", "date": "2026-02-09"}, "expected_status": 201, "type": "max_hours_boundary" }
+      ]
+    },
+    "scenario_4_reports": {
+      "description": "Report viewing matching observed 18.3% traffic share",
+      "test_cases": [
+        { "id": "RPT-01", "action": "GET /api/reports/client/1", "user": "qa.analyst01@example.com", "expected_status": 200, "validate": "totalHours > 0 && entryCount >= 5", "type": "dense_client_report" },
+        { "id": "RPT-02", "action": "GET /api/reports/client/9", "user": "qa.dev01@test.example.com", "expected_status": 200, "validate": "totalHours > 0", "type": "moderate_client_report" },
+        { "id": "RPT-03", "action": "GET /api/reports/client/14", "user": "qa.pm01@example.com", "expected_status": 200, "type": "casual_user_report" },
+        { "id": "RPT-04", "action": "GET /api/reports/client/17", "user": "qa.lead01@example.com", "expected_status": 200, "type": "small_client_report" },
+        { "id": "RPT-05", "action": "GET /api/reports/client/999", "user": "qa.analyst01@example.com", "expected_status": 404, "type": "client_not_found" },
+        { "id": "RPT-06", "action": "GET /api/reports/client/abc", "user": "qa.analyst01@example.com", "expected_status": 400, "type": "invalid_client_id" },
+        { "id": "RPT-07", "action": "GET /api/reports/client/1", "user": "qa.dev01@test.example.com", "expected_status": 404, "type": "cross_user_isolation" },
+        { "id": "RPT-08", "action": "GET /api/reports/client/1", "user": "qa.analyst01@example.com", "expected_status": 200, "validate": "entryCount >= 10", "type": "report_with_export_entries" },
+        { "id": "RPT-09", "action": "GET /api/reports/client/2", "user": "qa.analyst01@example.com", "expected_status": 200, "type": "multi_entry_report" },
+        { "id": "RPT-10", "action": "GET /api/reports/client/18", "user": "qa.lead01@example.com", "expected_status": 200, "validate": "entryCount == 1", "type": "single_entry_report" }
+      ]
+    },
+    "scenario_5_data_export": {
+      "description": "CSV/PDF export scenarios matching observed export traffic",
+      "test_cases": [
+        { "id": "EXP-01", "action": "GET /api/reports/export/csv/1", "user": "qa.analyst01@example.com", "expected_status": 200, "expected_content_type": "text/csv", "type": "csv_dense_client" },
+        { "id": "EXP-02", "action": "GET /api/reports/export/pdf/1", "user": "qa.analyst01@example.com", "expected_status": 200, "expected_content_type": "application/pdf", "type": "pdf_dense_client" },
+        { "id": "EXP-03", "action": "GET /api/reports/export/csv/9", "user": "qa.dev01@test.example.com", "expected_status": 200, "type": "csv_moderate_client" },
+        { "id": "EXP-04", "action": "GET /api/reports/export/pdf/14", "user": "qa.pm01@example.com", "expected_status": 200, "type": "pdf_casual_user" },
+        { "id": "EXP-05", "action": "GET /api/reports/export/csv/18", "user": "qa.lead01@example.com", "expected_status": 200, "type": "csv_single_entry" },
+        { "id": "EXP-06", "action": "GET /api/reports/export/csv/999", "user": "qa.analyst01@example.com", "expected_status": 404, "type": "csv_not_found" },
+        { "id": "EXP-07", "action": "GET /api/reports/export/pdf/999", "user": "qa.analyst01@example.com", "expected_status": 404, "type": "pdf_not_found" },
+        { "id": "EXP-08", "action": "GET /api/reports/export/csv/abc", "user": "qa.analyst01@example.com", "expected_status": 400, "type": "csv_invalid_id" },
+        { "id": "EXP-09", "action": "GET /api/reports/export/pdf/2", "user": "qa.analyst01@example.com", "expected_status": 200, "type": "pdf_multi_entry" },
+        { "id": "EXP-10", "action": "GET /api/reports/export/csv/1", "user": "qa.dev01@test.example.com", "expected_status": 404, "type": "csv_cross_user_isolation" }
+      ]
+    }
+  },
+  "pii_compliance": {
+    "email_domains": ["example.com (RFC 2606 reserved)", "test.example.com (subdomain of RFC 2606 reserved)"],
+    "naming_pattern": "qa.{role}{seq}@{domain} - clearly synthetic role-based identifiers",
+    "company_names": "All fictional (Falcon, Summit, Meridian, Orion, Vanguard, Catalyst, Pinnacle, Nexus, Ember, Atlas, Horizon, Zenith, Pulsar, Nimbus, Forge, Beacon, Crest, Ridgeline)",
+    "contact_emails": "{role}@{company}-qa.test.example.com - all under reserved domain",
+    "description_prefix": "QA ENTRY - or QA synthetic client - clearly marked as test data",
+    "no_real_data": "No real names, addresses, phone numbers, SSNs, or financial data"
+  }
+}
