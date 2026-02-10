@@ -126,7 +126,7 @@ describe('Work Entry Routes', () => {
     test('should create work entry with valid data', async () => {
       const newEntry = {
         clientId: 1,
-        hours: 5.5,
+        hours: 5,
         description: 'Development work',
         date: '2024-01-15'
       };

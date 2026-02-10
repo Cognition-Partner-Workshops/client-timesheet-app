@@ -37,10 +37,12 @@ router.get('/client/:clientId', (req, res) => {
       
       // Get work entries for this client
       db.all(
-        `SELECT id, hours, description, date, created_at, updated_at
-         FROM work_entries 
-         WHERE client_id = ? AND user_email = ? 
-         ORDER BY date DESC`,
+        `SELECT we.id, we.hours, we.description, we.date, we.created_at, we.updated_at,
+                we.project_id, p.name as project_name
+         FROM work_entries we
+         LEFT JOIN projects p ON we.project_id = p.id
+         WHERE we.client_id = ? AND we.user_email = ? 
+         ORDER BY we.date DESC`,
         [clientId, req.userEmail],
         (err, workEntries) => {
           if (err) {
@@ -48,7 +50,6 @@ router.get('/client/:clientId', (req, res) => {
             return res.status(500).json({ error: 'Internal server error' });
           }
           
-          // Calculate total hours
           const totalHours = workEntries.reduce((sum, entry) => sum + parseFloat(entry.hours), 0);
           
           res.json({
@@ -87,12 +88,12 @@ router.get('/export/csv/:clientId', (req, res) => {
         return res.status(404).json({ error: 'Client not found' });
       }
       
-      // Get work entries
       db.all(
-        `SELECT hours, description, date, created_at
-         FROM work_entries 
-         WHERE client_id = ? AND user_email = ? 
-         ORDER BY date DESC`,
+        `SELECT we.hours, we.description, we.date, we.created_at, p.name as project_name
+         FROM work_entries we
+         LEFT JOIN projects p ON we.project_id = p.id
+         WHERE we.client_id = ? AND we.user_email = ? 
+         ORDER BY we.date DESC`,
         [clientId, req.userEmail],
         (err, workEntries) => {
           if (err) {
@@ -100,12 +101,10 @@ router.get('/export/csv/:clientId', (req, res) => {
             return res.status(500).json({ error: 'Internal server error' });
           }
           
-          // Create temporary CSV file
           const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
           const filename = `${client.name.replace(/[^a-zA-Z0-9]/g, '_')}_report_${timestamp}.csv`;
           const tempPath = path.join(__dirname, '../../temp', filename);
           
-          // Ensure temp directory exists
           const tempDir = path.dirname(tempPath);
           if (!fs.existsSync(tempDir)) {
             fs.mkdirSync(tempDir, { recursive: true });
@@ -116,6 +115,7 @@ router.get('/export/csv/:clientId', (req, res) => {
             header: [
               { id: 'date', title: 'Date' },
               { id: 'hours', title: 'Hours' },
+              { id: 'project_name', title: 'Project' },
               { id: 'description', title: 'Description' },
               { id: 'created_at', title: 'Created At' }
             ]
@@ -170,12 +170,12 @@ router.get('/export/pdf/:clientId', (req, res) => {
         return res.status(404).json({ error: 'Client not found' });
       }
       
-      // Get work entries
       db.all(
-        `SELECT hours, description, date, created_at
-         FROM work_entries 
-         WHERE client_id = ? AND user_email = ? 
-         ORDER BY date DESC`,
+        `SELECT we.hours, we.description, we.date, we.created_at, p.name as project_name
+         FROM work_entries we
+         LEFT JOIN projects p ON we.project_id = p.id
+         WHERE we.client_id = ? AND we.user_email = ? 
+         ORDER BY we.date DESC`,
         [clientId, req.userEmail],
         (err, workEntries) => {
           if (err) {
@@ -183,7 +183,6 @@ router.get('/export/pdf/:clientId', (req, res) => {
             return res.status(500).json({ error: 'Internal server error' });
           }
           
-          // Create PDF
           const doc = new PDFDocument();
           const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
           const filename = `${client.name.replace(/[^a-zA-Z0-9]/g, '_')}_report_${timestamp}.pdf`;
@@ -205,10 +204,10 @@ router.get('/export/pdf/:clientId', (req, res) => {
           doc.text(`Generated: ${new Date().toLocaleString()}`);
           doc.moveDown();
           
-          // Add table header
-          doc.fontSize(12).text('Date', 50, doc.y, { width: 100 });
-          doc.text('Hours', 150, doc.y - 15, { width: 80 });
-          doc.text('Description', 230, doc.y - 15, { width: 300 });
+          doc.fontSize(12).text('Date', 50, doc.y, { width: 80 });
+          doc.text('Hours', 130, doc.y - 15, { width: 50 });
+          doc.text('Project', 180, doc.y - 15, { width: 120 });
+          doc.text('Description', 300, doc.y - 15, { width: 250 });
           doc.moveDown();
           
           // Add horizontal line
@@ -224,9 +223,10 @@ router.get('/export/pdf/:clientId', (req, res) => {
               doc.addPage();
             }
             
-            doc.text(entry.date, 50, doc.y, { width: 100 });
-            doc.text(entry.hours.toString(), 150, y, { width: 80 });
-            doc.text(entry.description || 'No description', 230, y, { width: 300 });
+            doc.text(entry.date, 50, doc.y, { width: 80 });
+            doc.text(entry.hours.toString(), 130, y, { width: 50 });
+            doc.text(entry.project_name || '-', 180, y, { width: 120 });
+            doc.text(entry.description || 'No description', 300, y, { width: 250 });
             doc.moveDown();
             
             // Add separator line every 5 entries

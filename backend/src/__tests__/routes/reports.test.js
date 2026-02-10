@@ -61,10 +61,10 @@ describe('Report Routes', () => {
   describe('GET /api/reports/client/:clientId', () => {
     test('should return client report with work entries', async () => {
       const mockClient = { id: 1, name: 'Test Client' };
-      const mockWorkEntries = [
-        { id: 1, hours: 5.5, description: 'Work 1', date: '2024-01-01' },
-        { id: 2, hours: 3.0, description: 'Work 2', date: '2024-01-02' }
-      ];
+        const mockWorkEntries = [
+          { id: 1, hours: 6, description: 'Work 1', date: '2024-01-01' },
+          { id: 2, hours: 3, description: 'Work 2', date: '2024-01-02' }
+        ];
 
       mockDb.get.mockImplementation((query, params, callback) => {
         callback(null, mockClient);
@@ -79,7 +79,7 @@ describe('Report Routes', () => {
       expect(response.status).toBe(200);
       expect(response.body.client).toEqual(mockClient);
       expect(response.body.workEntries).toEqual(mockWorkEntries);
-      expect(response.body.totalHours).toBe(8.5);
+      expect(response.body.totalHours).toBe(9);
       expect(response.body.entryCount).toBe(2);
     });
 
@@ -158,7 +158,7 @@ describe('Report Routes', () => {
       await request(app).get('/api/reports/client/1');
 
       expect(mockDb.all).toHaveBeenCalledWith(
-        expect.stringContaining('WHERE client_id = ? AND user_email = ?'),
+        expect.stringContaining('WHERE we.client_id = ? AND we.user_email = ?'),
         [1, 'test@example.com'],
         expect.any(Function)
       );
@@ -265,22 +265,22 @@ describe('Report Routes', () => {
   });
 
   describe('Hours Calculation', () => {
-    test('should correctly sum decimal hours', async () => {
+    test('should correctly sum integer hours', async () => {
       mockDb.get.mockImplementation((query, params, callback) => {
         callback(null, { id: 1, name: 'Test Client' });
       });
 
       mockDb.all.mockImplementation((query, params, callback) => {
         callback(null, [
-          { hours: 2.5 },
-          { hours: 3.75 },
-          { hours: 1.25 }
+          { hours: 3 },
+          { hours: 4 },
+          { hours: 1 }
         ]);
       });
 
       const response = await request(app).get('/api/reports/client/1');
 
-      expect(response.body.totalHours).toBe(7.5);
+      expect(response.body.totalHours).toBe(8);
     });
 
     test('should handle integer hours', async () => {
