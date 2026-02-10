@@ -585,4 +585,40 @@ describe('Work Entry Routes', () => {
       expect(response.body.message).toBe('Work entry updated successfully');
     });
   });
+
+  describe('POST /api/work-entries - Catch Block', () => {
+    test('should handle synchronous error thrown during validation', async () => {
+      // Mock getDatabase to throw an error synchronously
+      getDatabase.mockImplementation(() => {
+        throw new Error('Unexpected sync error');
+      });
+
+      const response = await request(app)
+        .post('/api/work-entries')
+        .send({
+          clientId: 1,
+          hours: 5,
+          date: '2024-01-15'
+        });
+
+      expect(response.status).toBe(500);
+      expect(response.body).toEqual({ error: 'Internal server error' });
+    });
+  });
+
+  describe('PUT /api/work-entries/:id - Catch Block', () => {
+    test('should handle synchronous error thrown during validation', async () => {
+      // Mock getDatabase to throw an error synchronously
+      getDatabase.mockImplementation(() => {
+        throw new Error('Unexpected sync error');
+      });
+
+      const response = await request(app)
+        .put('/api/work-entries/1')
+        .send({ hours: 8 });
+
+      expect(response.status).toBe(500);
+      expect(response.body).toEqual({ error: 'Internal server error' });
+    });
+  });
 });
