@@ -142,6 +142,85 @@ describe('Database Initialization', () => {
 
       expect(consoleErrorSpy).not.toHaveBeenCalled();
     });
+
+    test('should resolve immediately when database is already closed', async () => {
+      // First close the database
+      const db = getDatabase();
+      db.close.mockImplementation((callback) => callback(null));
+      await closeDatabase();
+      
+      // Second close should resolve immediately (isClosed = true)
+      await expect(closeDatabase()).resolves.toBeUndefined();
+    });
+
+    test('should resolve immediately when no database connection exists', async () => {
+      // Reset modules to get fresh state with no db connection
+      jest.resetModules();
+      
+      // Re-mock sqlite3 for the fresh module
+      jest.doMock('sqlite3', () => {
+        return {
+          verbose: jest.fn(() => ({
+            Database: jest.fn((path, callback) => {
+              callback(null);
+              return {
+                serialize: jest.fn((cb) => cb()),
+                run: jest.fn((q, cb) => { if (typeof cb === 'function') cb(null); }),
+                close: jest.fn((cb) => cb(null))
+              };
+            })
+          }))
+        };
+      });
+
+      const { closeDatabase: closeDatabaseFresh } = require('../../database/init');
+      
+      // Close without ever creating a database - should resolve immediately
+      await expect(closeDatabaseFresh()).resolves.toBeUndefined();
+    });
+
+    test('should wait for closing to complete when close is in progress', async () => {
+      jest.resetModules();
+      
+      let closeCallback = null;
+      jest.doMock('sqlite3', () => {
+        return {
+          verbose: jest.fn(() => ({
+            Database: jest.fn((path, callback) => {
+              callback(null);
+              return {
+                serialize: jest.fn((cb) => cb()),
+                run: jest.fn((q, cb) => { if (typeof cb === 'function') cb(null); }),
+                close: jest.fn((cb) => {
+                  // Store callback to call later, simulating slow close
+                  closeCallback = cb;
+                })
+              };
+            })
+          }))
+        };
+      });
+
+      const { getDatabase: getDbFresh, closeDatabase: closeDbFresh } = require('../../database/init');
+      
+      // Create a database connection
+      getDbFresh();
+      
+      // Start first close (will be pending)
+      const firstClose = closeDbFresh();
+      
+      // Start second close while first is in progress
+      const secondClose = closeDbFresh();
+      
+      // Complete the close operation
+      if (closeCallback) {
+        closeCallback(null);
+      }
+      
+      // Both should resolve
+      await expect(firstClose).resolves.toBeUndefined();
+      await expect(secondClose).resolves.toBeUndefined();
+    });
   });
 
   describe('Database Schema', () => {
