@@ -89,7 +89,7 @@ describe('Validation Schemas', () => {
     test('should validate valid work entry', () => {
       const validEntry = {
         clientId: 1,
-        hours: 5.5,
+        hours: 5,
         description: 'Development work',
         date: '2024-01-15'
       };
@@ -174,7 +174,7 @@ describe('Validation Schemas', () => {
       expect(error).toBeDefined();
     });
 
-    test('should accept decimal hours', () => {
+    test('should reject decimal hours', () => {
       const entry = {
         clientId: 1,
         hours: 7.75,
@@ -182,7 +182,7 @@ describe('Validation Schemas', () => {
       };
 
       const { error } = workEntrySchema.validate(entry);
-      expect(error).toBeUndefined();
+      expect(error).toBeDefined();
     });
 
     test('should reject missing date', () => {

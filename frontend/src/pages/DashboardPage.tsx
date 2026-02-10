@@ -12,6 +12,7 @@ import {
   Business as BusinessIcon,
   Assignment as AssignmentIcon,
   Assessment as AssessmentIcon,
+  Folder as FolderIcon,
   Add as AddIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
@@ -26,12 +27,18 @@ const DashboardPage: React.FC = () => {
     queryFn: () => apiClient.getClients(),
   });
 
+  const { data: projectsData } = useQuery({
+    queryKey: ['projects'],
+    queryFn: () => apiClient.getProjects(),
+  });
+
   const { data: workEntriesData } = useQuery({
     queryKey: ['workEntries'],
     queryFn: () => apiClient.getWorkEntries(),
   });
 
   const clients = clientsData?.clients || [];
+  const projects = projectsData?.projects || [];
   const workEntries = workEntriesData?.workEntries || [];
 
   const totalHours = workEntries.reduce((sum: number, entry: { hours: number }) => sum + entry.hours, 0);
@@ -44,6 +51,13 @@ const DashboardPage: React.FC = () => {
       icon: <BusinessIcon />,
       color: '#1976d2',
       action: () => navigate('/clients'),
+    },
+    {
+      title: 'Total Projects',
+      value: projects.length,
+      icon: <FolderIcon />,
+      color: '#7b1fa2',
+      action: () => navigate('/projects'),
     },
     {
       title: 'Total Work Entries',
@@ -70,7 +84,7 @@ const DashboardPage: React.FC = () => {
       <Grid container spacing={3} sx={{ mb: 4 }}>
         {statsCards.map((stat, index) => (
           // @ts-expect-error - MUI Grid item prop type issue
-          <Grid item xs={12} sm={6} md={4} key={index}>
+          <Grid item xs={12} sm={6} md={3} key={index}>
             <Card
               sx={{
                 cursor: 'pointer',
