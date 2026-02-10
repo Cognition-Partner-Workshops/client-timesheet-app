@@ -1,36 +1,24 @@
 const request = require('supertest');
-const express = require('express');
 const workEntryRoutes = require('../../routes/workEntries');
 const { getDatabase } = require('../../database/init');
+const {
+  createMockDatabase,
+  createTestApp
+} = require('../utils/mockFactories');
 
 jest.mock('../../database/init');
-jest.mock('../../middleware/auth', () => ({
-  authenticateUser: (req, res, next) => {
-    req.userEmail = 'test@example.com';
-    next();
-  }
-}));
-
-const app = express();
-app.use(express.json());
-app.use('/api/work-entries', workEntryRoutes);
-// Add error handler for Joi validation
-app.use((err, req, res, next) => {
-  if (err.isJoi) {
-    return res.status(400).json({ error: 'Validation error' });
-  }
-  res.status(500).json({ error: 'Internal server error' });
+jest.mock('../../middleware/auth', () => {
+  const { createMockAuthMiddleware } = require('../utils/mockFactories');
+  return createMockAuthMiddleware();
 });
+
+const app = createTestApp(workEntryRoutes, '/api/work-entries');
 
 describe('Work Entry Routes', () => {
   let mockDb;
 
   beforeEach(() => {
-    mockDb = {
-      all: jest.fn(),
-      get: jest.fn(),
-      run: jest.fn()
-    };
+    mockDb = createMockDatabase();
     getDatabase.mockReturnValue(mockDb);
   });
 
