@@ -227,7 +227,16 @@ const WorkEntriesPage: React.FC = () => {
                     workEntries.map((entry: WorkEntry) => (
                       <TableRow key={entry.id}>
                         <TableCell>
-                          <Typography variant="subtitle1" fontWeight="medium">
+                          <Typography 
+                            variant="subtitle1" 
+                            fontWeight="medium"
+                            sx={{ 
+                              display: 'flex', 
+                              alignItems: 'center',
+                              minHeight: '32px',
+                              mt: 0.5
+                            }}
+                          >
                             {entry.client_name}
                           </Typography>
                         </TableCell>
