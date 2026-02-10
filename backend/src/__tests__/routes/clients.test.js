@@ -355,9 +355,33 @@ describe('Client Routes', () => {
       expect(response.status).toBe(500);
       expect(response.body).toEqual({ error: 'Client created but failed to retrieve' });
     });
+
+    test('should handle unexpected error in try-catch block for POST', async () => {
+      getDatabase.mockImplementation(() => {
+        throw new Error('Unexpected error');
+      });
+
+      const response = await request(app)
+        .post('/api/clients')
+        .send({ name: 'Test Client' });
+
+      expect(response.status).toBe(500);
+    });
   });
 
   describe('PUT /api/clients/:id - Error Handling', () => {
+    test('should handle unexpected error in try-catch block for PUT', async () => {
+      getDatabase.mockImplementation(() => {
+        throw new Error('Unexpected error');
+      });
+
+      const response = await request(app)
+        .put('/api/clients/1')
+        .send({ name: 'Updated Name' });
+
+      expect(response.status).toBe(500);
+    });
+
     test('should handle database error when checking client existence', async () => {
       mockDb.get.mockImplementation((query, params, callback) => {
         callback(new Error('Database error'), null);
