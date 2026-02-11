@@ -3,6 +3,7 @@ const { getDatabase } = require('../database/init');
 const { authenticateUser } = require('../middleware/auth');
 const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 const PDFDocument = require('pdfkit');
+const os = require('os');
 const path = require('path');
 const fs = require('fs');
 
@@ -102,14 +103,9 @@ router.get('/export/csv/:clientId', (req, res) => {
           
           // Create temporary CSV file
           const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-          const filename = `${client.name.replace(/[^a-zA-Z0-9]/g, '_')}_report_${timestamp}.csv`;
-          const tempPath = path.join(__dirname, '../../temp', filename);
-          
-          // Ensure temp directory exists
-          const tempDir = path.dirname(tempPath);
-          if (!fs.existsSync(tempDir)) {
-            fs.mkdirSync(tempDir, { recursive: true });
-          }
+          const sanitizedName = client.name.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 50);
+          const filename = `${sanitizedName}_report_${timestamp}.csv`;
+          const tempPath = path.join(os.tmpdir(), filename);
           
           const csvWriter = createCsvWriter({
             path: tempPath,
@@ -124,9 +120,11 @@ router.get('/export/csv/:clientId', (req, res) => {
           csvWriter.writeRecords(workEntries)
             .then(() => {
               // Send file and clean up
+              res.setHeader('X-Content-Type-Options', 'nosniff');
               res.download(tempPath, filename, (err) => {
-                if (err) {
+                if (err && !res.headersSent) {
                   console.error('Error sending file:', err);
+                  res.status(500).json({ error: 'Failed to send CSV report' });
                 }
                 // Clean up temp file
                 fs.unlink(tempPath, (unlinkErr) => {
@@ -186,11 +184,13 @@ router.get('/export/pdf/:clientId', (req, res) => {
           // Create PDF
           const doc = new PDFDocument();
           const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-          const filename = `${client.name.replace(/[^a-zA-Z0-9]/g, '_')}_report_${timestamp}.pdf`;
+          const sanitizedName = client.name.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 50);
+          const filename = `${sanitizedName}_report_${timestamp}.pdf`;
           
           // Set response headers
           res.setHeader('Content-Type', 'application/pdf');
           res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+          res.setHeader('X-Content-Type-Options', 'nosniff');
           
           // Pipe PDF to response
           doc.pipe(res);
