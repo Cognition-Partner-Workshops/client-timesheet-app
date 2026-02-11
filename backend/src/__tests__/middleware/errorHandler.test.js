@@ -101,7 +101,7 @@ describe('Error Handler Middleware', () => {
       });
     });
 
-    test('should default to 500 status if not specified', () => {
+    test('should default to 500 status and hide internal message', () => {
       const genericError = {
         message: 'Something went wrong'
       };
@@ -110,7 +110,7 @@ describe('Error Handler Middleware', () => {
 
       expect(res.status).toHaveBeenCalledWith(500);
       expect(res.json).toHaveBeenCalledWith({
-        error: 'Something went wrong'
+        error: 'Internal server error'
       });
     });
 

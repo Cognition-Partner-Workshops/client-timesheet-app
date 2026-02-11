@@ -1,6 +1,10 @@
 function errorHandler(err, req, res, next) {
   console.error('Error:', err);
 
+  if (res.headersSent) {
+    return next(err);
+  }
+
   // Joi validation errors
   if (err.isJoi) {
     return res.status(400).json({
@@ -17,9 +21,10 @@ function errorHandler(err, req, res, next) {
     });
   }
 
-  // Default error
-  res.status(err.status || 500).json({
-    error: err.message || 'Internal server error'
+  const statusCode = err.status || 500;
+  const isServerError = statusCode >= 500;
+  res.status(statusCode).json({
+    error: isServerError ? 'Internal server error' : (err.message || 'Internal server error')
   });
 }
 
