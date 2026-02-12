@@ -23,16 +23,13 @@ jobs:
           fetch-depth: 0
 
       - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@v5
+        uses: SonarSource/sonarqube-scan-action@v4
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
         with:
           args: >
             -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }}
-            -Dsonar.pullrequest.key=${{ github.event.pull_request.number }}
-            -Dsonar.pullrequest.branch=${{ github.event.pull_request.head.ref }}
-            -Dsonar.pullrequest.base=${{ github.event.pull_request.base.ref }}
 
       - name: Wait for SonarQube analysis
         env:
@@ -62,7 +59,7 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           RESPONSE=$(curl -s -u "${SONAR_TOKEN}:" \
-            "${SONAR_HOST_URL}/api/issues/search?componentKeys=${SONAR_PROJECT_KEY}&types=VULNERABILITY&severities=BLOCKER,CRITICAL&statuses=OPEN,CONFIRMED,REOPENED&pullRequest=${PR_NUMBER}&ps=100")
+            "${SONAR_HOST_URL}/api/issues/search?componentKeys=${SONAR_PROJECT_KEY}&types=VULNERABILITY&severities=BLOCKER,CRITICAL&statuses=OPEN,CONFIRMED,REOPENED&ps=100")
 
           TOTAL=$(echo "$RESPONSE" | jq -r '.total // 0')
           echo "vulnerability_count=${TOTAL}" >> "$GITHUB_OUTPUT"
