@@ -1,3 +1,15 @@
+/**
+ * @fileoverview Authentication route handlers.
+ *
+ * Provides endpoints for user login and profile retrieval.  Login uses an
+ * email-only flow: if the email does not already exist a new user record is
+ * created automatically (no password required).
+ *
+ * Mounted at `/api/auth`.
+ *
+ * @module routes/auth
+ */
+
 const express = require('express');
 const { getDatabase } = require('../database/init');
 const { emailSchema } = require('../validation/schemas');
@@ -5,7 +17,14 @@ const { authenticateUser } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Login endpoint - creates user if doesn't exist
+/**
+ * @route POST /api/auth/login
+ * @description Authenticates a user by email.  If the email is not yet
+ *              registered a new user row is inserted and a 201 is returned;
+ *              otherwise the existing user is returned with a 200.
+ * @body {{ email: string }} - Validated against {@link module:validation/schemas~emailSchema}.
+ * @returns {{ message: string, user: { email: string, createdAt: string } }}
+ */
 router.post('/login', async (req, res, next) => {
   try {
     const { error, value } = emailSchema.validate(req.body);
@@ -55,7 +74,13 @@ router.post('/login', async (req, res, next) => {
   }
 });
 
-// Get current user info
+/**
+ * @route GET /api/auth/me
+ * @description Returns the profile of the currently authenticated user.
+ *              Requires the `x-user-email` header (handled by
+ *              {@link module:middleware/auth~authenticateUser}).
+ * @returns {{ user: { email: string, createdAt: string } }}
+ */
 router.get('/me', authenticateUser, (req, res) => {
   const db = getDatabase();
   
