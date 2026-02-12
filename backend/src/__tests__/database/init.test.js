@@ -142,6 +142,68 @@ describe('Database Initialization', () => {
 
       expect(consoleErrorSpy).not.toHaveBeenCalled();
     });
+
+    test('should resolve immediately when already closed', async () => {
+      const db = getDatabase();
+      db.close.mockImplementation((callback) => callback(null));
+      await closeDatabase();
+      await expect(closeDatabase()).resolves.toBeUndefined();
+    });
+
+    test('should resolve when no database connection exists', async () => {
+      jest.resetModules();
+      jest.doMock('sqlite3', () => {
+        return {
+          verbose: jest.fn(() => ({
+            Database: jest.fn((path, callback) => {
+              callback(null);
+              return {
+                serialize: jest.fn((cb) => cb()),
+                run: jest.fn((q, cb) => { if (typeof cb === 'function') cb(null); }),
+                close: jest.fn((cb) => cb(null))
+              };
+            })
+          }))
+        };
+      });
+
+      const { closeDatabase: closeFresh } = require('../../database/init');
+      await expect(closeFresh()).resolves.toBeUndefined();
+    });
+
+    test('should wait for closing to complete when isClosing is true', async () => {
+      jest.useFakeTimers();
+      jest.resetModules();
+      let closeCallback;
+      jest.doMock('sqlite3', () => {
+        return {
+          verbose: jest.fn(() => ({
+            Database: jest.fn((path, callback) => {
+              callback(null);
+              return {
+                serialize: jest.fn((cb) => cb()),
+                run: jest.fn((q, cb) => { if (typeof cb === 'function') cb(null); }),
+                close: jest.fn((cb) => { closeCallback = cb; })
+              };
+            })
+          }))
+        };
+      });
+
+      const { getDatabase: getDb, closeDatabase: closeDb } = require('../../database/init');
+      getDb();
+
+      const firstClose = closeDb();
+      const secondClose = closeDb();
+
+      jest.advanceTimersByTime(10);
+      if (closeCallback) closeCallback(null);
+      jest.advanceTimersByTime(20);
+
+      await firstClose;
+      await secondClose;
+      jest.useRealTimers();
+    });
   });
 
   describe('Database Schema', () => {
