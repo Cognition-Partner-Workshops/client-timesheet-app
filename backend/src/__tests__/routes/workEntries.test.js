@@ -22,6 +22,25 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
+function createSequentialGetMock(results) {
+  let callCount = 0;
+  return (query, params, callback) => {
+    const idx = Math.min(callCount, results.length - 1);
+    callCount++;
+    callback(results[idx][0], results[idx][1]);
+  };
+}
+
+function createQueryRoutedGetMock(joinQueryData, defaultData) {
+  return (query, params, callback) => {
+    if (query.includes('work_entries we')) {
+      callback(null, joinQueryData);
+    } else {
+      callback(null, defaultData);
+    }
+  };
+}
+
 describe('Work Entry Routes', () => {
   let mockDb;
 
@@ -445,15 +464,12 @@ describe('Work Entry Routes', () => {
     });
 
     test('should handle database error when verifying new client in update', async () => {
-      let callCount = 0;
-      mockDb.get.mockImplementation((query, params, callback) => {
-        callCount++;
-        if (callCount === 1) {
-          callback(null, { id: 1 });
-        } else {
-          callback(new Error('Database error'), null);
-        }
-      });
+      mockDb.get.mockImplementation(
+        createSequentialGetMock([
+          [null, { id: 1 }],
+          [new Error('Database error'), null]
+        ])
+      );
 
       const response = await request(app)
         .put('/api/work-entries/1')
@@ -481,15 +497,12 @@ describe('Work Entry Routes', () => {
     });
 
     test('should handle error retrieving work entry after update', async () => {
-      let getCallCount = 0;
-      mockDb.get.mockImplementation((query, params, callback) => {
-        getCallCount++;
-        if (getCallCount === 1) {
-          callback(null, { id: 1 });
-        } else {
-          callback(new Error('Retrieval failed'), null);
-        }
-      });
+      mockDb.get.mockImplementation(
+        createSequentialGetMock([
+          [null, { id: 1 }],
+          [new Error('Retrieval failed'), null]
+        ])
+      );
 
       mockDb.run.mockImplementation((query, params, callback) => {
         callback(null);
@@ -504,13 +517,12 @@ describe('Work Entry Routes', () => {
     });
 
     test('should update work entry date', async () => {
-      mockDb.get.mockImplementation((query, params, callback) => {
-        if (query.includes('work_entries we')) {
-          callback(null, { id: 1, date: '2024-02-01', client_name: 'Client A' });
-        } else {
-          callback(null, { id: 1 });
-        }
-      });
+      mockDb.get.mockImplementation(
+        createQueryRoutedGetMock(
+          { id: 1, date: '2024-02-01', client_name: 'Client A' },
+          { id: 1 }
+        )
+      );
 
       mockDb.run.mockImplementation((query, params, callback) => {
         callback(null);
@@ -525,13 +537,12 @@ describe('Work Entry Routes', () => {
     });
 
     test('should update work entry description', async () => {
-      mockDb.get.mockImplementation((query, params, callback) => {
-        if (query.includes('work_entries we')) {
-          callback(null, { id: 1, description: 'New description', client_name: 'Client A' });
-        } else {
-          callback(null, { id: 1 });
-        }
-      });
+      mockDb.get.mockImplementation(
+        createQueryRoutedGetMock(
+          { id: 1, description: 'New description', client_name: 'Client A' },
+          { id: 1 }
+        )
+      );
 
       mockDb.run.mockImplementation((query, params, callback) => {
         callback(null);
@@ -545,13 +556,12 @@ describe('Work Entry Routes', () => {
     });
 
     test('should update description to null when empty string provided', async () => {
-      mockDb.get.mockImplementation((query, params, callback) => {
-        if (query.includes('work_entries we')) {
-          callback(null, { id: 1, description: null, client_name: 'Client A' });
-        } else {
-          callback(null, { id: 1 });
-        }
-      });
+      mockDb.get.mockImplementation(
+        createQueryRoutedGetMock(
+          { id: 1, description: null, client_name: 'Client A' },
+          { id: 1 }
+        )
+      );
 
       mockDb.run.mockImplementation((query, params, callback) => {
         callback(null);
@@ -565,13 +575,12 @@ describe('Work Entry Routes', () => {
     });
 
     test('should update multiple fields at once', async () => {
-      mockDb.get.mockImplementation((query, params, callback) => {
-        if (query.includes('work_entries we')) {
-          callback(null, { id: 1, hours: 10, description: 'Updated', date: '2024-03-01', client_name: 'Client A' });
-        } else {
-          callback(null, { id: 1 });
-        }
-      });
+      mockDb.get.mockImplementation(
+        createQueryRoutedGetMock(
+          { id: 1, hours: 10, description: 'Updated', date: '2024-03-01', client_name: 'Client A' },
+          { id: 1 }
+        )
+      );
 
       mockDb.run.mockImplementation((query, params, callback) => {
         callback(null);
