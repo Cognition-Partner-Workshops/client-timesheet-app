@@ -1,3 +1,15 @@
+/**
+ * @fileoverview Report generation and export route handlers.
+ *
+ * Provides endpoints for viewing per-client hour summaries and exporting them
+ * as CSV or PDF files.  All routes require authentication and scope queries to
+ * the authenticated user's email.
+ *
+ * Mounted at `/api/reports`.
+ *
+ * @module routes/reports
+ */
+
 const express = require('express');
 const { getDatabase } = require('../database/init');
 const { authenticateUser } = require('../middleware/auth');
@@ -11,7 +23,14 @@ const router = express.Router();
 // All routes require authentication
 router.use(authenticateUser);
 
-// Get hourly report for specific client
+/**
+ * @route GET /api/reports/client/:clientId
+ * @description Returns a JSON report for the specified client including all
+ *              work entries, total hours, and entry count.  Entries are sorted
+ *              by date descending.
+ * @param {string} req.params.clientId - Client ID (must be a valid integer).
+ * @returns {{ client: Object, workEntries: Array<Object>, totalHours: number, entryCount: number }}
+ */
 router.get('/client/:clientId', (req, res) => {
   const clientId = parseInt(req.params.clientId);
   
@@ -63,7 +82,17 @@ router.get('/client/:clientId', (req, res) => {
   );
 });
 
-// Export client report as CSV
+/**
+ * @route GET /api/reports/export/csv/:clientId
+ * @description Generates a CSV file containing all work entries for the
+ *              specified client and sends it as a downloadable attachment.
+ *
+ *              The file is written to a temporary directory, streamed to the
+ *              response, and then deleted from disk.
+ *
+ * @param {string} req.params.clientId - Client ID (must be a valid integer).
+ * @returns {file} CSV file download with columns: Date, Hours, Description, Created At.
+ */
 router.get('/export/csv/:clientId', (req, res) => {
   const clientId = parseInt(req.params.clientId);
   
@@ -146,7 +175,19 @@ router.get('/export/csv/:clientId', (req, res) => {
   );
 });
 
-// Export client report as PDF
+/**
+ * @route GET /api/reports/export/pdf/:clientId
+ * @description Generates a PDF report for the specified client and streams it
+ *              directly to the response as a downloadable attachment.
+ *
+ *              The PDF includes a title, summary statistics (total hours,
+ *              entry count, generation timestamp), and a tabular listing of
+ *              every work entry.  A new page is added automatically when the
+ *              content exceeds the printable area.
+ *
+ * @param {string} req.params.clientId - Client ID (must be a valid integer).
+ * @returns {file} PDF file download.
+ */
 router.get('/export/pdf/:clientId', (req, res) => {
   const clientId = parseInt(req.params.clientId);
   

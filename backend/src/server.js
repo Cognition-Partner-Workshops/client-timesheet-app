@@ -1,3 +1,13 @@
+/**
+ * @fileoverview Express application entrypoint for the Client Timesheet API.
+ *
+ * Configures global middleware (security headers, CORS, rate limiting, logging,
+ * body parsing), mounts route handlers, and starts the HTTP server after the
+ * database has been initialised.
+ *
+ * @module server
+ */
+
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -13,6 +23,8 @@ const { initializeDatabase } = require('./database/init');
 const { errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
+
+/** @type {number} Port the server listens on; defaults to 3001. */
 const PORT = process.env.PORT || 3001;
 
 // Security middleware
@@ -22,7 +34,10 @@ app.use(cors({
   credentials: true
 }));
 
-// Rate limiting
+/**
+ * Global rate limiter applied to every request.
+ * Allows a maximum of 100 requests per IP address within a 15-minute window.
+ */
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100 // limit each IP to 100 requests per windowMs
@@ -36,7 +51,13 @@ app.use(morgan('combined'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Health check
+/**
+ * @route GET /health
+ * @description Lightweight health-check endpoint used by load balancers and
+ *              the Docker HEALTHCHECK directive to verify the service is up.
+ * @returns {{ status: string, timestamp: string }} JSON with "OK" status and
+ *          an ISO-8601 timestamp.
+ */
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
 });
@@ -55,7 +76,15 @@ app.use('*', (req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
-// Initialize database and start server
+/**
+ * Initialises the SQLite database and starts the Express server.
+ *
+ * If the database fails to initialise the process exits with code 1 so that
+ * container orchestrators can restart the service automatically.
+ *
+ * @async
+ * @returns {Promise<void>}
+ */
 async function startServer() {
   try {
     await initializeDatabase();

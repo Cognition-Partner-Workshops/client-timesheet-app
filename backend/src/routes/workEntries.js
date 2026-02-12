@@ -1,3 +1,16 @@
+/**
+ * @fileoverview Work entry CRUD route handlers.
+ *
+ * Provides endpoints for listing, creating, reading, updating, and deleting
+ * time-tracking work entries.  All routes require authentication and scope
+ * queries to the authenticated user's email.  Each work entry is associated
+ * with exactly one client.
+ *
+ * Mounted at `/api/work-entries`.
+ *
+ * @module routes/workEntries
+ */
+
 const express = require('express');
 const { getDatabase } = require('../database/init');
 const { authenticateUser } = require('../middleware/auth');
@@ -8,7 +21,14 @@ const router = express.Router();
 // All routes require authentication
 router.use(authenticateUser);
 
-// Get all work entries for authenticated user (with optional client filter)
+/**
+ * @route GET /api/work-entries
+ * @description Retrieves all work entries for the authenticated user.  Results
+ *              include the associated client name and are ordered by date
+ *              descending, then by creation time descending.
+ * @query {string} [clientId] - Optional filter to return entries for a single client.
+ * @returns {{ workEntries: Array<Object> }}
+ */
 router.get('/', (req, res) => {
   const { clientId } = req.query;
   const db = getDatabase();
@@ -44,7 +64,14 @@ router.get('/', (req, res) => {
   });
 });
 
-// Get specific work entry
+/**
+ * @route GET /api/work-entries/:id
+ * @description Retrieves a single work entry by ID (includes client name).
+ *              Returns 404 if the entry does not exist or does not belong to
+ *              the authenticated user.
+ * @param {string} req.params.id - Work entry ID (must be a valid integer).
+ * @returns {{ workEntry: Object }}
+ */
 router.get('/:id', (req, res) => {
   const workEntryId = parseInt(req.params.id);
   
@@ -76,7 +103,14 @@ router.get('/:id', (req, res) => {
   );
 });
 
-// Create new work entry
+/**
+ * @route POST /api/work-entries
+ * @description Creates a new work entry for the authenticated user.  The
+ *              referenced client must exist and belong to the same user.
+ *              Validated against {@link module:validation/schemas~workEntrySchema}.
+ * @body {{ clientId: number, hours: number, description?: string, date: string }}
+ * @returns {201} {{ message: string, workEntry: Object }}
+ */
 router.post('/', (req, res, next) => {
   try {
     const { error, value } = workEntrySchema.validate(req.body);
@@ -140,7 +174,16 @@ router.post('/', (req, res, next) => {
   }
 });
 
-// Update work entry
+/**
+ * @route PUT /api/work-entries/:id
+ * @description Updates an existing work entry.  Only the fields present in the
+ *              request body are modified; omitted fields remain unchanged.  If
+ *              `clientId` is provided, the new client must belong to the same
+ *              user.  Validated against {@link module:validation/schemas~updateWorkEntrySchema}.
+ * @param {string} req.params.id - Work entry ID (must be a valid integer).
+ * @body {{ clientId?: number, hours?: number, description?: string, date?: string }}
+ * @returns {{ message: string, workEntry: Object }}
+ */
 router.put('/:id', (req, res, next) => {
   try {
     const workEntryId = parseInt(req.params.id);
@@ -192,6 +235,10 @@ router.put('/:id', (req, res, next) => {
           performUpdate();
         }
 
+        /**
+         * Builds a dynamic UPDATE query from the validated fields and executes
+         * it.  Called after client-ownership verification (if needed).
+         */
         function performUpdate() {
           // Build update query dynamically
           const updates = [];
@@ -257,7 +304,13 @@ router.put('/:id', (req, res, next) => {
   }
 });
 
-// Delete work entry
+/**
+ * @route DELETE /api/work-entries/:id
+ * @description Deletes a single work entry by ID.  Returns 404 if the entry
+ *              does not exist or does not belong to the authenticated user.
+ * @param {string} req.params.id - Work entry ID (must be a valid integer).
+ * @returns {{ message: string }}
+ */
 router.delete('/:id', (req, res) => {
   const workEntryId = parseInt(req.params.id);
   

@@ -1,10 +1,36 @@
+/**
+ * @fileoverview SQLite database initialisation and lifecycle management.
+ *
+ * Provides a singleton database connection, schema creation (users, clients,
+ * work_entries tables plus performance indexes), and a graceful shutdown
+ * helper.  In development the database runs in-memory; production overrides
+ * swap this for a file-backed instance (see docker/overrides/database/init.js).
+ *
+ * @module database/init
+ */
+
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
+/** @type {?import('sqlite3').Database} Singleton database connection. */
 let db = null;
+
+/** @type {boolean} Whether a close operation is currently in progress. */
 let isClosing = false;
+
+/** @type {boolean} Whether the connection has been fully closed. */
 let isClosed = false;
 
+/**
+ * Returns the singleton SQLite database connection, creating it on the first
+ * call.  Subsequent calls return the same instance.
+ *
+ * In development mode the database is stored entirely in memory (`:memory:`),
+ * which means all data is lost when the process exits.
+ *
+ * @returns {import('sqlite3').Database} The active database connection.
+ * @throws {Error} If the underlying SQLite driver fails to open the database.
+ */
 function getDatabase() {
   if (!db) {
     // Reset state when creating a new database connection
@@ -22,6 +48,25 @@ function getDatabase() {
   return db;
 }
 
+/**
+ * Creates the application schema if it does not already exist and adds
+ * performance indexes on frequently-queried columns.
+ *
+ * Tables created:
+ *  - **users** - keyed by email address.
+ *  - **clients** - belongs to a user; CASCADE-deletes when the user is removed.
+ *  - **work_entries** - belongs to both a client and a user; CASCADE-deletes
+ *    when either parent is removed.
+ *
+ * Indexes:
+ *  - `idx_clients_user_email` - speeds up per-user client lookups.
+ *  - `idx_work_entries_client_id` - speeds up per-client entry lookups.
+ *  - `idx_work_entries_user_email` - speeds up per-user entry lookups.
+ *  - `idx_work_entries_date` - speeds up date-range report queries.
+ *
+ * @async
+ * @returns {Promise<void>} Resolves once all DDL statements have executed.
+ */
 async function initializeDatabase() {
   const database = getDatabase();
   
@@ -78,6 +123,16 @@ async function initializeDatabase() {
   });
 }
 
+/**
+ * Gracefully closes the current database connection.
+ *
+ * Safe to call multiple times - concurrent or repeated calls are coalesced so
+ * the underlying `db.close()` only executes once.  After closing, the next
+ * call to {@link getDatabase} will open a fresh connection.
+ *
+ * @returns {Promise<void>} Resolves once the connection has been closed (or
+ *          was already closed).
+ */
 function closeDatabase() {
   return new Promise((resolve, reject) => {
     if (isClosed) {
