@@ -59,7 +59,7 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           RESPONSE=$(curl -s -u "${SONAR_TOKEN}:" \
-            "${SONAR_HOST_URL}/api/issues/search?componentKeys=${SONAR_PROJECT_KEY}&types=VULNERABILITY&severities=BLOCKER,CRITICAL&statuses=OPEN,CONFIRMED,REOPENED&ps=100")
+            "${SONAR_HOST_URL}/api/issues/search?componentKeys=${SONAR_PROJECT_KEY}&types=VULNERABILITY,BUG,CODE_SMELL&severities=BLOCKER,CRITICAL&statuses=OPEN,CONFIRMED,REOPENED&ps=100")
 
           TOTAL=$(echo "$RESPONSE" | jq -r '.total // 0')
           echo "vulnerability_count=${TOTAL}" >> "$GITHUB_OUTPUT"
