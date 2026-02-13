@@ -48,6 +48,25 @@ A full-stack web application for tracking and reporting employee hourly work acr
 .
 ├── backend/
 │   ├── src/
+│   │   ├── __tests__/
+│   │   │   ├── server.test.js                        # Server config & middleware tests
+│   │   │   ├── database/
+│   │   │   │   ├── init.test.js                      # Database init tests
+│   │   │   │   └── init.comprehensive.test.js        # Extended DB lifecycle tests
+│   │   │   ├── middleware/
+│   │   │   │   ├── auth.test.js                      # Auth middleware tests
+│   │   │   │   └── errorHandler.test.js              # Error handler tests
+│   │   │   ├── routes/
+│   │   │   │   ├── auth.test.js                      # Auth route tests
+│   │   │   │   ├── clients.test.js                   # Client route tests
+│   │   │   │   ├── clients.comprehensive.test.js     # Extended client tests
+│   │   │   │   ├── workEntries.test.js                # Work entry route tests
+│   │   │   │   ├── workEntries.comprehensive.test.js  # Extended work entry tests
+│   │   │   │   ├── reports.test.js                    # Report route tests
+│   │   │   │   └── reports.comprehensive.test.js      # Extended report tests
+│   │   │   └── validation/
+│   │   │       ├── schemas.test.js                   # Validation schema tests
+│   │   │       └── schemas.comprehensive.test.js     # Extended validation tests
 │   │   ├── database/
 │   │   │   └── init.js           # Database initialization
 │   │   ├── middleware/
@@ -220,18 +239,18 @@ npm run test:watch          # Run tests in watch mode
 
 ### Test Coverage
 
-The backend has comprehensive test coverage with **161 tests** across 8 test suites:
+The backend has comprehensive test coverage with **346 tests** across 14 test suites:
 
 | File | Statements | Branches | Functions | Lines |
 |------|------------|----------|-----------|-------|
-| **Overall** | **90.16%** | **93.82%** | **92.18%** | **90.35%** |
-| database/init.js | 100% | 100% | 100% | 100% |
+| **Overall** | **97.39%** | **95.95%** | **94.11%** | **97.37%** |
+| database/init.js | 89.79% | 78.57% | 88.88% | 89.79% |
 | middleware/auth.js | 100% | 100% | 100% | 100% |
 | middleware/errorHandler.js | 100% | 100% | 100% | 100% |
 | routes/auth.js | 100% | 100% | 100% | 100% |
-| routes/clients.js | 97.89% | 100% | 100% | 97.89% |
-| routes/workEntries.js | 98.41% | 100% | 100% | 98.41% |
-| routes/reports.js | 64.15% | 69.44% | 68.75% | 64.42% |
+| routes/clients.js | 100% | 100% | 100% | 100% |
+| routes/workEntries.js | 100% | 100% | 100% | 100% |
+| routes/reports.js | 93.39% | 86.11% | 81.25% | 93.26% |
 | validation/schemas.js | 100% | 100% | 100% | 100% |
 
 Coverage thresholds are configured in `jest.config.js`:
