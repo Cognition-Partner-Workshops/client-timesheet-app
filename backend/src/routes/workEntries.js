@@ -1,3 +1,29 @@
+/**
+ * Work Entries Route Module — Time-Tracking CRUD
+ *
+ * Mounted at `/api/work-entries` (see server.js). All routes are protected by
+ * `authenticateUser` applied at the router level.
+ *
+ * Endpoints:
+ *  GET    /       — List all work entries (optionally filtered by ?clientId=N)
+ *  GET    /:id    — Get a single work entry (owned by user)
+ *  POST   /       — Create a work entry (validated with workEntrySchema)
+ *  PUT    /:id    — Update a work entry (validated with updateWorkEntrySchema)
+ *  DELETE /:id    — Delete a single work entry
+ *
+ * Ownership checks: every query scopes on `user_email` and, for writes,
+ * verifies the referenced `client_id` also belongs to the same user.
+ *
+ * Responses include the joined `client_name` from the clients table so the
+ * frontend can display it without an extra round-trip.
+ *
+ * Related files:
+ *  - middleware/auth.js     — authenticateUser providing req.userEmail
+ *  - validation/schemas.js  — workEntrySchema, updateWorkEntrySchema (Joi)
+ *  - database/init.js       — work_entries table schema & indexes
+ *  - routes/clients.js      — client records referenced by client_id FK
+ *  - routes/reports.js      — aggregates work entries for reporting
+ */
 const express = require('express');
 const { getDatabase } = require('../database/init');
 const { authenticateUser } = require('../middleware/auth');
@@ -5,10 +31,11 @@ const { workEntrySchema, updateWorkEntrySchema } = require('../validation/schema
 
 const router = express.Router();
 
-// All routes require authentication
+// Router-level auth — all endpoints below require a valid x-user-email header.
 router.use(authenticateUser);
 
-// Get all work entries for authenticated user (with optional client filter)
+// Lists work entries with an optional ?clientId=N filter. Results include the
+// client name via a JOIN and are ordered by date descending (newest first).
 router.get('/', (req, res) => {
   const { clientId } = req.query;
   const db = getDatabase();
@@ -44,7 +71,7 @@ router.get('/', (req, res) => {
   });
 });
 
-// Get specific work entry
+// Returns a single work entry by ID, scoped to the authenticated user.
 router.get('/:id', (req, res) => {
   const workEntryId = parseInt(req.params.id);
   
@@ -76,7 +103,8 @@ router.get('/:id', (req, res) => {
   );
 });
 
-// Create new work entry
+// Creates a work entry after Joi validation. First verifies the target client
+// exists and belongs to the user, then inserts and returns the full row.
 router.post('/', (req, res, next) => {
   try {
     const { error, value } = workEntrySchema.validate(req.body);
@@ -140,7 +168,8 @@ router.post('/', (req, res, next) => {
   }
 });
 
-// Update work entry
+// Partial update — only provided fields are changed. If clientId is being
+// reassigned, the new client is verified to belong to the user before updating.
 router.put('/:id', (req, res, next) => {
   try {
     const workEntryId = parseInt(req.params.id);
@@ -257,7 +286,7 @@ router.put('/:id', (req, res, next) => {
   }
 });
 
-// Delete work entry
+// Deletes a single work entry after verifying it belongs to the user.
 router.delete('/:id', (req, res) => {
   const workEntryId = parseInt(req.params.id);
   

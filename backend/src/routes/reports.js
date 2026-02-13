@@ -1,3 +1,34 @@
+/**
+ * Reports Route Module — Report Generation & Export
+ *
+ * Mounted at `/api/reports` (see server.js). All routes are protected by
+ * `authenticateUser` applied at the router level.
+ *
+ * Endpoints:
+ *  GET /client/:clientId           — JSON report (total hours, entry count,
+ *                                     full work-entry list) for one client.
+ *  GET /export/csv/:clientId       — Downloads a CSV file of the client's
+ *                                     work entries (uses csv-writer library).
+ *  GET /export/pdf/:clientId       — Downloads a PDF report streamed via
+ *                                     PDFKit directly into the response.
+ *
+ * Export flow:
+ *  CSV: writes to a temp file under backend/temp/, sends it with
+ *       res.download(), then deletes the temp file.
+ *  PDF: creates a PDFDocument, pipes it to `res`, and finalises with
+ *       doc.end(). No temp file needed.
+ *
+ * Ownership: every endpoint verifies the client belongs to the authenticated
+ * user before returning data.
+ *
+ * Related files:
+ *  - middleware/auth.js     — authenticateUser providing req.userEmail
+ *  - database/init.js       — work_entries & clients tables
+ *  - routes/clients.js      — the client records queried here
+ *  - routes/workEntries.js  — the work entries aggregated here
+ *  - frontend/src/pages/ReportsPage.tsx — UI that calls these endpoints
+ *  - frontend/src/api/client.ts         — getClientReport, exportClientReportCsv/Pdf
+ */
 const express = require('express');
 const { getDatabase } = require('../database/init');
 const { authenticateUser } = require('../middleware/auth');
@@ -8,10 +39,11 @@ const fs = require('fs');
 
 const router = express.Router();
 
-// All routes require authentication
+// Router-level auth — all endpoints below require a valid x-user-email header.
 router.use(authenticateUser);
 
-// Get hourly report for specific client
+// Returns a JSON summary: client info, all work entries, total hours,
+// and entry count. The frontend's ReportsPage uses this for display.
 router.get('/client/:clientId', (req, res) => {
   const clientId = parseInt(req.params.clientId);
   
@@ -63,7 +95,8 @@ router.get('/client/:clientId', (req, res) => {
   );
 });
 
-// Export client report as CSV
+// Generates a CSV file with columns: Date, Hours, Description, Created At.
+// The file is written to a temp directory, streamed to the client, then deleted.
 router.get('/export/csv/:clientId', (req, res) => {
   const clientId = parseInt(req.params.clientId);
   
@@ -146,7 +179,9 @@ router.get('/export/csv/:clientId', (req, res) => {
   );
 });
 
-// Export client report as PDF
+// Generates a PDF using PDFKit and streams it directly to the response.
+// Includes a title, summary stats, and a tabular listing of work entries.
+// Handles page breaks when content exceeds the page height.
 router.get('/export/pdf/:clientId', (req, res) => {
   const clientId = parseInt(req.params.clientId);
   

@@ -1,3 +1,28 @@
+/**
+ * Clients Route Module — Client CRUD Operations
+ *
+ * Mounted at `/api/clients` (see server.js). All routes are protected by
+ * `authenticateUser` applied at the router level, so every handler receives
+ * `req.userEmail` and scopes all database queries to the authenticated user.
+ *
+ * Endpoints:
+ *  GET    /              — List all clients for the authenticated user
+ *  GET    /:id           — Get a single client (owned by user)
+ *  POST   /              — Create a new client (validated with clientSchema)
+ *  PUT    /:id           — Update a client (validated with updateClientSchema)
+ *  DELETE /              — Bulk-delete all clients for the user
+ *  DELETE /:id           — Delete a single client (CASCADE deletes its work entries)
+ *
+ * Data isolation: every query includes `WHERE user_email = ?` so users can
+ * never access each other's clients.
+ *
+ * Related files:
+ *  - middleware/auth.js     — authenticateUser providing req.userEmail
+ *  - validation/schemas.js  — clientSchema, updateClientSchema (Joi)
+ *  - database/init.js       — clients table schema & indexes
+ *  - routes/workEntries.js  — work entries reference clients via client_id FK
+ *  - routes/reports.js      — reports aggregate work entries per client
+ */
 const express = require('express');
 const { getDatabase } = require('../database/init');
 const { authenticateUser } = require('../middleware/auth');
@@ -5,10 +30,10 @@ const { clientSchema, updateClientSchema } = require('../validation/schemas');
 
 const router = express.Router();
 
-// All routes require authentication
+// Router-level auth — all endpoints below require a valid x-user-email header.
 router.use(authenticateUser);
 
-// Get all clients for authenticated user
+// Returns clients sorted alphabetically, scoped to the authenticated user.
 router.get('/', (req, res) => {
   const db = getDatabase();
   
@@ -26,7 +51,8 @@ router.get('/', (req, res) => {
   );
 });
 
-// Get specific client
+// Returns a single client by ID. The WHERE clause also checks user_email
+// to enforce ownership — returns 404 if the client doesn't belong to the user.
 router.get('/:id', (req, res) => {
   const clientId = parseInt(req.params.id);
   
@@ -54,7 +80,8 @@ router.get('/:id', (req, res) => {
   );
 });
 
-// Create new client
+// Creates a client after Joi validation. On success, fetches and returns
+// the newly inserted row (including server-generated id and timestamps).
 router.post('/', (req, res, next) => {
   try {
     const { error, value } = clientSchema.validate(req.body);
@@ -97,7 +124,8 @@ router.post('/', (req, res, next) => {
   }
 });
 
-// Update client
+// Partial update — only provided fields are changed. Builds the UPDATE
+// query dynamically based on which fields are present in the validated body.
 router.put('/:id', (req, res, next) => {
   try {
     const clientId = parseInt(req.params.id);
@@ -186,7 +214,8 @@ router.put('/:id', (req, res, next) => {
   }
 });
 
-// Delete all clients for authenticated user
+// Bulk delete — removes ALL clients for the authenticated user.
+// Associated work_entries are removed automatically via CASCADE.
 router.delete('/', (req, res) => {
   const db = getDatabase();
   
@@ -207,7 +236,8 @@ router.delete('/', (req, res) => {
   );
 });
 
-// Delete client
+// Single delete — removes one client after verifying ownership.
+// Associated work_entries are removed automatically via CASCADE.
 router.delete('/:id', (req, res) => {
   const clientId = parseInt(req.params.id);
   
