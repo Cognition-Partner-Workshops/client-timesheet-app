@@ -16,6 +16,15 @@ A full-stack web application for tracking and reporting employee hourly work acr
 - Anyone with a valid email can create an account and log in
 - Consider integrating with company SSO for production use
 
+## Documentation
+
+We are actively improving the documentation for this project. Key resources:
+
+- **[ARCHITECTURE.md](./ARCHITECTURE.md)** — Detailed guide to the backend and frontend entrypoints, middleware stack, auth flow, database schema, and full-stack request lifecycle. Start here to understand how the pieces connect.
+- **Inline documentation** — All entrypoint files and core subsystems (`server.js`, route modules, middleware, `AuthContext`, API client, etc.) include JSDoc-style file headers explaining their role, connections, and key patterns.
+
+If you find gaps or inaccuracies in the docs, please open an issue or PR.
+
 ## Features
 
 - ✅ User authentication (email-based with JWT tokens)
