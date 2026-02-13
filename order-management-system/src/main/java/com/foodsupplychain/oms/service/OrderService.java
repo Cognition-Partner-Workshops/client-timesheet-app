@@ -13,6 +13,8 @@ import com.foodsupplychain.oms.repository.CustomerRepository;
 import com.foodsupplychain.oms.repository.OrderRepository;
 import com.foodsupplychain.oms.repository.ProductRepository;
 import com.foodsupplychain.oms.repository.SupplierRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
@@ -37,8 +39,8 @@ public class OrderService {
         this.productRepository = productRepository;
     }
 
-    public List<Order> getAllOrders() {
-        return orderRepository.findAll();
+    public Page<Order> getAllOrders(Pageable pageable) {
+        return orderRepository.findAll(pageable);
     }
 
     public Order getOrderById(Long id) {

@@ -4,6 +4,8 @@ import com.foodsupplychain.oms.dto.SupplierDTO;
 import com.foodsupplychain.oms.entity.Supplier;
 import com.foodsupplychain.oms.exception.ResourceNotFoundException;
 import com.foodsupplychain.oms.repository.SupplierRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
@@ -18,8 +20,8 @@ public class SupplierService {
         this.supplierRepository = supplierRepository;
     }
 
-    public List<Supplier> getAllSuppliers() {
-        return supplierRepository.findAll();
+    public Page<Supplier> getAllSuppliers(Pageable pageable) {
+        return supplierRepository.findAll(pageable);
     }
 
     public Supplier getSupplierById(Long id) {

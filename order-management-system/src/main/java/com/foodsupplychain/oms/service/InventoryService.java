@@ -6,6 +6,8 @@ import com.foodsupplychain.oms.entity.Product;
 import com.foodsupplychain.oms.exception.ResourceNotFoundException;
 import com.foodsupplychain.oms.repository.InventoryRepository;
 import com.foodsupplychain.oms.repository.ProductRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
@@ -23,8 +25,8 @@ public class InventoryService {
         this.productRepository = productRepository;
     }
 
-    public List<Inventory> getAllInventory() {
-        return inventoryRepository.findAll();
+    public Page<Inventory> getAllInventory(Pageable pageable) {
+        return inventoryRepository.findAll(pageable);
     }
 
     public Inventory getInventoryById(Long id) {

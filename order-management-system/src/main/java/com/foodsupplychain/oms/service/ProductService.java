@@ -5,6 +5,8 @@ import com.foodsupplychain.oms.entity.Product;
 import com.foodsupplychain.oms.enums.ProductCategory;
 import com.foodsupplychain.oms.exception.ResourceNotFoundException;
 import com.foodsupplychain.oms.repository.ProductRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
@@ -19,8 +21,8 @@ public class ProductService {
         this.productRepository = productRepository;
     }
 
-    public List<Product> getAllProducts() {
-        return productRepository.findAll();
+    public Page<Product> getAllProducts(Pageable pageable) {
+        return productRepository.findAll(pageable);
     }
 
     public Product getProductById(Long id) {
@@ -53,6 +55,11 @@ public class ProductService {
 
     public Product updateProduct(Long id, ProductDTO dto) {
         Product product = getProductById(id);
+        productRepository.findBySku(dto.getSku()).ifPresent(existing -> {
+            if (!existing.getId().equals(id)) {
+                throw new IllegalArgumentException("Product with SKU '" + dto.getSku() + "' already exists");
+            }
+        });
         mapDtoToEntity(dto, product);
         return productRepository.save(product);
     }
