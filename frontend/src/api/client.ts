@@ -16,12 +16,11 @@ class ApiClient {
       },
     });
 
-    // Request interceptor to add email header
     this.client.interceptors.request.use(
       (config) => {
-        const userEmail = localStorage.getItem('userEmail');
-        if (userEmail) {
-          config.headers['x-user-email'] = userEmail;
+        const accessToken = localStorage.getItem('accessToken');
+        if (accessToken) {
+          config.headers['Authorization'] = `Bearer ${accessToken}`;
         }
         return config;
       },
@@ -30,13 +29,36 @@ class ApiClient {
       }
     );
 
-    // Response interceptor for error handling
     this.client.interceptors.response.use(
       (response: AxiosResponse) => response,
-      (error) => {
-        if (error.response?.status === 401) {
-          // Clear stored email on auth error
-          localStorage.removeItem('userEmail');
+      async (error) => {
+        const originalRequest = error.config;
+        if (
+          error.response?.status === 401 &&
+          !originalRequest._retry &&
+          !originalRequest.url?.includes('/api/auth/login') &&
+          !originalRequest.url?.includes('/api/auth/register') &&
+          !originalRequest.url?.includes('/api/auth/refresh')
+        ) {
+          originalRequest._retry = true;
+          try {
+            const refreshToken = localStorage.getItem('refreshToken');
+            if (refreshToken) {
+              const response = await axios.post(`${API_BASE_URL}/api/auth/refresh`, { refreshToken });
+              const { accessToken: newAccessToken, refreshToken: newRefreshToken } = response.data;
+              localStorage.setItem('accessToken', newAccessToken);
+              localStorage.setItem('refreshToken', newRefreshToken);
+              originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`;
+              return this.client(originalRequest);
+            }
+          } catch (refreshError) {
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('refreshToken');
+            window.location.href = '/login';
+            return Promise.reject(refreshError);
+          }
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('refreshToken');
           window.location.href = '/login';
         }
         return Promise.reject(error);
@@ -44,14 +66,27 @@ class ApiClient {
     );
   }
 
-  // Auth endpoints
-  async login(email: string) {
-    const response = await this.client.post('/api/auth/login', { email });
+  async login(email: string, password: string) {
+    const response = await this.client.post('/api/auth/login', { email, password });
+    return response.data;
+  }
+
+  async register(email: string, password: string) {
+    const response = await this.client.post('/api/auth/register', { email, password });
     return response.data;
   }
 
   async getCurrentUser() {
     const response = await this.client.get('/api/auth/me');
+    return response.data;
+  }
+
+  async refreshAccessToken() {
+    const refreshToken = localStorage.getItem('refreshToken');
+    if (!refreshToken) throw new Error('No refresh token available');
+    const response = await this.client.post('/api/auth/refresh', { refreshToken });
+    localStorage.setItem('accessToken', response.data.accessToken);
+    localStorage.setItem('refreshToken', response.data.refreshToken);
     return response.data;
   }
 

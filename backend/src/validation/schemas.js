@@ -32,10 +32,31 @@ const emailSchema = Joi.object({
   email: Joi.string().email().required()
 });
 
+const loginSchema = Joi.object({
+  email: Joi.string().email().required(),
+  password: Joi.string().required()
+});
+
+const registerSchema = Joi.object({
+  email: Joi.string().email().required(),
+  password: Joi.string()
+    .min(8)
+    .pattern(/[a-zA-Z]/, 'letters')
+    .pattern(/[0-9]/, 'numbers')
+    .pattern(/[^a-zA-Z0-9]/, 'symbols')
+    .required()
+    .messages({
+      'string.min': 'Password must be at least 8 characters long',
+      'string.pattern.name': 'Password must contain {#name}',
+    })
+});
+
 module.exports = {
   clientSchema,
   workEntrySchema,
   updateWorkEntrySchema,
   updateClientSchema,
-  emailSchema
+  emailSchema,
+  loginSchema,
+  registerSchema
 };

@@ -13,15 +13,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const storedEmail = localStorage.getItem('userEmail');
+      const accessToken = localStorage.getItem('accessToken');
       
-      if (storedEmail) {
+      if (accessToken) {
         try {
           const response = await apiClient.getCurrentUser();
           setUser(response.user);
         } catch (error) {
           console.error('Auth check failed:', error);
-          localStorage.removeItem('userEmail');
+          try {
+            await apiClient.refreshAccessToken();
+            const response = await apiClient.getCurrentUser();
+            setUser(response.user);
+          } catch (refreshError) {
+            console.error('Token refresh failed:', refreshError);
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('refreshToken');
+          }
         }
       }
       setIsLoading(false);
@@ -30,25 +38,40 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     checkAuth();
   }, []);
 
-  const login = async (email: string) => {
+  const login = async (email: string, password: string) => {
     try {
-      const response = await apiClient.login(email);
+      const response = await apiClient.login(email, password);
       setUser(response.user);
-      localStorage.setItem('userEmail', email);
+      localStorage.setItem('accessToken', response.accessToken);
+      localStorage.setItem('refreshToken', response.refreshToken);
     } catch (error) {
       console.error('Login failed:', error);
       throw error;
     }
   };
 
+  const register = async (email: string, password: string) => {
+    try {
+      const response = await apiClient.register(email, password);
+      setUser(response.user);
+      localStorage.setItem('accessToken', response.accessToken);
+      localStorage.setItem('refreshToken', response.refreshToken);
+    } catch (error) {
+      console.error('Registration failed:', error);
+      throw error;
+    }
+  };
+
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('userEmail');
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
   };
 
   const value: AuthContextType = {
     user,
     login,
+    register,
     logout,
     isLoading,
     isAuthenticated: !!user,

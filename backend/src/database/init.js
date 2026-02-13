@@ -5,37 +5,84 @@ let db = null;
 let isClosing = false;
 let isClosed = false;
 
+function createSqliteDatabase() {
+  return new sqlite3.Database(':memory:', (err) => {
+    if (err) {
+      console.error('Error opening database:', err);
+      throw err;
+    }
+    console.log('Connected to SQLite in-memory database');
+  });
+}
+
+function createPostgresDatabase() {
+  const { Pool } = require('pg');
+  const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+  });
+  console.log('Connected to PostgreSQL database');
+  return pool;
+}
+
+function createMysqlDatabase() {
+  const mysql = require('mysql2');
+  const pool = mysql.createPool({
+    uri: process.env.DATABASE_URL,
+    waitForConnections: true,
+    connectionLimit: 10,
+  });
+  console.log('Connected to MySQL database');
+  return pool.promise();
+}
+
 function getDatabase() {
   if (!db) {
-    // Reset state when creating a new database connection
     isClosing = false;
     isClosed = false;
-    // Use in-memory database as specified in requirements
-    db = new sqlite3.Database(':memory:', (err) => {
-      if (err) {
-        console.error('Error opening database:', err);
-        throw err;
-      }
-      console.log('Connected to SQLite in-memory database');
-    });
+
+    const dbType = (process.env.DATABASE_TYPE || 'sqlite').toLowerCase();
+
+    if (dbType === 'postgres') {
+      db = createPostgresDatabase();
+    } else if (dbType === 'mysql') {
+      db = createMysqlDatabase();
+    } else {
+      db = createSqliteDatabase();
+    }
   }
   return db;
 }
 
 async function initializeDatabase() {
   const database = getDatabase();
-  
+  const dbType = (process.env.DATABASE_TYPE || 'sqlite').toLowerCase();
+
+  if (dbType === 'postgres' || dbType === 'mysql') {
+    console.log(`Using ${dbType} database. Ensure schema migrations have been applied.`);
+    return;
+  }
+
   return new Promise((resolve, reject) => {
     database.serialize(() => {
-      // Create users table
       database.run(`
         CREATE TABLE IF NOT EXISTS users (
           email TEXT PRIMARY KEY,
+          password_hash TEXT,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
       `);
 
-      // Create clients table
+      database.run(`
+        CREATE TABLE IF NOT EXISTS refresh_tokens (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_email TEXT NOT NULL,
+          token TEXT NOT NULL UNIQUE,
+          expires_at DATETIME NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_email) REFERENCES users (email) ON DELETE CASCADE
+        )
+      `);
+
       database.run(`
         CREATE TABLE IF NOT EXISTS clients (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -50,7 +97,6 @@ async function initializeDatabase() {
         )
       `);
 
-      // Create work_entries table
       database.run(`
         CREATE TABLE IF NOT EXISTS work_entries (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -66,11 +112,12 @@ async function initializeDatabase() {
         )
       `);
 
-      // Create indexes for better performance
       database.run(`CREATE INDEX IF NOT EXISTS idx_clients_user_email ON clients (user_email)`);
       database.run(`CREATE INDEX IF NOT EXISTS idx_work_entries_client_id ON work_entries (client_id)`);
       database.run(`CREATE INDEX IF NOT EXISTS idx_work_entries_user_email ON work_entries (user_email)`);
       database.run(`CREATE INDEX IF NOT EXISTS idx_work_entries_date ON work_entries (date)`);
+      database.run(`CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_email ON refresh_tokens (user_email)`);
+      database.run(`CREATE INDEX IF NOT EXISTS idx_refresh_tokens_token ON refresh_tokens (token)`);
 
       console.log('Database tables created successfully');
       resolve();
@@ -104,17 +151,50 @@ function closeDatabase() {
     }
     
     isClosing = true;
-    db.close((err) => {
-      isClosed = true;
-      isClosing = false;
-      db = null;
-      if (err) {
-        console.error('Error closing database:', err);
-      } else {
-        console.log('Database connection closed');
-      }
-      resolve();
-    });
+
+    const dbType = (process.env.DATABASE_TYPE || 'sqlite').toLowerCase();
+
+    if (dbType === 'postgres') {
+      db.end().then(() => {
+        isClosed = true;
+        isClosing = false;
+        db = null;
+        console.log('PostgreSQL connection pool closed');
+        resolve();
+      }).catch((err) => {
+        isClosed = true;
+        isClosing = false;
+        db = null;
+        console.error('Error closing PostgreSQL pool:', err);
+        resolve();
+      });
+    } else if (dbType === 'mysql') {
+      db.end().then(() => {
+        isClosed = true;
+        isClosing = false;
+        db = null;
+        console.log('MySQL connection pool closed');
+        resolve();
+      }).catch((err) => {
+        isClosed = true;
+        isClosing = false;
+        db = null;
+        console.error('Error closing MySQL pool:', err);
+        resolve();
+      });
+    } else {
+      db.close((err) => {
+        isClosed = true;
+        isClosing = false;
+        db = null;
+        if (err) {
+          console.error('Error closing database:', err);
+        } else {
+          console.log('Database connection closed');
+        }
+        resolve();
+      });
+    }
   });
 }
 
