@@ -46,17 +46,34 @@ class PageFeatures:
 
 
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
     "Accept-Language": "en-US,en;q=0.9",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Cache-Control": "max-age=0",
+    "Sec-Ch-Ua": '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
+    "Sec-Ch-Ua-Mobile": "?0",
+    "Sec-Ch-Ua-Platform": '"macOS"',
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Site": "none",
+    "Sec-Fetch-User": "?1",
+    "Upgrade-Insecure-Requests": "1",
+    "Connection": "keep-alive",
 }
 
 
 async def fetch_page(client: httpx.AsyncClient, url: str) -> Optional[str]:
     try:
-        response = await client.get(url, headers=HEADERS, follow_redirects=True, timeout=15.0)
-        if response.status_code == 200 and "text/html" in response.headers.get("content-type", ""):
+        response = await client.get(url, headers=HEADERS, follow_redirects=True, timeout=20.0)
+        content_type = response.headers.get("content-type", "")
+        if response.status_code == 200 and "text/html" in content_type:
             return response.text
+        if response.status_code == 403:
+            retry_headers = {**HEADERS, "Referer": url, "Sec-Fetch-Site": "same-origin"}
+            response = await client.get(url, headers=retry_headers, follow_redirects=True, timeout=20.0)
+            if response.status_code == 200 and "text/html" in response.headers.get("content-type", ""):
+                return response.text
     except Exception:
         pass
     return None
@@ -392,7 +409,11 @@ async def crawl_site(request: CrawlRequest):
         visited: set[str] = set()
         to_visit: list[str] = [request.url]
 
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(http2=False, cookies=httpx.Cookies()) as client:
+            try:
+                await client.get(request.url, headers=HEADERS, follow_redirects=True, timeout=20.0)
+            except Exception:
+                pass
             page_count = 0
             while to_visit and page_count < request.max_pages:
                 current_url = to_visit.pop(0)
