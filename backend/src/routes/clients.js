@@ -1,3 +1,22 @@
+/**
+ * @file Client CRUD routes.
+ *
+ * All endpoints require authentication via the `x-user-email` header
+ * (enforced by the {@link authenticateUser} middleware applied at the router
+ * level).  Clients are scoped to the authenticated user – a user can only
+ * view, create, update, or delete their own clients.
+ *
+ * Routes:
+ * - `GET    /api/clients`     – List all clients for the authenticated user.
+ * - `GET    /api/clients/:id` – Retrieve a single client by ID.
+ * - `POST   /api/clients`     – Create a new client.
+ * - `PUT    /api/clients/:id` – Partially update an existing client.
+ * - `DELETE /api/clients`     – Delete **all** clients for the authenticated user.
+ * - `DELETE /api/clients/:id` – Delete a single client (cascades to work entries).
+ *
+ * @module routes/clients
+ */
+
 const express = require('express');
 const { getDatabase } = require('../database/init');
 const { authenticateUser } = require('../middleware/auth');
@@ -5,10 +24,17 @@ const { clientSchema, updateClientSchema } = require('../validation/schemas');
 
 const router = express.Router();
 
-// All routes require authentication
 router.use(authenticateUser);
 
-// Get all clients for authenticated user
+/**
+ * GET /
+ *
+ * Returns every client belonging to the authenticated user, ordered
+ * alphabetically by name.
+ *
+ * @route GET /api/clients
+ * @returns {Object} 200 – `{ clients: Array<ClientRow> }`
+ */
 router.get('/', (req, res) => {
   const db = getDatabase();
   
@@ -26,7 +52,18 @@ router.get('/', (req, res) => {
   );
 });
 
-// Get specific client
+/**
+ * GET /:id
+ *
+ * Returns a single client identified by its numeric ID, provided it belongs
+ * to the authenticated user.
+ *
+ * @route GET /api/clients/:id
+ * @param {string} req.params.id - Numeric client ID.
+ * @returns {Object} 200 – `{ client: ClientRow }`
+ * @throws  400 if the ID is not a valid integer.
+ * @throws  404 if the client does not exist or belongs to another user.
+ */
 router.get('/:id', (req, res) => {
   const clientId = parseInt(req.params.id);
   
@@ -54,7 +91,21 @@ router.get('/:id', (req, res) => {
   );
 });
 
-// Create new client
+/**
+ * POST /
+ *
+ * Creates a new client for the authenticated user.  The request body is
+ * validated against {@link clientSchema}.
+ *
+ * @route POST /api/clients
+ * @param {Object} req.body
+ * @param {string} req.body.name              - Client name (required).
+ * @param {string} [req.body.description]     - Optional description.
+ * @param {string} [req.body.department]       - Optional department.
+ * @param {string} [req.body.email]            - Optional contact email.
+ * @returns {Object} 201 – `{ message, client: ClientRow }`
+ * @throws  400 when validation fails.
+ */
 router.post('/', (req, res, next) => {
   try {
     const { error, value } = clientSchema.validate(req.body);
@@ -74,7 +125,6 @@ router.post('/', (req, res, next) => {
           return res.status(500).json({ error: 'Failed to create client' });
         }
 
-        // Return the created client
         db.get(
           'SELECT id, name, description, department, email, created_at, updated_at FROM clients WHERE id = ?',
           [this.lastID],
@@ -97,7 +147,21 @@ router.post('/', (req, res, next) => {
   }
 });
 
-// Update client
+/**
+ * PUT /:id
+ *
+ * Partially updates an existing client.  Only the supplied fields are
+ * changed; the `updated_at` timestamp is always refreshed.  The request body
+ * is validated against {@link updateClientSchema} (at least one field
+ * required).
+ *
+ * @route PUT /api/clients/:id
+ * @param {string} req.params.id - Numeric client ID.
+ * @param {Object} req.body      - Fields to update (name, description, department, email).
+ * @returns {Object} 200 – `{ message, client: ClientRow }`
+ * @throws  400 if the ID is invalid or validation fails.
+ * @throws  404 if the client does not exist or belongs to another user.
+ */
 router.put('/:id', (req, res, next) => {
   try {
     const clientId = parseInt(req.params.id);
@@ -113,7 +177,6 @@ router.put('/:id', (req, res, next) => {
 
     const db = getDatabase();
 
-    // Check if client exists and belongs to user
     db.get(
       'SELECT id FROM clients WHERE id = ? AND user_email = ?',
       [clientId, req.userEmail],
@@ -127,7 +190,6 @@ router.put('/:id', (req, res, next) => {
           return res.status(404).json({ error: 'Client not found' });
         }
 
-        // Build update query dynamically
         const updates = [];
         const values = [];
 
@@ -162,7 +224,6 @@ router.put('/:id', (req, res, next) => {
             return res.status(500).json({ error: 'Failed to update client' });
           }
 
-          // Return updated client
           db.get(
             'SELECT id, name, description, department, email, created_at, updated_at FROM clients WHERE id = ?',
             [clientId],
@@ -186,7 +247,15 @@ router.put('/:id', (req, res, next) => {
   }
 });
 
-// Delete all clients for authenticated user
+/**
+ * DELETE /
+ *
+ * Removes **all** clients owned by the authenticated user.  Associated work
+ * entries are also removed via the database CASCADE constraint.
+ *
+ * @route DELETE /api/clients
+ * @returns {Object} 200 – `{ message, deletedCount: number }`
+ */
 router.delete('/', (req, res) => {
   const db = getDatabase();
   
@@ -207,7 +276,18 @@ router.delete('/', (req, res) => {
   );
 });
 
-// Delete client
+/**
+ * DELETE /:id
+ *
+ * Deletes a single client by ID.  The database CASCADE constraint
+ * automatically removes any related work entries.
+ *
+ * @route DELETE /api/clients/:id
+ * @param {string} req.params.id - Numeric client ID.
+ * @returns {Object} 200 – `{ message }`
+ * @throws  400 if the ID is not a valid integer.
+ * @throws  404 if the client does not exist or belongs to another user.
+ */
 router.delete('/:id', (req, res) => {
   const clientId = parseInt(req.params.id);
   
@@ -217,7 +297,6 @@ router.delete('/:id', (req, res) => {
   
   const db = getDatabase();
   
-  // Check if client exists and belongs to user
   db.get(
     'SELECT id FROM clients WHERE id = ? AND user_email = ?',
     [clientId, req.userEmail],
@@ -231,7 +310,6 @@ router.delete('/:id', (req, res) => {
         return res.status(404).json({ error: 'Client not found' });
       }
       
-      // Delete client (work entries will be deleted due to CASCADE)
       db.run(
         'DELETE FROM clients WHERE id = ? AND user_email = ?',
         [clientId, req.userEmail],

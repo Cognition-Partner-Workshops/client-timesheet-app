@@ -1,3 +1,18 @@
+/**
+ * @file Reporting and export routes.
+ *
+ * Generates per-client time reports and supports exporting them as CSV or
+ * PDF files.  All endpoints require authentication via the `x-user-email`
+ * header and verify that the requested client belongs to the caller.
+ *
+ * Routes:
+ * - `GET /api/reports/client/:clientId`          – JSON hourly report.
+ * - `GET /api/reports/export/csv/:clientId`       – Download CSV export.
+ * - `GET /api/reports/export/pdf/:clientId`       – Download PDF export.
+ *
+ * @module routes/reports
+ */
+
 const express = require('express');
 const { getDatabase } = require('../database/init');
 const { authenticateUser } = require('../middleware/auth');
@@ -8,10 +23,20 @@ const fs = require('fs');
 
 const router = express.Router();
 
-// All routes require authentication
 router.use(authenticateUser);
 
-// Get hourly report for specific client
+/**
+ * GET /client/:clientId
+ *
+ * Returns a JSON report containing every work entry for the given client,
+ * together with the total hours and entry count.
+ *
+ * @route GET /api/reports/client/:clientId
+ * @param {string} req.params.clientId - Numeric client ID.
+ * @returns {Object} 200 – `{ client, workEntries, totalHours, entryCount }`
+ * @throws  400 if the client ID is not a valid integer.
+ * @throws  404 if the client does not exist or belongs to another user.
+ */
 router.get('/client/:clientId', (req, res) => {
   const clientId = parseInt(req.params.clientId);
   
@@ -63,7 +88,19 @@ router.get('/client/:clientId', (req, res) => {
   );
 });
 
-// Export client report as CSV
+/**
+ * GET /export/csv/:clientId
+ *
+ * Generates a CSV file containing all work entries for the specified client
+ * and streams it as a download.  A temporary file is written to disk,
+ * sent to the client, then deleted automatically.
+ *
+ * @route GET /api/reports/export/csv/:clientId
+ * @param {string} req.params.clientId - Numeric client ID.
+ * @returns {File} 200 – CSV attachment (`text/csv`).
+ * @throws  400 if the client ID is not a valid integer.
+ * @throws  404 if the client does not exist or belongs to another user.
+ */
 router.get('/export/csv/:clientId', (req, res) => {
   const clientId = parseInt(req.params.clientId);
   
@@ -146,7 +183,19 @@ router.get('/export/csv/:clientId', (req, res) => {
   );
 });
 
-// Export client report as PDF
+/**
+ * GET /export/pdf/:clientId
+ *
+ * Generates a PDF report for the specified client and streams it directly
+ * to the response.  The document includes a title, summary statistics,
+ * and a tabular listing of all work entries.
+ *
+ * @route GET /api/reports/export/pdf/:clientId
+ * @param {string} req.params.clientId - Numeric client ID.
+ * @returns {File} 200 – PDF attachment (`application/pdf`).
+ * @throws  400 if the client ID is not a valid integer.
+ * @throws  404 if the client does not exist or belongs to another user.
+ */
 router.get('/export/pdf/:clientId', (req, res) => {
   const clientId = parseInt(req.params.clientId);
   
