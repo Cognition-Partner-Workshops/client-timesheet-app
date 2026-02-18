@@ -37,12 +37,11 @@ router.get('/client/:clientId', (req, res) => {
       
       // Get work entries for this client
       db.all(
-        `SELECT we.id, we.hours, we.description, we.date, we.created_at, we.updated_at,
-                we.project_id, p.name as project_name
-         FROM work_entries we
-         LEFT JOIN projects p ON we.project_id = p.id
+        `SELECT id, hours, description, date, created_at, updated_at,
+                project_id, (SELECT name FROM projects WHERE id = work_entries.project_id) as project_name
+         FROM work_entries
          WHERE client_id = ? AND user_email = ?
-         ORDER BY we.date DESC`,
+         ORDER BY date DESC`,
         [clientId, req.userEmail],
         (err, workEntries) => {
           if (err) {
