@@ -41,7 +41,7 @@ router.get('/client/:clientId', (req, res) => {
                 we.project_id, p.name as project_name
          FROM work_entries we
          LEFT JOIN projects p ON we.project_id = p.id
-         WHERE we.client_id = ? AND we.user_email = ?
+         WHERE client_id = ? AND user_email = ?
          ORDER BY we.date DESC`,
         [clientId, req.userEmail],
         (err, workEntries) => {
