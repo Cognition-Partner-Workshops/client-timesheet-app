@@ -8,7 +8,13 @@ interface RequestMetrics {
   timestamp: string;
 }
 
-const metrics: RequestMetrics[] = [];
+const globalForMetrics = globalThis as unknown as {
+  requestMetrics: RequestMetrics[] | undefined;
+};
+
+const metrics: RequestMetrics[] = globalForMetrics.requestMetrics ?? [];
+
+globalForMetrics.requestMetrics = metrics;
 
 export function recordRequest(metric: RequestMetrics): void {
   metrics.push(metric);

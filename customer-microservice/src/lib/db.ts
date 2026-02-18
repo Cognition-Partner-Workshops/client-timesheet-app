@@ -2,7 +2,14 @@ import { v4 as uuidv4 } from "uuid";
 import { Customer, CreateCustomerInput, UpdateCustomerInput } from "./types";
 import logger from "./logger";
 
-const customers: Map<string, Customer> = new Map();
+const globalForDb = globalThis as unknown as {
+  customers: Map<string, Customer> | undefined;
+};
+
+const customers: Map<string, Customer> =
+  globalForDb.customers ?? new Map<string, Customer>();
+
+globalForDb.customers = customers;
 
 export function createCustomer(input: CreateCustomerInput): Customer {
   const now = new Date().toISOString();
