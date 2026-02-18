@@ -29,10 +29,11 @@ import {
 } from '@mui/icons-material';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '../api/client';
-import { type ClientReport } from '../types/api';
+import { type ClientReport, type ProjectReport } from '../types/api';
 
 const ReportsPage: React.FC = () => {
   const [selectedClientId, setSelectedClientId] = useState<number>(0);
+  const [selectedProjectId, setSelectedProjectId] = useState<number>(0);
   const [error, setError] = useState('');
 
   const { data: clientsData, isLoading: clientsLoading } = useQuery({
@@ -40,25 +41,49 @@ const ReportsPage: React.FC = () => {
     queryFn: () => apiClient.getClients(),
   });
 
-  const { data: reportData, isLoading: reportLoading } = useQuery({
+  const { data: projectsData, isLoading: projectsLoading } = useQuery({
+    queryKey: ['projects'],
+    queryFn: () => apiClient.getProjects(),
+  });
+
+  const { data: clientReportData, isLoading: clientReportLoading } = useQuery({
     queryKey: ['clientReport', selectedClientId],
     queryFn: () => apiClient.getClientReport(selectedClientId),
     enabled: selectedClientId > 0,
   });
 
+  const { data: projectReportData, isLoading: projectReportLoading } = useQuery({
+    queryKey: ['projectReport', selectedProjectId],
+    queryFn: () => apiClient.getProjectReport(selectedProjectId),
+    enabled: selectedProjectId > 0,
+  });
+
   const clients = clientsData?.clients || [];
-  const report = reportData as ClientReport | undefined;
+  const projects = projectsData?.projects || [];
+
+  const clientReport = clientReportData as ClientReport | undefined;
+  const projectReport = projectReportData as ProjectReport | undefined;
 
   const handleExportCsv = async () => {
-    if (!selectedClientId) return;
-    
+    if (!selectedClientId && !selectedProjectId) return;
+
     try {
-      const blob = await apiClient.exportClientReportCsv(selectedClientId);
+      const blob = selectedClientId
+        ? await apiClient.exportClientReportCsv(selectedClientId)
+        : await apiClient.exportProjectReportCsv(selectedProjectId);
+
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      const client = clients.find((c: { id: number; name: string }) => c.id === selectedClientId);
-      a.download = `${client?.name?.replace(/[^a-zA-Z0-9]/g, '_')}_report_${new Date().toISOString().split('T')[0]}.csv`;
+
+      if (selectedClientId) {
+        const client = clients.find((c: { id: number; name: string }) => c.id === selectedClientId);
+        a.download = `${client?.name?.replace(/[^a-zA-Z0-9]/g, '_')}_report_${new Date().toISOString().split('T')[0]}.csv`;
+      } else {
+        const project = projects.find((p: { id: number; name: string }) => p.id === selectedProjectId);
+        a.download = `${project?.name?.replace(/[^a-zA-Z0-9]/g, '_')}_report_${new Date().toISOString().split('T')[0]}.csv`;
+      }
+
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -70,15 +95,25 @@ const ReportsPage: React.FC = () => {
   };
 
   const handleExportPdf = async () => {
-    if (!selectedClientId) return;
+    if (!selectedClientId && !selectedProjectId) return;
 
     try {
-      const blob = await apiClient.exportClientReportPdf(selectedClientId);
+      const blob = selectedClientId
+        ? await apiClient.exportClientReportPdf(selectedClientId)
+        : await apiClient.exportProjectReportPdf(selectedProjectId);
+
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      const client = clients.find((c: { id: number; name: string }) => c.id === selectedClientId);
-      a.download = `${client?.name?.replace(/[^a-zA-Z0-9]/g, '_')}_report_${new Date().toISOString().split('T')[0]}.pdf`;
+
+      if (selectedClientId) {
+        const client = clients.find((c: { id: number; name: string }) => c.id === selectedClientId);
+        a.download = `${client?.name?.replace(/[^a-zA-Z0-9]/g, '_')}_report_${new Date().toISOString().split('T')[0]}.pdf`;
+      } else {
+        const project = projects.find((p: { id: number; name: string }) => p.id === selectedProjectId);
+        a.download = `${project?.name?.replace(/[^a-zA-Z0-9]/g, '_')}_report_${new Date().toISOString().split('T')[0]}.pdf`;
+      }
+
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -90,8 +125,11 @@ const ReportsPage: React.FC = () => {
   };
 
   const selectedClient = clients.find((c: { id: number; name: string }) => c.id === selectedClientId);
+  const selectedProject = projects.find((p: { id: number; name: string }) => p.id === selectedProjectId);
 
-  if (clientsLoading) {
+  const reportLoading = clientReportLoading || projectReportLoading;
+
+  if (clientsLoading || projectsLoading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
         <CircularProgress />
@@ -120,6 +158,15 @@ const ReportsPage: React.FC = () => {
             Create Client
           </Button>
         </Paper>
+      ) : projects.length === 0 ? (
+        <Paper sx={{ p: 3, textAlign: 'center' }}>
+          <Typography color="text.secondary" sx={{ mb: 2 }}>
+            Create at least one project to generate project reports.
+          </Typography>
+          <Button variant="contained" href="/projects">
+            Create Project
+          </Button>
+        </Paper>
       ) : (
         <>
           <Paper sx={{ p: 3, mb: 3 }}>
@@ -129,7 +176,10 @@ const ReportsPage: React.FC = () => {
                   <InputLabel>Select Client</InputLabel>
                   <Select
                     value={selectedClientId}
-                    onChange={(e) => setSelectedClientId(Number(e.target.value))}
+                    onChange={(e) => {
+                      setSelectedClientId(Number(e.target.value));
+                      setSelectedProjectId(0);
+                    }}
                     label="Select Client"
                   >
                     <MenuItem value={0}>Choose a client...</MenuItem>
@@ -146,7 +196,7 @@ const ReportsPage: React.FC = () => {
                   <Tooltip title="Export as CSV">
                     <IconButton
                       onClick={handleExportCsv}
-                      disabled={!selectedClientId || reportLoading}
+                      disabled={(!selectedClientId && !selectedProjectId) || reportLoading}
                       color="primary"
                       size="large"
                     >
@@ -156,7 +206,7 @@ const ReportsPage: React.FC = () => {
                   <Tooltip title="Export as PDF">
                     <IconButton
                       onClick={handleExportPdf}
-                      disabled={!selectedClientId || reportLoading}
+                      disabled={(!selectedClientId && !selectedProjectId) || reportLoading}
                       color="error"
                       size="large"
                     >
@@ -165,26 +215,49 @@ const ReportsPage: React.FC = () => {
                   </Tooltip>
                 </Box>
               </Grid>
+              <Grid size={{ xs: 12 }}>
+                <FormControl fullWidth>
+                  <InputLabel>Select Project</InputLabel>
+                  <Select
+                    value={selectedProjectId}
+                    onChange={(e) => {
+                      setSelectedProjectId(Number(e.target.value));
+                      setSelectedClientId(0);
+                    }}
+                    label="Select Project"
+                  >
+                    <MenuItem value={0}>Choose a project...</MenuItem>
+                    {projects.map((p: { id: number; name: string; client_name?: string }) => (
+                      <MenuItem key={p.id} value={p.id}>
+                        {p.client_name ? `${p.name} (${p.client_name})` : p.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
             </Grid>
           </Paper>
 
-          {selectedClient && reportLoading && (
+          {(selectedClient || selectedProject) && reportLoading && (
             <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
               <CircularProgress />
             </Box>
           )}
 
-          {selectedClient && report && (
+          {selectedClient && clientReport && (
             <>
-                <Grid container spacing={3} sx={{ mb: 3 }}>
-                  <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                    <Card>
+              <Typography variant="h5" gutterBottom>
+                Client Report: {selectedClient.name}
+              </Typography>
+              <Grid container spacing={3} sx={{ mb: 3 }}>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                  <Card>
                     <CardContent>
                       <Typography color="textSecondary" gutterBottom>
                         Total Hours
                       </Typography>
                       <Typography variant="h4" component="div">
-                        {report.totalHours.toFixed(2)}
+                        {clientReport.totalHours.toFixed(2)}
                       </Typography>
                     </CardContent>
                   </Card>
@@ -196,7 +269,7 @@ const ReportsPage: React.FC = () => {
                         Total Entries
                       </Typography>
                       <Typography variant="h4" component="div">
-                        {report.entryCount}
+                        {clientReport.entryCount}
                       </Typography>
                     </CardContent>
                   </Card>
@@ -208,7 +281,120 @@ const ReportsPage: React.FC = () => {
                         Average Hours per Entry
                       </Typography>
                       <Typography variant="h4" component="div">
-                        {report.entryCount > 0 ? (report.totalHours / report.entryCount).toFixed(2) : '0.00'}
+                        {clientReport.entryCount > 0 ? (clientReport.totalHours / clientReport.entryCount).toFixed(2) : '0.00'}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              </Grid>
+
+              <Paper>
+                <TableContainer>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Date</TableCell>
+                        <TableCell>Hours</TableCell>
+                        <TableCell>Project</TableCell>
+                        <TableCell>Description</TableCell>
+                        <TableCell>Created</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {clientReport.workEntries.length > 0 ? (
+                        clientReport.workEntries.map((entry) => (
+                          <TableRow key={entry.id}>
+                            <TableCell>
+                              <Typography variant="body2">
+                                {new Date(entry.date).toLocaleDateString()}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Chip
+                                label={`${entry.hours} hours`}
+                                color="primary"
+                                variant="outlined"
+                              />
+                            </TableCell>
+                            <TableCell>
+                              {entry.project_name ? (
+                                <Typography variant="body2" color="text.secondary">
+                                  {entry.project_name}
+                                </Typography>
+                              ) : (
+                                <Chip label="-" size="small" variant="outlined" />
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {entry.description ? (
+                                <Typography variant="body2" color="text.secondary">
+                                  {entry.description}
+                                </Typography>
+                              ) : (
+                                <Chip label="No description" size="small" variant="outlined" />
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="body2" color="text.secondary">
+                                {new Date(entry.created_at).toLocaleDateString()}
+                              </Typography>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={5} align="center">
+                            <Typography color="text.secondary" sx={{ py: 3 }}>
+                              No work entries found for this client.
+                            </Typography>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Paper>
+            </>
+          )}
+
+          {selectedProject && projectReport && (
+            <>
+              <Typography variant="h5" gutterBottom>
+                Project Report: {selectedProject.name}
+              </Typography>
+              <Grid container spacing={3} sx={{ mb: 3 }}>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                  <Card>
+                    <CardContent>
+                      <Typography color="textSecondary" gutterBottom>
+                        Total Hours
+                      </Typography>
+                      <Typography variant="h4" component="div">
+                        {projectReport.totalHours.toFixed(2)}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                  <Card>
+                    <CardContent>
+                      <Typography color="textSecondary" gutterBottom>
+                        Total Entries
+                      </Typography>
+                      <Typography variant="h4" component="div">
+                        {projectReport.entryCount}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                  <Card>
+                    <CardContent>
+                      <Typography color="textSecondary" gutterBottom>
+                        Average Hours per Entry
+                      </Typography>
+                      <Typography variant="h4" component="div">
+                        {projectReport.entryCount > 0 ? (projectReport.totalHours / projectReport.entryCount).toFixed(2) : '0.00'}
                       </Typography>
                     </CardContent>
                   </Card>
@@ -227,8 +413,8 @@ const ReportsPage: React.FC = () => {
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {report.workEntries.length > 0 ? (
-                        report.workEntries.map((entry) => (
+                      {projectReport.workEntries.length > 0 ? (
+                        projectReport.workEntries.map((entry) => (
                           <TableRow key={entry.id}>
                             <TableCell>
                               <Typography variant="body2">
@@ -236,10 +422,10 @@ const ReportsPage: React.FC = () => {
                               </Typography>
                             </TableCell>
                             <TableCell>
-                              <Chip 
-                                label={`${entry.hours} hours`} 
-                                color="primary" 
-                                variant="outlined" 
+                              <Chip
+                                label={`${entry.hours} hours`}
+                                color="primary"
+                                variant="outlined"
                               />
                             </TableCell>
                             <TableCell>
@@ -262,7 +448,7 @@ const ReportsPage: React.FC = () => {
                         <TableRow>
                           <TableCell colSpan={4} align="center">
                             <Typography color="text.secondary" sx={{ py: 3 }}>
-                              No work entries found for this client.
+                              No work entries found for this project.
                             </Typography>
                           </TableCell>
                         </TableRow>
@@ -274,10 +460,10 @@ const ReportsPage: React.FC = () => {
             </>
           )}
 
-          {!selectedClient && (
+          {!selectedClient && !selectedProject && (
             <Paper sx={{ p: 3, textAlign: 'center' }}>
               <Typography color="text.secondary">
-                Select a client to view their time report.
+                Select a client or project to view their time report.
               </Typography>
             </Paper>
           )}
