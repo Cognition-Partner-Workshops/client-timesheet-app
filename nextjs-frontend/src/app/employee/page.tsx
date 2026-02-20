@@ -2,25 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-
-interface EmployeeFormData {
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  dateOfBirth: string;
-  gender: string;
-  addressLine1: string;
-  addressLine2: string;
-  city: string;
-  state: string;
-  zipCode: string;
-  country: string;
-  department: string;
-  jobTitle: string;
-  employeeId: string;
-  startDate: string;
-}
+import { useEmployees, EmployeeFormData } from "./employee-context";
 
 const initialFormData: EmployeeFormData = {
   firstName: "",
@@ -42,6 +24,7 @@ const initialFormData: EmployeeFormData = {
 };
 
 export default function EmployeePage() {
+  const { addEmployee } = useEmployees();
   const [formData, setFormData] = useState<EmployeeFormData>(initialFormData);
   const [submitted, setSubmitted] = useState(false);
 
@@ -54,6 +37,7 @@ export default function EmployeePage() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    addEmployee(formData);
     setSubmitted(true);
   }
 
@@ -85,13 +69,19 @@ export default function EmployeePage() {
               Personal details for {formData.firstName} {formData.lastName} have
               been recorded successfully.
             </p>
-            <div className="flex gap-4 justify-center">
+            <div className="flex gap-4 justify-center flex-wrap">
               <button
                 onClick={handleReset}
                 className="rounded-full bg-foreground text-background px-6 py-2 font-medium hover:bg-[#383838] dark:hover:bg-[#ccc] transition-colors"
               >
                 Add Another Employee
               </button>
+              <Link
+                href="/employee/search"
+                className="rounded-full border border-black/[.08] dark:border-white/[.145] px-6 py-2 font-medium hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] transition-colors"
+              >
+                Search Employees
+              </Link>
               <Link
                 href="/"
                 className="rounded-full border border-black/[.08] dark:border-white/[.145] px-6 py-2 font-medium hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] transition-colors"
@@ -110,12 +100,20 @@ export default function EmployeePage() {
       <div className="max-w-3xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold">Employee Details</h1>
-          <Link
-            href="/"
-            className="rounded-full border border-black/[.08] dark:border-white/[.145] px-4 py-2 text-sm font-medium hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] transition-colors"
-          >
-            Back to Home
-          </Link>
+          <div className="flex gap-2">
+            <Link
+              href="/employee/search"
+              className="rounded-full border border-black/[.08] dark:border-white/[.145] px-4 py-2 text-sm font-medium hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] transition-colors"
+            >
+              Search
+            </Link>
+            <Link
+              href="/"
+              className="rounded-full border border-black/[.08] dark:border-white/[.145] px-4 py-2 text-sm font-medium hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] transition-colors"
+            >
+              Home
+            </Link>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">
