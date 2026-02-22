@@ -25,6 +25,7 @@ interface EmployeeContextType {
   employees: EmployeeFormData[];
   addEmployee: (employee: EmployeeFormData) => void;
   searchEmployees: (query: string) => EmployeeFormData[];
+  deleteEmployee: (employeeId: string) => boolean;
 }
 
 const sampleEmployees: EmployeeFormData[] = [
@@ -144,8 +145,20 @@ export function EmployeeProvider({ children }: { children: ReactNode }) {
     [employees]
   );
 
+  const deleteEmployee = useCallback(
+    (employeeId: string): boolean => {
+      const index = employees.findIndex(
+        (emp) => emp.employeeId.toLowerCase() === employeeId.toLowerCase()
+      );
+      if (index === -1) return false;
+      setEmployees((prev) => prev.filter((emp) => emp.employeeId.toLowerCase() !== employeeId.toLowerCase()));
+      return true;
+    },
+    [employees]
+  );
+
   return (
-    <EmployeeContext.Provider value={{ employees, addEmployee, searchEmployees }}>
+    <EmployeeContext.Provider value={{ employees, addEmployee, searchEmployees, deleteEmployee }}>
       {children}
     </EmployeeContext.Provider>
   );
